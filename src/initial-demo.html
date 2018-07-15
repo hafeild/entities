@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"> 
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            position: fixed;
+            bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        #text-content {
+            width: 600px;
+            border: 1px gray solid;
+            white-space: pre-wrap;
+        }
+
+        #text-content, #character-list {
+            float: left;
+            height: 100%;
+            overflow: auto;
+        }
+
+        .character {
+            border: 1px steelblue solid;
+            border-radius: 10px;
+            margin-right: 2px;
+            padding: 2px;
+            display: inline-block;
+        }
+
+        .canonical {
+        }
+
+        .character-location, .anaphora-location {
+            white-space: nowrap;
+            text-decoration: underline;
+        }
+        .character-location {
+            color: steelblue;
+        }
+
+        .anaphora-location {
+            color: orange;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
+    <script>
+        var characters = {"Clarissa Dalloway": ["Clarissa Dalloway", "Clarissa", "Mrs. Dalloway"], "Lucy": ["Lucy"], "Hugh Whitbread": ["Hugh Whitbread", "Hugh"], "Miss Pym": ["Miss Pym"], "Septimus Smith": ["Septimus Smith", "Septimus"], "Lucrezia": ["Lucrezia", "Rezia"], "Maisie Johnson": ["Maisie Johnson", "Maisie"], "Richard Dalloway": ["Richard Dalloway", "Richard"], "Lady Bruton": ["Lady Bruton"], "Peter Walsh": ["Peter Walsh", "Peter"], "Elizabeth": ["Elizabeth"], "William Bradshaw": ["William Bradshaw", "Bradshaw"], "Mr. Brewer": ["Mr. Brewer"], "Lady Bradshaw": ["Lady Bradshaw"], "Milly Brush": ["Milly Brush", "Milly", "Miss Brush"], "Perkins": ["Perkins"], "Mrs. Marsham": ["Mrs. Marsham"], "Doris Kilman": ["Doris Kilman", "Miss Kilman"], "Holmes": ["Holmes"], "Mrs. Filmer": ["Mrs. Filmer"], "Charles Morris": ["Charles Morris"], "\"Charles Morris, Jr.\"": ["\"Charles Morris, Jr.\""], "Elaine Morris": ["Elaine Morris"], "Mrs. Morris": ["Mrs. Morris"], "Agnes ": ["Agnes ", "Agnes"], "Mrs. Walker": ["Mrs. Walker"], "Ellen Barnet": ["Ellen Barnet"], "Lady Lovejoy": ["Lady Lovejoy"], "Alice Lovejoy": ["Alice Lovejoy"], "Jenny": ["Jenny"], "Mr. Wilkins": ["Mr. Wilkins"], "Lord Lexham": ["Lord Lexham"], "Ellie Henderson": ["Ellie Henderson", "Ellie"], "Colonel Garrod": ["Colonel Garrod"], "Lady Mary Madox": ["Lady Mary Madox"], "Mr. Bowley": ["Mr. Bowley"], "Mr. Quin": ["Mr. Quin"], "Mrs. Garrod": ["Mrs. Garrod"], "Mrs. Hilbery": ["Mrs. Hilbery"], "Sir Harry": ["Sir Harry"], "Sally Seton": ["Sally Seton", "Sally"], "Professor Brierly": ["Professor Brierly"], "Jim Hutton": ["Jim Hutton"], "Lord Grayton": ["Lord Grayton"], "Nancy Blow": ["Nancy Blow", "Nancy"], "Helena Parry": ["Helena Parry"], "Portuguese Ambassador": ["Portuguese Ambassador"], "Mrs. Hilberry": ["Mrs. Hilberry"]};
+
+
+        var init = function(){
+            addCharacters();
+            addTitleText();
+        };
+
+        var addCharacters = function(){
+            var charTableElm = $('#character-table');
+            $.each(characters, function(key, aliases){
+                var row = $('<tr>');
+                charTableElm.append(row);
+                var canonicalElm = $('<span>');
+                var canonicalTDElm = $('<td>');
+                row.append(canonicalTDElm);
+                canonicalTDElm.append(canonicalElm);
+                canonicalElm.addClass('canonical');
+                canonicalElm.data({'canonical-id': key, 'id': key});
+                canonicalElm.html(key);
+
+                var aliasTDElm = $('<td>');
+                row.append(aliasTDElm);
+                $.each(aliases, function(index, alias){
+                    var aliasElm = $('<span>');
+                    aliasTDElm.append(aliasElm);
+                    aliasElm.addClass('character');
+                    aliasElm.data({'canonical-id': key, 'id': alias});
+                    aliasElm.html(alias);
+                });
+            });
+        };
+
+        var addTitleText = function(){
+            console.log('adding title text to:')
+            console.log($('.anaphora-location .character-location'));
+            $('.anaphora-location,.character-location').each(function(i, elm){
+                console.log(i, elm);
+                var elm = $(elm);
+                elm.attr('title', elm.data('canonical-id'));
+                elm.data({toggle: 'tooltip', placement: 'top'});
+                elm.tooltip();
+            });
+        };
+
+        var showCharacterInfo = function(event){
+            var elm = $(this);
+            
+        };
+
+        var showSuggestions = function(event){
+            var elm = $(this);
+
+        };
+
+        $(document).ready(init);
+    </script>
+</head>
+<body>
+
+    <div id="text-content">
+            <span class="character-location" data-id="Mrs. Dalloway" data-canonical-id="Clarissa Dalloway">Mrs. Dalloway</span> said <span class="anaphora-location" data-canonical-id="Clarissa Dalloway">she</span> would buy the flowers <span class="anaphora-location" data-canonical-id="Clarissa Dalloway">herself</span>.
+
+            For <span class="character-location" data-canonical-id="Lucy">Lucy</span> had <span class="anaphora-location" data-canonical-id="Lucy">her</span> work cut out for <span class="anaphora-location" data-canonical-id="Lucy">her</span>. The doors would be taken off their hinges; Rumpelmayer's men were coming. And then, thought <span class="character-location" data-canonical-id="Clarissa Dalloway">Clarissa Dalloway</span>, what a morning — fresh as if issued to children on a beach.
+            
+            What a lark! What a plunge! For so it had always seemed to her, when, with a little squeak of the hinges, which she could hear now, she had burst open the French windows and plunged at Bourton into the open air. How fresh, how calm, stiller than this of course, the air was in the early morning; like the flap of a wave; the kiss of a wave; chill and sharp and yet (for a girl of eighteen as she then was) solemn, feeling as she did, standing there at the open window, that something awful was about to happen; looking at the flowers, at the trees with the smoke winding off them and the rooks rising, falling; standing and looking until Peter Walsh said, “Musing among the vegetables?”— was that it? —“I prefer men to cauliflowers”— was that it? He must have said it at breakfast one morning when she had gone out on to the terrace — Peter Walsh. He would be back from India one of these days, June or July, she forgot which, for his letters were awfully dull; it was his sayings one remembered; his eyes, his pocket-knife, his smile, his grumpiness and, when millions of things had utterly vanished — how strange it was! — a few sayings like this about cabbages.
+            
+            She stiffened a little on the kerb, waiting for Durtnall's van to pass. A charming woman, Scrope Purvis thought her (knowing her as one does know people who live next door to one in Westminster); a touch of the bird about her, of the jay, blue-green, light, vivacious, though she was over fifty, and grown very white since her illness. There she perched, never seeing him, waiting to cross, very upright.
+            
+            For having lived in Westminster — how many years now? over twenty — one feels even in the midst of the traffic, or waking at night, Clarissa was positive, a particular hush, or solemnity; an indescribable pause; a suspense (but that might be her heart, affected, they said, by influenza) before Big Ben strikes. There! Out it boomed. First a warning, musical; then the hour, irrevocable. The leaden circles dissolved in the air. Such fools we are, she thought, crossing Victoria Street. For Heaven only knows why one loves it so, how one sees it so, making it up, building it round one, tumbling it, creating it every moment afresh; but the veriest frumps, the most dejected of miseries sitting on doorsteps (drink their downfall) do the same; can't be dealt with, she felt positive, by Acts of Parliament for that very reason: they love life. In people's eyes, in the swing, tramp, and trudge; in the bellow and the uproar; the carriages, motor cars, omnibuses, vans, sandwich men shuffling and swinging; brass bands; barrel organs; in the triumph and the jingle and the strange high singing of some aeroplane overhead was what she loved; life; London; this moment of June.
+
+            ...
+    </div>
+    <div id="character-list">
+        <table id="character-table">
+            <tr>
+                <th>Character name</th>
+                <th>Aliases</th>
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>
