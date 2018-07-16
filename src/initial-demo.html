@@ -30,6 +30,10 @@
             border: 1px gray solid;
         }
 
+        #character-list span, #interactions td {
+            cursor: pointer;
+        }
+
         .character {
             border: 1px steelblue solid;
             border-radius: 10px;
@@ -49,11 +53,21 @@
             color: steelblue;
         }
 
+        .character-location.highlight {
+            color: white;
+            background-color: steelblue;
+        }
+
         .anaphora-location {
             color: orange;
         }
 
-        .thought, .speech  interaction {
+        .anaphora-location.highlight {
+            color: white;
+            background-color: orange;
+        }
+
+        .thought, .speech {
             display: inline-block;
             border: 1px solid gray;
         }
@@ -62,8 +76,21 @@
             color: red;
         }
 
-        .speech  interaction {
+        .thought.highlight {
+            background: red;
+        }
+
+        .speech {
             color: pink;
+        }
+
+        .speech.highlight {
+            background-color: pink;
+        }
+
+        .highlight {
+            color: white;
+            font-weight: bold;
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -84,6 +111,8 @@
             addInteractionIds();
             addCharacters();
             addTitleText();
+            addCanonicalClickListener();
+            addInteractionClickListener();
         };
 
         var nextInteractionId = 0;
@@ -128,7 +157,7 @@
 
             $('.interaction').each(function(i, elm){
                 elm = $(this);
-                elm.data('id', nextInteractionId);
+                elm.attr('data-interaction-id', nextInteractionId);
                 var rowElm = $('<tr>');
                 var subjectTDElm = $('<td>');
                 var interactionTypeTDElm = $('<td>');
@@ -136,15 +165,38 @@
                 rowElm.append(subjectTDElm).append(interactionTypeTDElm).
                     append(objectTDElm).appendTo(interactionsTableElm);
 
-                rowElm.data('interaction-id', nextInteractionId);
-                subjectTDElm.addClass('.subject');
+                rowElm.attr('data-interaction-id', nextInteractionId);
+                subjectTDElm.addClass('subject');
                 subjectTDElm.html($('[data-location-id='+elm.data('subject-location')+']').data('canonical-id'));
-                objectTDElm.addClass('.object');
+                objectTDElm.addClass('object');
                 objectTDElm.html($('[data-location-id='+elm.data('object-location')+']').data('canonical-id'));
-                interactionTypeTDElm.addClass('.interaction-class');
+                interactionTypeTDElm.addClass('interaction-class');
                 interactionTypeTDElm.html(elm.data('interaction-class'));
 
                 nextInteractionId++;
+            });
+        };
+
+        var addCanonicalClickListener = function(){
+            $(document).on('click', '#character-table .canonical', function(event){
+                var elm = $(this);
+                $('.highlight').removeClass('highlight');
+                $('#text-content [data-canonical-id="'+ elm.data('canonical-id')+'"]').addClass('highlight');
+            });
+        };
+
+        var addInteractionClickListener = function(){
+            $(document).on('click', '#interactions-table .interaction-class', function(event){
+                var elm = $(this).parents('tr');
+                console.log(elm);
+
+                var interactionElm = $('#text-content [data-interaction-id='+ elm.data('interaction-id')+']');
+                console.log('#text-content [data-interaction-id='+ elm.data('interaction-id')+']', interactionElm);
+                
+                $('.highlight').removeClass('highlight');
+                interactionElm.addClass('highlight');
+                $('#text-content [data-location-id='+ interactionElm.data('subject-location')+']').addClass('highlight');
+                $('#text-content [data-location-id='+ interactionElm.data('object-location')+']').addClass('highlight');
             });
         };
 
