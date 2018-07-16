@@ -23,10 +23,11 @@
             white-space: pre-wrap;
         }
 
-        #text-content, #character-list {
+        #text-content, #character-list, #interactions {
             float: left;
             height: 100%;
             overflow: auto;
+            border: 1px gray solid;
         }
 
         .character {
@@ -51,6 +52,19 @@
         .anaphora-location {
             color: orange;
         }
+
+        .thought, .speech  interaction {
+            display: inline-block;
+            border: 1px solid gray;
+        }
+
+        .thought {
+            color: red;
+        }
+
+        .speech  interaction {
+            color: pink;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
@@ -58,11 +72,22 @@
     <script>
         var characters = {"Clarissa Dalloway": ["Clarissa Dalloway", "Clarissa", "Mrs. Dalloway"], "Lucy": ["Lucy"], "Hugh Whitbread": ["Hugh Whitbread", "Hugh"], "Miss Pym": ["Miss Pym"], "Septimus Smith": ["Septimus Smith", "Septimus"], "Lucrezia": ["Lucrezia", "Rezia"], "Maisie Johnson": ["Maisie Johnson", "Maisie"], "Richard Dalloway": ["Richard Dalloway", "Richard"], "Lady Bruton": ["Lady Bruton"], "Peter Walsh": ["Peter Walsh", "Peter"], "Elizabeth": ["Elizabeth"], "William Bradshaw": ["William Bradshaw", "Bradshaw"], "Mr. Brewer": ["Mr. Brewer"], "Lady Bradshaw": ["Lady Bradshaw"], "Milly Brush": ["Milly Brush", "Milly", "Miss Brush"], "Perkins": ["Perkins"], "Mrs. Marsham": ["Mrs. Marsham"], "Doris Kilman": ["Doris Kilman", "Miss Kilman"], "Holmes": ["Holmes"], "Mrs. Filmer": ["Mrs. Filmer"], "Charles Morris": ["Charles Morris"], "\"Charles Morris, Jr.\"": ["\"Charles Morris, Jr.\""], "Elaine Morris": ["Elaine Morris"], "Mrs. Morris": ["Mrs. Morris"], "Agnes ": ["Agnes ", "Agnes"], "Mrs. Walker": ["Mrs. Walker"], "Ellen Barnet": ["Ellen Barnet"], "Lady Lovejoy": ["Lady Lovejoy"], "Alice Lovejoy": ["Alice Lovejoy"], "Jenny": ["Jenny"], "Mr. Wilkins": ["Mr. Wilkins"], "Lord Lexham": ["Lord Lexham"], "Ellie Henderson": ["Ellie Henderson", "Ellie"], "Colonel Garrod": ["Colonel Garrod"], "Lady Mary Madox": ["Lady Mary Madox"], "Mr. Bowley": ["Mr. Bowley"], "Mr. Quin": ["Mr. Quin"], "Mrs. Garrod": ["Mrs. Garrod"], "Mrs. Hilbery": ["Mrs. Hilbery"], "Sir Harry": ["Sir Harry"], "Sally Seton": ["Sally Seton", "Sally"], "Professor Brierly": ["Professor Brierly"], "Jim Hutton": ["Jim Hutton"], "Lord Grayton": ["Lord Grayton"], "Nancy Blow": ["Nancy Blow", "Nancy"], "Helena Parry": ["Helena Parry"], "Portuguese Ambassador": ["Portuguese Ambassador"], "Mrs. Hilberry": ["Mrs. Hilberry"]};
 
+        var interactionVerbs = {said: 1, says: 1, say: 1, yells: 1, yelled: 1, 
+            consoles: 1, consoled: 1, stated: 1, shouted: 1, shouts: 1, shout: 1,
+            cried: 1, cries: 1, cry: 1, announce: 1, announced: 1, announces: 1,
+            profess: 1, professed: 1, professes: 1, address: 1, addressed: 1,
+            addresses: 1, agree: 1, agreed: 1, agrees: 1, answer: 1, answered: 1,
+            answers: 1, argue: 1, argued: 1, argues: 1, ask: 1, asked: 1, 
+            asks: 1, confess: 1, confessed: 1, confesses: 1};
 
         var init = function(){
+            addInteractionIds();
             addCharacters();
             addTitleText();
         };
+
+        var nextInteractionId = 0;
+        var nextCharacterLocationId = 0;
 
         var addCharacters = function(){
             var charTableElm = $('#character-table');
@@ -90,16 +115,46 @@
         };
 
         var addTitleText = function(){
-            console.log('adding title text to:')
-            console.log($('.anaphora-location .character-location'));
             $('.anaphora-location,.character-location').each(function(i, elm){
-                console.log(i, elm);
                 var elm = $(elm);
                 elm.attr('title', elm.data('canonical-id'));
                 elm.data({toggle: 'tooltip', placement: 'top'});
                 elm.tooltip();
             });
         };
+
+        var addInteractionIds = function(){
+            var interactionsTableElm = $('#interactions-table');
+
+            $('.interaction').each(function(i, elm){
+                elm = $(this);
+                elm.data('id', nextInteractionId);
+                var rowElm = $('<tr>');
+                var subjectTDElm = $('<td>');
+                var interactionTypeTDElm = $('<td>');
+                var objectTDElm = $('<td>');
+                rowElm.append(subjectTDElm).append(interactionTypeTDElm).
+                    append(objectTDElm).appendTo(interactionsTableElm);
+
+                rowElm.data('interaction-id', nextInteractionId);
+                subjectTDElm.addClass('.subject');
+                subjectTDElm.html($('[data-location-id='+elm.data('subject-location')+']').data('canonical-id'));
+                objectTDElm.addClass('.object');
+                objectTDElm.html($('[data-location-id='+elm.data('object-location')+']').data('canonical-id'));
+                interactionTypeTDElm.addClass('.interaction-class');
+                interactionTypeTDElm.html(elm.data('interaction-class'));
+
+                nextInteractionId++;
+            });
+        };
+
+        // var addCharacterLocationIds = function(){
+        //     $('.anaphora-location,.character-location').each(function(i, elm){
+        //         elm = $(elm);
+        //         elm.data('location-id', nextCharacterLocationId);
+        //         nextCharacterLocationId++;
+        //     });
+        // };
 
         var showCharacterInfo = function(event){
             var elm = $(this);
@@ -117,26 +172,34 @@
 <body>
 
     <div id="text-content">
-            <span class="character-location" data-id="Mrs. Dalloway" data-canonical-id="Clarissa Dalloway">Mrs. Dalloway</span> said <span class="anaphora-location" data-canonical-id="Clarissa Dalloway">she</span> would buy the flowers <span class="anaphora-location" data-canonical-id="Clarissa Dalloway">herself</span>.
+            <span class="character-location" data-id="Mrs. Dalloway" data-canonical-id="Clarissa Dalloway" data-location-id="1">Mrs. Dalloway</span> <span class="speech  interaction" data-interaction-class="speaks to" data-subject-location="1" data-object-location="4">said</span> <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="2">she</span> would buy the flowers <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="3">herself</span>.
 
-            For <span class="character-location" data-canonical-id="Lucy">Lucy</span> had <span class="anaphora-location" data-canonical-id="Lucy">her</span> work cut out for <span class="anaphora-location" data-canonical-id="Lucy">her</span>. The doors would be taken off their hinges; Rumpelmayer's men were coming. And then, thought <span class="character-location" data-canonical-id="Clarissa Dalloway">Clarissa Dalloway</span>, what a morning — fresh as if issued to children on a beach.
+            For <span class="character-location" data-canonical-id="Lucy" data-location-id="4">Lucy</span> had <span class="anaphora-location" data-canonical-id="Lucy" data-location-id="5">her</span> work cut out for <span class="anaphora-location" data-canonical-id="Lucy" data-location-id="6">her</span>. The doors would be taken off their hinges; Rumpelmayer's men were coming. And then, <span class="thought  interaction" data-interaction-class="thinks of" data-subject-location="7">thought</span> <span class="character-location" data-canonical-id="Clarissa Dalloway" data-location-id="7">Clarissa Dalloway</span>, what a morning — fresh as if issued to children on a beach.
             
-            What a lark! What a plunge! For so it had always seemed to her, when, with a little squeak of the hinges, which she could hear now, she had burst open the French windows and plunged at Bourton into the open air. How fresh, how calm, stiller than this of course, the air was in the early morning; like the flap of a wave; the kiss of a wave; chill and sharp and yet (for a girl of eighteen as she then was) solemn, feeling as she did, standing there at the open window, that something awful was about to happen; looking at the flowers, at the trees with the smoke winding off them and the rooks rising, falling; standing and looking until Peter Walsh said, “Musing among the vegetables?”— was that it? —“I prefer men to cauliflowers”— was that it? He must have said it at breakfast one morning when she had gone out on to the terrace — Peter Walsh. He would be back from India one of these days, June or July, she forgot which, for his letters were awfully dull; it was his sayings one remembered; his eyes, his pocket-knife, his smile, his grumpiness and, when millions of things had utterly vanished — how strange it was! — a few sayings like this about cabbages.
+            What a lark! What a plunge! For so it had always seemed to <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="8">her</span>, when, with a little squeak of the hinges, which <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="9">she</span> could hear now, <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="10">she</span> had burst open the French windows and plunged at Bourton into the open air. How fresh, how calm, stiller than this of course, the air was in the early morning; like the flap of a wave; the kiss of a wave; chill and sharp and yet (for a girl of eighteen as <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="11">she</span> then was) solemn, feeling as <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="12">she</span> did, standing there at the open window, that something awful was about to happen; looking at the flowers, at the trees with the smoke winding off them and the rooks rising, falling; standing and looking until <span class="character-location" data-canonical-id="Peter Walsh" data-location-id="13">Peter Walsh</span> <span class="speech  interaction" data-interaction-class="speaks to" data-subject-location="13" data-object-location="12">said</span>, “Musing among the vegetables?”— was that it? —“<span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="14">I</span> prefer men to cauliflowers”— was that it? <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="38">He</span> must have <span class="speech  interaction" data-interaction-class="speaks to" data-subject-location="38" data-object-location="39">said</span> it at breakfast one morning when <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="39">she</span> had gone out on to the terrace — <span class="character-location" data-canonical-id="Peter Walsh" data-location-id="16">Peter Walsh</span>. <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="17">He</span> would be back from India one of these days, June or July, <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="18">she</span> forgot which, for <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="19">his</span> letters were awfully dull; it was <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="20">his</span> sayings one <span class="thought  interaction" data-interaction-class="thinks of">remembered</span>; <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="21">his</span> eyes, <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="22">his</span> pocket-knife, <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="23">his</span> smile, <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="24">his</span> grumpiness and, when millions of things had utterly vanished — how strange it was! — a few sayings like this about cabbages.
             
-            She stiffened a little on the kerb, waiting for Durtnall's van to pass. A charming woman, Scrope Purvis thought her (knowing her as one does know people who live next door to one in Westminster); a touch of the bird about her, of the jay, blue-green, light, vivacious, though she was over fifty, and grown very white since her illness. There she perched, never seeing him, waiting to cross, very upright.
+            <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="25">She</span> stiffened a little on the kerb, waiting for Durtnall's van to pass. A charming woman, <span class="character-location" data-canonical-id="Scrope Purvis" data-location-id="26">Scrope Purvis</span> <span class="thought  interaction" data-interaction-class="thinks of" data-subject-location="26" data-object-location="27">thought</span> <span class="anaphora-location" data-canonical-id="Scrope Purvis" data-location-id="27">her</span> (knowing <span class="anaphora-location" data-canonical-id="Scrope Purvis" data-location-id="28">her</span> as one does know people who live next door to one in Westminster); a touch of the bird about <span class="anaphora-location" data-canonical-id="Scrope Purvis" data-location-id="29">her</span>, of the jay, blue-green, light, vivacious, though <span class="anaphora-location" data-canonical-id="Scrope Purvis" data-location-id="30">she</span> was over fifty, and grown very white since <span class="anaphora-location" data-canonical-id="Scrope Purvis" data-location-id="31">her</span> illness. There <span class="anaphora-location" data-canonical-id="Scrope Purvis" data-location-id="32">she</span> perched, never seeing <span class="anaphora-location" data-canonical-id="Peter Walsh" data-location-id="33">him</span>, waiting to cross, very upright.
             
-            For having lived in Westminster — how many years now? over twenty — one feels even in the midst of the traffic, or waking at night, Clarissa was positive, a particular hush, or solemnity; an indescribable pause; a suspense (but that might be her heart, affected, they said, by influenza) before Big Ben strikes. There! Out it boomed. First a warning, musical; then the hour, irrevocable. The leaden circles dissolved in the air. Such fools we are, she thought, crossing Victoria Street. For Heaven only knows why one loves it so, how one sees it so, making it up, building it round one, tumbling it, creating it every moment afresh; but the veriest frumps, the most dejected of miseries sitting on doorsteps (drink their downfall) do the same; can't be dealt with, she felt positive, by Acts of Parliament for that very reason: they love life. In people's eyes, in the swing, tramp, and trudge; in the bellow and the uproar; the carriages, motor cars, omnibuses, vans, sandwich men shuffling and swinging; brass bands; barrel organs; in the triumph and the jingle and the strange high singing of some aeroplane overhead was what she loved; life; London; this moment of June.
+            For having lived in Westminster — how many years now? over twenty — one feels even in the midst of the traffic, or waking at night,  <span class="character-location" data-canonical-id="Clarissa Dalloway" data-location-id="34">Clarissa</span> was positive, a particular hush, or solemnity; an indescribable pause; a suspense (but that might be <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="35">her</span> heart, affected, they <span class="speech  interaction" data-interaction-class="speaks to">said</span>, by influenza) before Big Ben strikes. There! Out it boomed. First a warning, musical; then the hour, irrevocable. The leaden circles dissolved in the air. Such fools we are, <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="39">she</span> <span class="thought  interaction" data-interaction-class="thinks of" data-subject-location="39">thought</span>, crossing Victoria Street. For Heaven only knows why one loves it so, how one sees it so, making it up, building it round one, tumbling it, creating it every moment afresh; but the veriest frumps, the most dejected of miseries sitting on doorsteps (drink their downfall) do the same; can't be dealt with, <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="36">she</span> felt positive, by Acts of Parliament for that very reason: they love life. In people's eyes, in the swing, tramp, and trudge; in the bellow and the uproar; the carriages, motor cars, omnibuses, vans, sandwich men shuffling and swinging; brass bands; barrel organs; in the triumph and the jingle and the strange high singing of some aeroplane overhead was what <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="37">she</span> loved; life; London; this moment of June.
 
             ...
     </div>
-    <div id="character-list">
-        <table id="character-table">
+    <div id="interactions">
+        <table id="interactions-table">
             <tr>
-                <th>Character name</th>
-                <th>Aliases</th>
+                <th>Subject</th>
+                <th>Action</th>
+                <th>Object</th>
             </tr>
         </table>
     </div>
-
+    <div id="character-list">
+            <table id="character-table">
+                <tr>
+                    <th>Character name</th>
+                    <th>Aliases</th>
+                </tr>
+            </table>
+        </div>
 </body>
 </html>
