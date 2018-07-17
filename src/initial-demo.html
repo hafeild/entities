@@ -1,4 +1,19 @@
 <!DOCTYPE html>
+<!--
+Things to add to the demo:
+
+    * remove character/anaphora/interaction locations
+    * change the character an anphora refers to
+    * change the object/subject of an interaction
+    * modify characters/aliases
+        - remove characters / aliases
+        - rename character canonical
+        - set alias as the canonical
+        - add new alias
+        - move alias to another character
+    * highlight new characters / anaphora / interactions
+
+-->
 <html>
 <head>
     <meta charset="UTF-8"> 
@@ -28,6 +43,19 @@
             height: 100%;
             overflow: auto;
             border: 1px gray solid;
+        }
+
+        #character-list td {
+            border-bottom: 1px solid lightgray;
+        }
+        #interactions td, #interactions th{
+            border-bottom: 1px solid lightgray;
+            border-right: 1px solid lightgray;
+            padding: 5px;
+        }
+
+        #interactions .highlight td, #character-list .highlight td {
+            background-color: yellow;
         }
 
         #character-list span, #interactions td {
@@ -77,6 +105,7 @@
         }
 
         .thought.highlight {
+            color: white;
             background: red;
         }
 
@@ -85,11 +114,11 @@
         }
 
         .speech.highlight {
+            color: white;
             background-color: pink;
         }
 
         .highlight {
-            color: white;
             font-weight: bold;
         }
     </style>
@@ -180,7 +209,14 @@
         var addCanonicalClickListener = function(){
             $(document).on('click', '#character-table .canonical', function(event){
                 var elm = $(this);
+
+                if(elm.parents('tr').hasClass('highlight')){
+                    $('.highlight').removeClass('highlight');
+                    return;
+                }
+
                 $('.highlight').removeClass('highlight');
+                elm.parents('tr').addClass('highlight');
                 $('#text-content [data-canonical-id="'+ elm.data('canonical-id')+'"]').addClass('highlight');
             });
         };
@@ -190,10 +226,16 @@
                 var elm = $(this).parents('tr');
                 console.log(elm);
 
+                if(elm.hasClass('highlight')){
+                    $('.highlight').removeClass('highlight');
+                    return;
+                }
+
                 var interactionElm = $('#text-content [data-interaction-id='+ elm.data('interaction-id')+']');
                 console.log('#text-content [data-interaction-id='+ elm.data('interaction-id')+']', interactionElm);
                 
                 $('.highlight').removeClass('highlight');
+                elm.addClass('highlight');
                 interactionElm.addClass('highlight');
                 $('#text-content [data-location-id='+ interactionElm.data('subject-location')+']').addClass('highlight');
                 $('#text-content [data-location-id='+ interactionElm.data('object-location')+']').addClass('highlight');
