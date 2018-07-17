@@ -144,6 +144,7 @@ Things to add to the demo:
         var nextCharacterLocationId = 0;
         var elmWithPopover = undefined;
         var characterAnnotationPopoverElm;
+        var selectingLocation = false;
 
         var init = function(){
             characterAnnotationPopoverElm = $('#character-annotation-popover');
@@ -154,9 +155,12 @@ Things to add to the demo:
             addCanonicalClickListener();
             addInteractionClickListener();
             addRemoveCharacterLocationListener();
+            addSelectCharacterListener();
+
             $(document).on('show.bs.popover', '.anaphora-location,.character-location', function(){
                 characterAnnotationPopoverElm = $(this);
             });
+            $(document).on('click', 'tr.cancel', function(){ selectingLocation = false; $(this).toggleClass('hidden')});
         };
 
         var addCharacters = function(){
@@ -189,7 +193,7 @@ Things to add to the demo:
                 var elm = $(elm);
                 elm.attr('title', elm.data('canonical-id'));
                 elm.data({toggle: 'tooltip', placement: 'top'});
-                elm.tooltip();
+                //elm.tooltip();
                 elm.attr({
                     tabindex: 0,
                     'data-toggle': 'popover',
@@ -236,14 +240,31 @@ Things to add to the demo:
             $(document).on('click', '#character-table .canonical', function(event){
                 var elm = $(this);
 
-                if(elm.parents('tr').hasClass('highlight')){
-                    $('.highlight').removeClass('highlight');
-                    return;
-                }
+                if(selectingLocation){
+                    console.log(elm, selectingLocation, characterAnnotationPopoverElm);
+                    var locationId = characterAnnotationPopoverElm.data('location-id');
 
-                $('.highlight').removeClass('highlight');
-                elm.parents('tr').addClass('highlight');
-                $('#text-content [data-canonical-id="'+ elm.data('canonical-id')+'"]').addClass('highlight');
+                    characterAnnotationPopoverElm.attr({
+                        'data-canonical-id': elm.data('canonical-id'),
+                        'title': elm.data('canonical-id'),
+                        'data-original-title': elm.data('canonical-id')
+                    });
+                    $('#interactions-table [data-location-id='+ locationId +']').each(function(i, elm2){
+                        elm2 = $(elm2);
+                        elm2.html(elm.data('canonical-id'));
+                    });
+                    selectingLocation = false; 
+                    $('#character-table tr.cancel').toggleClass('hidden');
+                } else {
+
+                    if(elm.parents('tr').hasClass('highlight')){
+                        $('.highlight').removeClass('highlight');
+                        return;
+                    }
+                    $('.highlight').removeClass('highlight');
+                    elm.parents('tr').addClass('highlight');
+                    $('#text-content [data-canonical-id="'+ elm.data('canonical-id')+'"]').addClass('highlight');
+                }
             });
         };
 
@@ -285,6 +306,13 @@ Things to add to the demo:
             });
         };
 
+        var addSelectCharacterListener = function(){
+            $(document).on('click', '.select-character', function(){
+                $('#character-table tr.cancel').toggleClass('hidden');
+                selectingLocation = true;
+            });
+        };
+
         // var addCharacterLocationIds = function(){
         //     $('.anaphora-location,.character-location').each(function(i, elm){
         //         elm = $(elm);
@@ -309,7 +337,7 @@ Things to add to the demo:
 <body>
 
     <div id="text-content">
-            <span class="character-location" data-id="Mrs. Dalloway" data-canonical-id="Clarissa Dalloway" data-location-id="1">Mrs. Dalloway</span> <span class="speech  interaction" data-interaction-class="speaks to" data-subject-location="1" data-object-location="4">said</span> <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="2">she</span> would buy the flowers <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="3">herself</span>.
+            <span class="character-location" data-canonical-id="Clarissa Dalloway" data-location-id="1">Mrs. Dalloway</span> <span class="speech  interaction" data-interaction-class="speaks to" data-subject-location="1" data-object-location="4">said</span> <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="2">she</span> would buy the flowers <span class="anaphora-location" data-canonical-id="Clarissa Dalloway" data-location-id="3">herself</span>.
 
             For <span class="character-location" data-canonical-id="Lucy" data-location-id="4">Lucy</span> had <span class="anaphora-location" data-canonical-id="Lucy" data-location-id="5">her</span> work cut out for <span class="anaphora-location" data-canonical-id="Lucy" data-location-id="6">her</span>. The doors would be taken off their hinges; Rumpelmayer's men were coming. And then, <span class="thought  interaction" data-interaction-class="thinks of" data-subject-location="7">thought</span> <span class="character-location" data-canonical-id="Clarissa Dalloway" data-location-id="7">Clarissa Dalloway</span>, what a morning — fresh as if issued to children on a beach.
             
@@ -335,6 +363,9 @@ Things to add to the demo:
             <tr>
                 <th>Character name</th>
                 <th>Aliases</th>
+            </tr>
+            <tr class="cancel hidden">
+                <td colspan="2"><button role="button" class="btn btn-danger btn-sm cancel">Cancel</button></td>
             </tr>
         </table>
     </div>
