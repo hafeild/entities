@@ -2,8 +2,9 @@
 <!--
 Things to add to the demo:
 
-    * remove character/anaphora/interaction locations
-    * change the character an anphora refers to
+    x remove character/anaphora
+    * remove interaction locations
+    x change the character an anphora refers to
     * change the object/subject of an interaction
     * modify characters/aliases
         - remove characters / aliases
@@ -125,6 +126,11 @@ Things to add to the demo:
         .hidden {
             display: none;
         }
+
+        .popover {
+            white-space: nowrap;
+            max-width: none;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
@@ -143,12 +149,14 @@ Things to add to the demo:
         var nextInteractionId = 0;
         var nextCharacterLocationId = 0;
         var elmWithPopover = undefined;
-        var characterAnnotationPopoverElm;
+        var characterAnnotationPopoverElm, interactionAnnotationPopoverElm;
         var selectingLocation = false;
+        var selectingObject = false;
+        var selectingSubject = false;
 
         var init = function(){
             characterAnnotationPopoverElm = $('#character-annotation-popover');
-            characterAnnotationPopoverElm = $('#character-annotation-popover');
+            interactionAnnotationPopoverElm = $('#interaction-annotation-popover');
             addInteractionIds();
             addCharacters();
             addTitleText();
@@ -156,11 +164,20 @@ Things to add to the demo:
             addInteractionClickListener();
             addRemoveCharacterLocationListener();
             addSelectCharacterListener();
+            addRemoveInteractionListener();
+            addSelectObjectSubjectListener();
 
-            $(document).on('show.bs.popover', '.anaphora-location,.character-location', function(){
-                characterAnnotationPopoverElm = $(this);
+            $(document).on('show.bs.popover', '.anaphora-location,.character-location,.interaction', function(){
+                elmWithPopover = $(this);
             });
-            $(document).on('click', 'tr.cancel', function(){ selectingLocation = false; $(this).toggleClass('hidden')});
+
+            $(document).on('click', 'tr.cancel', function(){ 
+                selectingLocation = false; 
+                selectingObject = false;
+                selectingSubject = false;
+                $(this).toggleClass('hidden');
+                $('.anaphora-location,.character-location,.interaction').popover('enable');
+            });
         };
 
         var addCharacters = function(){
@@ -233,6 +250,21 @@ Things to add to the demo:
                 interactionTypeTDElm.html(elm.data('interaction-class'));
 
                 nextInteractionId++;
+
+                var title = generateInteractionTitle(elm);
+                elm.attr({
+                    tabindex: 0,
+                    'data-toggle': 'popover',
+                    'data-trigger': 'focus',
+                    'title': title,
+                    'data-placement': 'top'
+                });
+                elm.popover({
+                    content: interactionAnnotationPopoverElm,
+                    html: true,
+                    trigger: 'focus'
+                });
+
             });
         };
 
@@ -241,10 +273,10 @@ Things to add to the demo:
                 var elm = $(this);
 
                 if(selectingLocation){
-                    console.log(elm, selectingLocation, characterAnnotationPopoverElm);
-                    var locationId = characterAnnotationPopoverElm.data('location-id');
+                    console.log(elm, selectingLocation, elmWithPopover);
+                    var locationId = elmWithPopover.data('location-id');
 
-                    characterAnnotationPopoverElm.attr({
+                    elmWithPopover.attr({
                         'data-canonical-id': elm.data('canonical-id'),
                         'title': elm.data('canonical-id'),
                         'data-original-title': elm.data('canonical-id')
@@ -290,7 +322,7 @@ Things to add to the demo:
 
         var addRemoveCharacterLocationListener = function(){
             $(document).on('click', '.remove-character', function(){
-                var locationId = characterAnnotationPopoverElm.data('location-id');
+                var locationId = elmWithPopover.data('location-id');
 
                 // Remove location from anything it depends on (interactions).
                 $('[data-object-location='+ locationId +']').removeAttr('data-object-location');
@@ -302,7 +334,7 @@ Things to add to the demo:
                 });
 
                 // Remove location.
-                characterAnnotationPopoverElm.replaceWith(characterAnnotationPopoverElm.html());
+                elmWithPopover.replaceWith(elmWithPopover.html());
             });
         };
 
@@ -312,6 +344,64 @@ Things to add to the demo:
                 selectingLocation = true;
             });
         };
+
+        var addRemoveInteractionListener = function(){
+            $(document).on('click', '.remove-interaction', function(){
+                var interactionId = elmWithPopover.data('interaction-id');
+
+                $('#interactions-table tr[data-interaction-id='+ interactionId +']').remove();
+
+                // Remove location.
+                elmWithPopover.replaceWith(elmWithPopover.html());
+            });
+        };
+
+        var addSelectObjectSubjectListener = function(){
+            $(document).on('click', '.select-object-subject', function(){
+                $('#interactions-table tr.cancel').toggleClass('hidden');
+                selectingObject = $(this).hasClass('select-object');
+                selectingSubject = $(this).hasClass('select-subject');
+
+                $('.anaphora-location,.character-location,.interaction').popover('disable');
+            });
+
+            $(document).on('click', '.anaphora-location,.character-location', function(event){
+                var elm = $(this);
+                if(selectingSubject || selectingObject){
+                    var key = selectingSubject ? 'subject' : 'object';
+
+                    // Update interaction element.
+                    elmWithPopover.attr('data-'+key+'-location', elm.data('location-id'));
+
+                    // Update interaction in table.
+                    var tableElm = $('#interactions-table tr[data-interaction-id='+ elmWithPopover.data('interaction-id') +'] .'+key);
+                    tableElm.html(elm.data('canonical-id'));
+                    tableElm.attr({
+                        'data-location-id': elm.data('location-id')
+                    });
+
+                    var title = generateInteractionTitle(elmWithPopover);
+                    elmWithPopover.attr({
+                        title: title,
+                        'data-original-title': title
+                    });
+
+                    $('.anaphora-location,.character-location,.interaction').popover('enable');
+                    $('#interactions-table tr.cancel').toggleClass('hidden');
+                    selectingObject = false;
+                    selectingSubject = false;
+                }
+            });
+
+        };
+
+        var generateInteractionTitle = function(elm){
+            var row = $('#interactions-table tr[data-interaction-id='+ elm.data('interaction-id') +']');
+            return row.find('.subject').text() +' '+ 
+                row.find('.interaction-class').text() +' '+
+                row.find('.object').text();
+        };
+
 
         // var addCharacterLocationIds = function(){
         //     $('.anaphora-location,.character-location').each(function(i, elm){
@@ -356,6 +446,9 @@ Things to add to the demo:
                 <th>Action</th>
                 <th>Object</th>
             </tr>
+            <tr class="cancel hidden">
+                <td colspan="3"><button role="button" class="btn btn-danger btn-sm cancel">Cancel</button></td>
+            </tr>
         </table>
     </div>
     <div id="character-list">
@@ -379,10 +472,10 @@ Things to add to the demo:
         </div>
 
         <div id="interaction-annotation-popover">
-            <div class="btn-group" role="group" aria-label="Interaction annotation options">
-                <button class="btn btn-danger btn-sm remove-interaction">Remove</button>
-                <button class="btn btn-primary btn-sm select-object">Select object</button>
-                <button class="btn btn-primary btn-sm select-subject">Select subject</button>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Interaction annotation options">
+                <button class="btn btn-danger remove-interaction">Remove</button>
+                <button class="btn btn-primary select-object-subject select-subject">Select subject</button>
+                <button class="btn btn-primary select-object-subject select-object">Select object</button>
             </div>
         </div>
     </div>
