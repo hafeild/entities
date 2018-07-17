@@ -43,7 +43,7 @@ Things to add to the demo:
             height: 100%;
             overflow: auto;
             border: 1px gray solid;
-        }
+        }   
 
         #character-list td {
             border-bottom: 1px solid lightgray;
@@ -121,6 +121,10 @@ Things to add to the demo:
         .highlight {
             font-weight: bold;
         }
+
+        .hidden {
+            display: none;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
@@ -136,16 +140,24 @@ Things to add to the demo:
             answers: 1, argue: 1, argued: 1, argues: 1, ask: 1, asked: 1, 
             asks: 1, confess: 1, confessed: 1, confesses: 1};
 
+        var nextInteractionId = 0;
+        var nextCharacterLocationId = 0;
+        var elmWithPopover = undefined;
+        var characterAnnotationPopoverElm;
+
         var init = function(){
+            characterAnnotationPopoverElm = $('#character-annotation-popover');
+            characterAnnotationPopoverElm = $('#character-annotation-popover');
             addInteractionIds();
             addCharacters();
             addTitleText();
             addCanonicalClickListener();
             addInteractionClickListener();
+            addRemoveCharacterLocationListener();
+            $(document).on('show.bs.popover', '.anaphora-location,.character-location', function(){
+                characterAnnotationPopoverElm = $(this);
+            });
         };
-
-        var nextInteractionId = 0;
-        var nextCharacterLocationId = 0;
 
         var addCharacters = function(){
             var charTableElm = $('#character-table');
@@ -178,8 +190,20 @@ Things to add to the demo:
                 elm.attr('title', elm.data('canonical-id'));
                 elm.data({toggle: 'tooltip', placement: 'top'});
                 elm.tooltip();
+                elm.attr({
+                    tabindex: 0,
+                    'data-toggle': 'popover',
+                    'data-trigger': 'focus'
+                });
+                elm.popover({
+                    content: characterAnnotationPopoverElm,
+                    html: true,
+                    trigger: 'focus'
+                });
             });
         };
+
+        
 
         var addInteractionIds = function(){
             var interactionsTableElm = $('#interactions-table');
@@ -197,8 +221,10 @@ Things to add to the demo:
                 rowElm.attr('data-interaction-id', nextInteractionId);
                 subjectTDElm.addClass('subject');
                 subjectTDElm.html($('[data-location-id='+elm.data('subject-location')+']').data('canonical-id'));
+                subjectTDElm.attr('data-location-id', elm.data('subject-location'));
                 objectTDElm.addClass('object');
                 objectTDElm.html($('[data-location-id='+elm.data('object-location')+']').data('canonical-id'));
+                objectTDElm.attr('data-location-id', elm.data('object-location'));
                 interactionTypeTDElm.addClass('interaction-class');
                 interactionTypeTDElm.html(elm.data('interaction-class'));
 
@@ -224,7 +250,6 @@ Things to add to the demo:
         var addInteractionClickListener = function(){
             $(document).on('click', '#interactions-table .interaction-class', function(event){
                 var elm = $(this).parents('tr');
-                console.log(elm);
 
                 if(elm.hasClass('highlight')){
                     $('.highlight').removeClass('highlight');
@@ -239,6 +264,24 @@ Things to add to the demo:
                 interactionElm.addClass('highlight');
                 $('#text-content [data-location-id='+ interactionElm.data('subject-location')+']').addClass('highlight');
                 $('#text-content [data-location-id='+ interactionElm.data('object-location')+']').addClass('highlight');
+            });
+        };
+
+        var addRemoveCharacterLocationListener = function(){
+            $(document).on('click', '.remove-character', function(){
+                var locationId = characterAnnotationPopoverElm.data('location-id');
+
+                // Remove location from anything it depends on (interactions).
+                $('[data-object-location='+ locationId +']').removeAttr('data-object-location');
+                $('[data-subject-location='+ locationId +']').removeAttr('data-subject-location');
+                $('#interactions-table [data-location-id='+ locationId +']').each(function(i, elm){
+                    elm = $(elm);
+                    elm.html('');
+                    elm.removeAttr('data-location-id');
+                });
+
+                // Remove location.
+                characterAnnotationPopoverElm.replaceWith(characterAnnotationPopoverElm.html());
             });
         };
 
@@ -288,12 +331,29 @@ Things to add to the demo:
         </table>
     </div>
     <div id="character-list">
-            <table id="character-table">
-                <tr>
-                    <th>Character name</th>
-                    <th>Aliases</th>
-                </tr>
-            </table>
+        <table id="character-table">
+            <tr>
+                <th>Character name</th>
+                <th>Aliases</th>
+            </tr>
+        </table>
+    </div>
+
+    <div class="hidden">
+        <div id="character-annotation-popover">
+            <div class="btn-group" role="group" aria-label="Character annotation options">
+                <button class="btn btn-danger btn-sm remove-character">Remove</button>
+                <button class="btn btn-primary btn-sm select-character">Select character</button>
+            </div>
         </div>
+
+        <div id="interaction-annotation-popover">
+            <div class="btn-group" role="group" aria-label="Interaction annotation options">
+                <button class="btn btn-danger btn-sm remove-interaction">Remove</button>
+                <button class="btn btn-primary btn-sm select-object">Select object</button>
+                <button class="btn btn-primary btn-sm select-subject">Select subject</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
