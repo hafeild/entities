@@ -1,5 +1,6 @@
 <?php
 
+header('Content-type: application/json');
 
 // Read in the config file.
 $CONFIG_FILE = "../conf.json";
@@ -23,8 +24,8 @@ else
 // "_method" parameter which will hold the method to use (POST, PATCH, or 
 // DELETE).
 $method = $_SERVER['REQUEST_METHOD'];
-if($method === "POST"){
-    $method = $_POST['_method'];
+if($method === "POST" && key_exists("_method", $_POST)){
+    $method = $_POST["_method"];
 }
 
 // Available REST routes.
@@ -81,15 +82,26 @@ error("Route not found: $path.");
 /**
  * Dies and prints a JSON object with these fields:
  *   - success (set to false)
- *   - error (the error message passed in as an argument)
+ *   - message (the error message passed in as an argument)
  * 
- * @param message The error message to include with the error field.
+ * @param message The error message to include with the message field.
+ * @param additionalData A string or array with additional information in it.
+ *                       Optional; defaults to "".
+ * @param success Sets the success value; defaults to false.
  */
-function error($message){
+function error($message, $additionalData="", $success=false){
     die(json_encode(array(
-        "success" => false,
-        "error"   => $message
+        "success" => $success,
+        "message"   => $message,
+        "additional_data" => $additionalData
     )));
+}
+
+/**
+ * An alias for error.
+ */
+function success($message, $additionalData=""){
+    error($message, $additionalData, true);
 }
 
 /**
@@ -151,7 +163,7 @@ function createTables($dbh){
     $status = $dbh->exec("create table if not exists metadata(".
             "id integer primary key autoincrement,".
             "title varchar(256),".
-            "md5sum char(16),".
+            "md5sum char(16) unique,".
             "processed integer(1),".
             "uploaded_at datetime,".
             "processed_at datetime,".
@@ -243,6 +255,69 @@ function getTexts($path, $matches, $params){
 
     return $results;
 }
+
+/**
+ * Uploads a new text. This will fail if required parameters are missing or
+ * if the text exists (based on the md5sum).
+ * 
+ * @param path Ignored.
+ * @param matches Ignored.
+ * @param params The request parameters. The following fields are allowed:
+ *                  - title (required)
+ *                  - file (required)
+ */
+function postText($path, $matches, $params){
+    global $CONFIG;
+
+    if(!key_exists("title", $params) or !key_exists("file", $_FILES)){
+        error("Missing title and/or file parameters.");
+    }
+
+    $tmpFile = $_FILES["file"]["tmp_name"];
+    $md5sum = md5_file($tmpFile);
+    $dbh = connectToDB();
+
+    $dbh->beginTransaction();
+
+    // Check if another file with this signature exists; if not, add the file.
+    $statement = $dbh->prepare(
+        "select * from metadata where md5sum = :md5sum");
+    checkForStatementError($dbh, $statement, 
+        "Error preparing md5sum db statement.");
+    $statement->execute(array(":md5sum" => $md5sum));
+    checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
+    if($row){
+        $dbh->rollBack();
+        error("This text has already been uploaded.", $row);
+    } else {
+        $statement = $dbh->prepare("insert into metadata".
+            "(title,md5sum,processed,uploaded_at,processed_at,uploaded_by) ".
+            "values(:title, :md5sum, 0, DATETIME('now'), null, null)");
+        checkForStatementError($dbh, $statement, 
+            "Error preparing upload db statement.");
+        $statement->execute(array(
+            ":md5sum" => $md5sum, 
+            ":title" => $params["title"]
+        ));
+        checkForStatementError($dbh, $statement, 
+            "Error adding upload information to db.");
+        $id = $dbh->lastInsertId();
+
+        if(!rename($tmpFile, $CONFIG->text_storage ."/$id.txt")){
+            $dbh->rollBack();
+            error("Could not move the uploaded file on the server.");
+        } else {
+            $dbh->commit();
+            // Kick off the processing.
+            // TODO
+
+            success("File uploaded and is being processed", 
+                array("id"=>$id, "md5sum"=>$md5sum));
+        }
+    }
+}
+
 
 
 ?>

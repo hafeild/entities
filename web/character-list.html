@@ -4,9 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> 
+    <title>Character extraction</title>
+    <style>
+    #response {
+        white-space: pre-wrap;
+        font-family: 'Courier New', Courier, monospace;
+        min-height: 50px;
+        width: 100%;
+        border: 1px solid gray;
+        background: #333;
+        color: #eee;
+    }
+    </style>
+    <script>
+    var upload = function(event){
+        console.log('Uploading form data...');
+
+        $.post({
+            url: 'api.php/texts', 
+            data: new FormData($('#file-upload-form')[0]),
+            success: function(data){
+                $('#response').html(JSON.stringify(data, null, 4));
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                $('#response').html('ERROR: '+ errorThrown);
+            },
+            dataType: 'json',
+            processData: false,
+            contentType: false
+        });
+
+        event.preventDefault();
+    };
+
+    $(document).ready(function(){
+        $('#file-upload-form').on('submit', upload);
+    });
+
+    </script>
 </head>
 <body>
     
+<h1>Character Extraction</h1>
+
+<h2>Upload text</h2>
+<form id="file-upload-form" enctype="multipart/form-data" method="post">
+    Title: <input type="text" name="title"/><br/>
+    Select a plain text file to upload <input type="file" name="file"/><br/>
+    <input type="submit" value="Upload"/>
+</form>
+
+<h2>Extracted characters</h2>
+Comming soon...
+
+<h2>Server response</h2>
+<div id="response"></div>
+
 </body>
 </html>
