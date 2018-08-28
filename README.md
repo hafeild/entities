@@ -14,7 +14,7 @@ which has yet to be implemented).
 
 # Installing
 
-Clone this directory onto a webserver that has PHP enabled and Java 1.8 or
+Clone this directory onto a webserver that has PHP 5.5+ and Java 1.8 or
 higher installed. 
 
 Copy `conf-EXAMPLE.json` to `conf.json` and edit it. Note that you can must
@@ -27,6 +27,15 @@ to update `conf.yaml` with the location of book-nlp or copy the contents of the
 `book-nlp/lib/` folder and `book-nlp/book-nlp.jar` to the `lib/` folder in your
 when-entities-interact directory (or make symlinks).
 
+# Development
+
+To start up a development server, use the built in PHP server. From the
+`web/` directory, enter:
+
+    php -S localhost:3535
+
+Then open a browser and go to: http://localhost:3535. You can change the port
+number to something other than 3535 if you wish.
 
 
 
