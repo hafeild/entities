@@ -3,10 +3,14 @@
 
 // Read in the config file.
 $CONFIG_FILE = "../conf.json";
-$configFD = fopen($CONFIG_FILE, "r") or die("Error reading configuration file.");
-$config = json_decode(fread($configFD,filesize($CONFIG_FILE)));
+$configFD = fopen($CONFIG_FILE, "r") or 
+    error("Error reading configuration file.");
+// Strip out comments before parsing the config file.
+$CONFIG = json_decode(preg_replace("#[ \t]*//[^\n]*(\n|$)#", "\n", 
+    fread($configFD,filesize($CONFIG_FILE))));
 fclose($configFD);
 
+$dbh = null;
 
 // Extracts the requested path. Assumes the URI is in the format: 
 // .../api.php/<path>, where <path> is what is extracted.
@@ -23,7 +27,7 @@ if($method === "POST"){
     $method = $_POST['_method'];
 }
 
-
+// Available REST routes.
 $routes = array(
     // Get list of processed files
     array("pattern"   => "#^/texts/?$#", 
@@ -72,7 +76,102 @@ foreach($routes as $route){
 }
 
 // We've only reached this point if the route wasn't recognized.
-echo json_encode(array("success"=>"false", "error"=>"Route not found: $path."));
+error("Route not found: $path.");
+
+/**
+ * Dies and prints a JSON object with these fields:
+ *   - success (set to false)
+ *   - error (the error message passed in as an argument)
+ * 
+ * @param message The error message to include with the error field.
+ */
+function error($message){
+    die(json_encode(array(
+        "success" => false,
+        "error"   => $message
+    )));
+}
+
+/**
+ * Checks if status is false and, if so, reports the error info along with the
+ * given error message before dying.
+ * 
+ * @param dbh The PDO database handle.
+ * @param status The status to check (false = error).
+ * @param error The error message to prepend to the database error info.
+ */
+function checkForStatementError($dbh, $status, $error){
+    if($status===false){ 
+        error($error ." :: ". $dbh->errorInfo()[2]); 
+    }
+}
+
+/**
+ * Connects to the database as specified in the config file (see $CONFIG_FILE
+ * above).
+ * 
+ * @return A PDO object for the database.
+ */
+function connectToDB(){
+    global $CONFIG;
+    global $dbh;
+
+    if($dbh === null){
+        try {
+            if($CONFIG->authentication){
+                $dbh = new PDO($CONFIG->dsn, $CONFIG->user, $CONFIG->password);
+            } else {
+                $dbh = new PDO($CONFIG->dsn);
+            }
+
+            createTables($dbh);
+        } catch (PDOException $e) {
+            error("Connection failed: ". $e->getMessage() . 
+                "; dsn: ". $CONFIG->dsn);
+        }
+    }
+    return $dbh;
+}
+
+/**
+ * Creates database tables that don't exist.
+ */
+function createTables($dbh){
+
+    // Create users table.
+    $status = $dbh->exec("create table if not exists users(".
+        "id integer primary key autoincrement,".
+        "username varchar(50),".
+        "password varchar(255),".
+        "created_at datetime)"
+    );
+    checkForStatementError($dbh, $status, "Error creating users table.");
+
+    // Create metadata table.
+    $status = $dbh->exec("create table if not exists metadata(".
+            "id integer primary key autoincrement,".
+            "title varchar(256),".
+            "md5sum char(16),".
+            "processed integer(1),".
+            "uploaded_at datetime,".
+            "processed_at datetime,".
+            "uploaded_by integer, ".
+            "foreign key(uploaded_by) references users(id)".
+        ")"
+    );
+    checkForStatementError($dbh, $status, "Error creating metadata table.");
+}
+
+/**
+ * @return The value corresponding to the given key if the key exists;
+ *         otherwise the default is returned.
+ */
+function getWithDefault($array, $key, $default){
+    if(key_exists($key, $array)){
+        return $array[$key];
+    }
+    return $default;
+}
 
 /**
  * Displays the metadata for the texts that have been processed or are
@@ -91,6 +190,7 @@ echo json_encode(array("success"=>"false", "error"=>"Route not found: $path."));
  *      * processed (true/false; false means actively being processed)
  *      * uploaded_at
  *      * processed_at
+ *      * uploaded_by
  * 
  * @param path Ignored.
  * @param matches Ignored.
@@ -100,13 +200,48 @@ echo json_encode(array("success"=>"false", "error"=>"Route not found: $path."));
  *                  - count (defaults to -1, which means all)
  */
 function getTexts($path, $matches, $params){
-    return array(
+    $startID = getWithDefault($params, "start_id", 0);
+    $endID = getWithDefault($params, "end_id", -1);
+    $count = getWithDefault($params, "count", -1);
+
+    $dbh = connectToDB();
+    $rowsReturned = 0;
+    $lastID = -1;
+    $results = array(
         "success" => true,
-        "texts" => array(
-            array("id" => 1, "title" => "Test 1"),
-            array("id" => 2, "title" => "Test 2")
-        )
+        "start_id" => $startID,
+        "request_params" => $params,
+        "texts" => array()
     );
+
+    // Get the number of total uploads.
+    $statement = $dbh->prepare("select count(*) from metadata");
+    checkForStatementError($dbh,$statement,"Error getting number of uploads.");
+
+    $statement->execute();
+    $results["upload_count"] = $statement->fetch()[0];
+
+    if($endID >= 0){
+        $statement = $dbh->prepare(
+            "select * from metadata where id between :start_id and :end_id");
+    } else {
+        $statement = $dbh->prepare(
+            "select * from metadata where id >= :start_id");
+    }
+    $statement->execute(array(":start_id" => $startID, ":end_id" => $endID));
+    checkForStatementError($dbh,$statement,"Error getting texts.");
+
+    while(($count == -1 || $rowsReturned < $count) 
+            && $row = $statement->fetch(PDO::FETCH_ASSOC)){
+        array_push($results["texts"], $row);
+        $lastID = $row["id"];
+        $rowsReturned++;
+    }
+
+    $results["end_id"] = $lastID;
+    $results["returned_count"] = $rowsReturned;
+
+    return $results;
 }
 
 

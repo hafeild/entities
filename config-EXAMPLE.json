@@ -1,0 +1,18 @@
+{
+    // This file should be standard JSON exect for comments. Comments must
+    // be on their own line and start with two slashes.
+
+    // Where on the filesystem you want raw texts to be stored.
+    "text_storage": "/path/to/text/storage",
+    
+
+    // An example for MySQL.
+    "dsn": "mysql:dbname=adatabase;host=localhost",
+    "authentication": true,
+    "username": "ausername",
+    "password": "apassword",
+
+    // An example for sqlite.
+    "dsn": "sqlite:/a/path/to/the/sqlite/db",
+    "authentication": false
+}
