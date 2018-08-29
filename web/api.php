@@ -40,12 +40,17 @@ $routes = array(
           "method" => "POST", 
           "call" => postText),
 
+    // Store text file; send back whether processed or not
+    array("pattern" => "#^/texts/(\d+)/?$#", 
+          "method" => "GET", 
+          "call" => getText),
+
     // Get entity list for file
-    array("pattern" => "#^/texts/(\d+)/?#", 
+    array("pattern" => "#^/texts/(\d+)/entities/?#", 
           "method" => "GET", 
           "call" => getEntities),
 
-    array("pattern" => "#^/texts/(\d+)/?#", 
+    array("pattern" => "#^/texts/(\d+)/entities/?#", 
           "method" => "PATCH", 
           "call" => editEntity),
 
@@ -257,6 +262,52 @@ function getTexts($path, $matches, $params){
 }
 
 /**
+ * Displays the metadata for the texts that have been processed or are
+ * currently in process. Returned fields include:
+ * 
+ *  - success (true/false)
+ *  - text (objects of text metadata)
+ *      * id
+ *      * title
+ *      * md5sum
+ *      * processed (true/false; false means actively being processed)
+ *      * uploaded_at
+ *      * processed_at
+ *      * uploaded_by
+ * 
+ * @param path Ignored.
+ * @param matches First match (index 1) must be the id of the text to retrieve
+ *                metadata for.
+ * @param params Ignored.
+ */
+function getText($path, $matches, $params){
+    if(count($matches) < 2){
+        error("Must include the id of the text in URI.");
+    }
+
+    $id = $matches[1];
+    $dbh = connectToDB();
+    $results = array(
+        "success" => true
+    );
+
+    $statement = $dbh->prepare("select * from metadata where id = :id");
+    checkForStatementError($dbh,$statement,"Error preparing db statement.");
+    $statement->execute(array(":id" => $id));
+    checkForStatementError($dbh,$statement,"Error getting text metadata.");
+
+    $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+    if(!$row){
+        error("No text with id $id found in the database.");
+    }
+
+    $results["text"] = $row;
+
+    return $results;
+}
+
+/**
  * Uploads a new text. This will fail if required parameters are missing or
  * if the text exists (based on the md5sum).
  * 
@@ -304,7 +355,7 @@ function postText($path, $matches, $params){
             "Error adding upload information to db.");
         $id = $dbh->lastInsertId();
 
-        if(!rename($tmpFile, $CONFIG->text_storage ."/$id.txt")){
+        if(!rename($tmpFile, $CONFIG->text_storage ."/$md5sum.txt")){
             $dbh->rollBack();
             error("Could not move the uploaded file on the server.");
         } else {
