@@ -9,7 +9,7 @@
  * @author Henry Feild
  */
 
-package novels;
+package edu.endicott.cs.wei;    
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -33,6 +33,7 @@ import novels.annotators.SupersenseAnnotator;
 import novels.annotators.SyntaxAnnotator;
 import novels.util.PrintUtil;
 import novels.util.Util;
+import novels.*;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
