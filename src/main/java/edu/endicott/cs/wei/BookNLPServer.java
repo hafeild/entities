@@ -19,6 +19,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +41,14 @@ import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.HelpFormatter;
+
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 public class BookNLPServer {
 
@@ -48,19 +58,22 @@ public class BookNLPServer {
     private static final String maleFile = "files/stanford/male.unigrams.txt";
     private static final String corefWeights = "files/coref.weights";
 
-    private static final long DEFAULT_PORT = 3636;
+    private static final int DEFAULT_PORT = 3636;
 
     public String weights = corefWeights;
     public long port;
 
     public static void main(String[] args) throws Exception {
-        long port = DEFAULT_PORT;
+        HashMap<String, String> dbSettings;
+        int port = DEFAULT_PORT;
         int clientNumber = 0;
 
         // Parse options.
         Options options = new Options();
-        options.addOption("port", false, "the port to run on; defaults to "+
+        options.addOption("p", true, "the port to run on; defaults to "+
             DEFAULT_PORT);
+        options.addOption("s", true, "the settings file");
+
         CommandLine cmd = null;
         try {
             CommandLineParser parser = new BasicParser();
@@ -70,9 +83,12 @@ public class BookNLPServer {
         }
 
         // Display usage if requested.
-        if(cmd.hasOption("h") || cmd.hasOption("help")){
+        if(cmd.hasOption("h") || cmd.hasOption("help") || 
+                !cmd.hasOption("s")){
+            
             System.out.println(
-                "Usage: java BookNLPServer [--port <port>] [--h|--help]");
+                "Usage: java BookNLPServer -s <json file> "+
+                    "[-p <port>] [-h]");
             System.out.println(
                 "Port defaults to "+ DEFAULT_PORT +" if not provided.");
             return;
@@ -80,21 +96,79 @@ public class BookNLPServer {
 
         // Extract port.
         if(cmd.hasOption("port")){
-            port = Long.parseLong(cmd.getOptionValue("port"));
+            port = Integer.parseInt(cmd.getOptionValue("p"));
         }
 
+        // Get the settings file and parse them.
+        dbSettings = readDBConfigFile(cmd.getOptionValue("s"));
+
+        System.out.println("dsn: "+ dbSettings.get("dsn"));
+        System.out.println("authentication: "+ 
+            dbSettings.get("authentication"));
+        
         // Start server.
         System.out.println("Listening on  localhost:"+ port +".");
-        ServerSocket listener = new ServerSocket(9898);
+        ServerSocket listener = new ServerSocket(port);
         try {
             while (true) {
-                new BookProcessor(listener.accept(), clientNumber++).start();
+                new BookProcessor(listener.accept(), clientNumber++,
+                    dbSettings).start();
             }
         } finally {
             listener.close();
         }
+    }
 
+    /**
+     * Reads the database information from the given JSON configuration file.
+     * Lines starting with comments (with or without leading whitespace) and
+     * blank lines are removed. The JSON should contain a top-level object
+     * with these keys:
+     * 
+     *  - dsn
+     *  - authentication (boolean)
+     *  - username (only read if authentication is true)
+     *  - password (only read if authentication is true)
+     * 
+     * Key-value pairs are read into a HashMap. Everything is treated as a
+     * String.
+     * 
+     * @param filename The JSON file to read.
+     * @return A HashMap of key-value pairs for the fields mentioned above.
+     */
+    public static HashMap<String, String> readDBConfigFile(String filename) 
+    throws IOException, FileNotFoundException, Exception {
 
+        HashMap<String, String> settings = new HashMap<String, String>();
+        JSONParser parser = new JSONParser();
+        JSONObject settingsJSON;
+        boolean authentication;
+
+        String settingsRaw = "";
+        BufferedReader settingsReader = new BufferedReader(new FileReader(filename));
+        String line = null;
+
+        // Skip comments and blank lines.
+        while((line = settingsReader.readLine()) != null){
+            if(!line.matches("^\\s*//.*$") && !line.matches("^\\s*$")){
+                settingsRaw += line;
+            }
+        }
+        settingsReader.close();
+
+        settingsJSON = 
+            (JSONObject) parser.parse(settingsRaw);
+
+        settings.put("dsn", (String) settingsJSON.get("dsn"));
+        settings.put("authentication", ""+ settingsJSON.get("authentication"));
+
+        if(settings.get("authentication").equals("true")){
+            settings.put("usernmae", (String) settingsJSON.get("username"));
+            settings.put("password", (String) settingsJSON.get("password"));
+        }
+        
+
+        return settings;
     }
 
     private static class BookProcessor extends Thread {
@@ -107,7 +181,8 @@ public class BookNLPServer {
          * @param socket The socket number.
          * @param clientNumber The id of the client making the request.
          */
-        public BookProcessor(Socket socket, int clientNumber) {
+        public BookProcessor(Socket socket, int clientNumber, 
+        HashMap<String,String> dbSettings) {
             this.socket = socket;
             this.clientNumber = clientNumber;
             log("New connection");
