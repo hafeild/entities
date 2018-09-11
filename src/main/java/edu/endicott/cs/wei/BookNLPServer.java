@@ -50,6 +50,10 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
 public class BookNLPServer {
 
     private static final String animacyFile = "files/stanford/animate.unigrams.txt";
@@ -171,18 +175,35 @@ public class BookNLPServer {
         return settings;
     }
 
+    /**
+     * A new instance of this is created each time a book processing request
+     * comes in. It handles reading in the parameters of the request, 
+     * processing the specified text, and updating the database.
+     */
     private static class BookProcessor extends Thread {
+        private enum IdStatus {SUCCESS, ID_NOT_PRESENT, ID_ALREADY_PROCESSED};
+
         private Socket socket;
         private int clientNumber;
+        private Connection dbh = null;
+        private HashMap<String,String> dbSettings;
 
         /**
          * Receives a new request.
          * 
          * @param socket The socket number.
          * @param clientNumber The id of the client making the request.
+         * @param dbInfo A HashMap of DB connection information. Namely, the
+         *               following keys should be available, all strings:
+         * 
+         *                  dsn (either sqlite:.* or mysql:.*)
+         *                  authentication ("true"/"false")
+         *                  username (only if authentication is "true")
+         *                  password (only if authentication is "true")
          */
         public BookProcessor(Socket socket, int clientNumber, 
         HashMap<String,String> dbSettings) {
+            this.dbSettings = dbSettings;
             this.socket = socket;
             this.clientNumber = clientNumber;
             log("New connection");
@@ -252,14 +273,41 @@ public class BookNLPServer {
                     return;
                 }
 
+                // Check that we can open the database.
+                if(!openConnection()){
+                    error(out, "Error: could not establish a database "+
+                               "connection.");
+                    return;
+                }
+
+                // Check that there's an entry for the text in the database
+                // and it's not already processed.
+                switch(getIdStatusInMetadataTable(id)){
+                    case ID_ALREADY_PROCESSED:
+                        error(out, "Error: this text has already been "+
+                                   "processed.");
+                        dbh.close();
+                        return;
+                    case ID_NOT_PRESENT:
+                        error(out, "Error: no entry with this id exists in "+
+                                   "the database.");
+                        dbh.close();
+                        return;
+                    default:
+                        break;
+                }
+
                 // Let the client know that the request was received 
                 // successfully.
                 out.println("success");
                 log("Successfully received parameters:\t"+ paramString);
                 socket.close();
 
-                process(directory, bookFile, name, id);
+                // Process the book.
+                process(directory, bookFile, name);
                 
+                // Update the database.
+
 
             } catch (IOException e) {
                 log("Caught IOException: "+ e);
@@ -269,11 +317,50 @@ public class BookNLPServer {
                 try {
                     if(!socket.isClosed())
                         socket.close();
+
                 } catch (IOException e) {
                     log("Couldn't close a socket, what's going on?");
+                } finally {
+                    try{
+                        if(dbh != null)
+                            dbh.close();
+                    } catch (SQLException e) {
+                        log("Couldn't close database connection.");
+                    }
                 }
                 log("Connection closed");
             }
+        }
+
+        /**
+         * Establishes a connection to the database.
+         * 
+         * @return Whether a connection was successfully made.
+         */
+        public boolean openConnection(){
+            String dsn = "jdbc:"+ dbSettings.get("dns");
+            if(dbSettings.get("authentication").equals("true")){
+                dsn += "?user="+ dbSettings.get("username") +
+                       "&password="+ dbSettings.get("password");
+            }
+
+            try {
+                dbh = DriverManager.getConnection(dsn);
+                return true;
+            } catch (SQLException e) {
+                return false;
+            }
+        }
+
+        /**
+         * Checks that an entry with the given id is present and it's
+         * processed column is 0 in the metadata table of the database.
+         * 
+         * @param id The id of the text to look up.
+         * @return One of SUCCESS, ID_NOT_PRESENT, or ID_ALREADY_PROCESSED.
+         */
+        public IdStatus getIdStatusInMetadataTable(String id){
+            return IdStatus.ID_NOT_PRESENT;
         }
 
         // /**
@@ -328,8 +415,16 @@ public class BookNLPServer {
 
         // }
 
-        public void process(File directory, File bookFile, 
-                String basename, String id) throws Exception {
+        /**
+         * Processes the given text and generates several files. See the
+         * run method for details.
+         * 
+         * @param directory The directory where output files will be written.
+         * @param bookFile The input text file to process.
+         * @param basename The name of the file (without extensions).
+         */
+        public void process(File directory, File bookFile,  String basename) 
+        throws Exception {
 
             // Options options = new Options();
             // options.addOption("f", false, "force processing of text file");
@@ -439,6 +534,20 @@ public class BookNLPServer {
             // Print out tokens
             PrintUtil.printTokens(book, tokenFile.getPath());
         }
+
+        /**
+         * Updates the database entry for the book with the given id. This
+         * assumes that there exists a table named `metadata` that contains at
+         * least the columns:
+         * 
+         *  - id
+         *  - processed (1 or 0)
+         *  - processed_at (datetime)
+         * 
+         * @param id The id of the text to mark as processed.
+         */
+        
+
 
         /**
          * Sends an error to the given socket stream, logs it, then closes the
