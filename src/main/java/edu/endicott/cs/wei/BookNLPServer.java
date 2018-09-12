@@ -356,7 +356,7 @@ public class BookNLPServer {
          * @return Whether a connection was successfully made.
          */
         public boolean openConnection(){
-            String dsn = "jdbc:"+ dbSettings.get("dns");
+            String dsn = "jdbc:"+ dbSettings.get("dsn");
             if(dbSettings.get("authentication").equals("true")){
                 dsn += "?user="+ dbSettings.get("username") +
                        "&password="+ dbSettings.get("password");
@@ -366,6 +366,7 @@ public class BookNLPServer {
                 dbh = DriverManager.getConnection(dsn);
                 return true;
             } catch (SQLException e) {
+                log(e.getMessage());
                 return false;
             }
         }
@@ -584,12 +585,12 @@ public class BookNLPServer {
         public boolean markBookAsProcessedInDB(int id) throws SQLException {
             PreparedStatement statement = dbh.prepareStatement(
                 "update metadata set "+
-                "processed = ?, processed_at = ?, where id = ?");
+                "processed = ?, processed_at = DATETIME('now') where id = ?");
 
             statement.setInt(1, 1);
-            statement.setTimestamp(2,
-                new java.sql.Timestamp(new Date().getTime()));
-            statement.setInt(3, id);
+            // statement.setTimestamp(2,
+                // new java.sql.Timestamp(new Date().getTime()));
+            statement.setInt(2, id);
 
             return statement.executeUpdate() == 1;
         }
@@ -616,7 +617,7 @@ public class BookNLPServer {
          */
         private void log(String message) {
             System.out.println(new Date().toString() +"\tClient "+ 
-                clientNumber +"\n"+ message);
+                clientNumber +"\t"+ message);
         }
 
     }
