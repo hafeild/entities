@@ -31,7 +31,7 @@ if($method === "POST" && key_exists("_method", $_POST)){
 // Available REST routes.
 $routes = array(
     // Get list of processed files
-    array("pattern"   => "#^/texts/?$#", 
+    array("pattern"   => "#^/texts/?(\?.*)?$#", 
           "method"    => "GET", 
           "call"      => getTexts),
 
@@ -217,7 +217,7 @@ function getWithDefault($array, $key, $default){
  *                  - count (defaults to -1, which means all)
  */
 function getTexts($path, $matches, $params){
-    $startID = getWithDefault($params, "start_id", 0);
+    $startID = getWithDefault($params, "start_id", 1);
     $endID = getWithDefault($params, "end_id", -1);
     $count = getWithDefault($params, "count", -1);
 
@@ -238,14 +238,16 @@ function getTexts($path, $matches, $params){
     $statement->execute();
     $results["upload_count"] = $statement->fetch()[0];
 
-    if($endID >= 0){
+    if($endID >= 1){
         $statement = $dbh->prepare(
             "select * from metadata where id between :start_id and :end_id");
-    } else {
+            $statement->execute(array(":start_id" => $startID, 
+                ":end_id" => $endID));
+        } else {
         $statement = $dbh->prepare(
             "select * from metadata where id >= :start_id");
-    }
-    $statement->execute(array(":start_id" => $startID, ":end_id" => $endID));
+            $statement->execute(array(":start_id" => $startID));
+        }
     checkForStatementError($dbh,$statement,"Error getting texts.");
 
     while(($count == -1 || $rowsReturned < $count) 
@@ -254,6 +256,8 @@ function getTexts($path, $matches, $params){
         $lastID = $row["id"];
         $rowsReturned++;
     }
+
+    $results["row"] = $row;
 
     $results["end_id"] = $lastID;
     $results["returned_count"] = $rowsReturned;
@@ -281,6 +285,8 @@ function getTexts($path, $matches, $params){
  * @param params Ignored.
  */
 function getText($path, $matches, $params){
+    global $CONFIG;
+
     if(count($matches) < 2){
         error("Must include the id of the text in URI.");
     }
@@ -303,6 +309,13 @@ function getText($path, $matches, $params){
     }
 
     $results["text"] = $row;
+
+    if("".$row["processed"] == "1"){
+        $filename = $CONFIG->text_storage."/".$row["md5sum"].".ids.json.book";
+        $fd = fopen($filename, "r");
+        $results["character_info"] = json_decode(fread($fd,filesize($filename)));
+        fclose($fd);
+    }
 
     return $results;
 }

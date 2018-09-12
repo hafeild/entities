@@ -18,6 +18,34 @@
     }
     </style>
     <script>
+    var timeoutId;
+
+    var getTexts = function(){
+        $.get({
+            url: 'api.php/texts',
+            success: function(data){
+                $('#response').html(JSON.stringify(data, null, 4));
+
+                if(data.success){
+                    var textListDiv = $('#text-list');
+                    var textListElm = $('<ul>');
+                    textListDiv.html('');
+                    textListDiv.append(textListElm);
+                    
+                    var i;
+                    for(i = 0; i < data.texts.length; i++){
+                        var text = data.texts[i];
+                        textListElm.append('<li>'+
+                            '<a href="#" class="onpage" data-id="'+ text.id +'">'+
+                            text.title +'</a> (processed: '+ 
+                            ((text.processed+'' == '1') ? 'yes' : 'no') +')'+
+                            '</li>');
+                    }
+                }
+            }
+        });
+    };
+
     var upload = function(event){
         console.log('Uploading form data...');
 
@@ -26,6 +54,13 @@
             data: new FormData($('#file-upload-form')[0]),
             success: function(data){
                 $('#response').html(JSON.stringify(data, null, 4));
+
+                console.log(data.success, data.additional_data.id !== undefined);
+                // Keep fetching info about the book until it says that
+                // it's been processed.
+                if(data.success || data.additional_data.id !== undefined){
+                    pollTextStatus(data.additional_data.id);
+                }
             },
             error: function(jqXHR, textStatus, errorThrown){
                 $('#response').html('ERROR: '+ errorThrown);
@@ -38,8 +73,57 @@
         event.preventDefault();
     };
 
+    var pollTextStatus = function(id){
+        var attemptNo = 0;
+
+        // Cancel existing timeouts.
+        if(timeoutId !== undefined){
+            clearTimeout(timeoutId);
+        }
+
+        var getTextInfo = function(){
+            $.get({
+                url: 'api.php/texts/'+id,
+                success: function(data){
+                    $('#response').html('Attempt '+ attemptNo +'\n'+
+                        JSON.stringify(data, null, 4));
+                    if(data.success && ''+data.text.processed === '0'){
+                        attemptNo++;
+                        timeoutId = setTimeout(getTextInfo, 2500);
+                    } else if(data.success) {
+                        $('#title').html(data.text.title);
+                        var charListOuterElm = $('#character-list');
+                        charListOuterElm.html('');
+                        var charListElm = $('<li>');
+                        charListOuterElm.append(charListElm);
+
+                        var i;
+                        for(i = 0; i < data.character_info.characters.length; i++){
+                            var char = data.character_info.characters[i];
+                            var names = [];
+                            var j;
+                            for(j = 0; j < char.names.length; j++){
+                                names.push(char.names[j].n +' ('+ 
+                                    char.names[j].c +')');
+                            }
+                            charListElm.append('<li>'+ names.join(', ') +'</li>');
+                        }
+                    }
+                }
+            });
+        };
+        getTextInfo();
+    };
+
+    var loadText = function(){
+        pollTextStatus($(this).data('id'));
+    };
+
     $(document).ready(function(){
+        getTexts();
+        $(document).on('click', '#get-texts', getTexts);
         $('#file-upload-form').on('submit', upload);
+        $(document).on('click', 'a.onpage', loadText);
     });
 
     </script>
@@ -47,6 +131,11 @@
 <body>
     
 <h1>Character Extraction</h1>
+
+<h2>Existing texts</h2>
+<div id="text-list">
+</div>
+<button id="refresh-texts">Refresh</button>
 
 <h2>Upload text</h2>
 <form id="file-upload-form" enctype="multipart/form-data" method="post">
@@ -56,7 +145,11 @@
 </form>
 
 <h2>Extracted characters</h2>
-Comming soon...
+<h3 id="title"></h3>
+<div id="character-list">
+
+</div>
+
 
 <h2>Server response</h2>
 <div id="response"></div>
