@@ -5,6 +5,8 @@
     // Where on the filesystem you want raw texts to be stored.
     "text_storage": "/path/to/text/storage",
     
+    // The port that the book-nlp java server will listen on.
+    "text_processing_port": "5858",
 
     // An example for MySQL.
     "dsn": "mysql:dbname=adatabase;host=localhost",

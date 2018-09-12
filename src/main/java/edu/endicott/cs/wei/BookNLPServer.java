@@ -53,6 +53,9 @@ import org.json.simple.parser.ParseException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
 
 public class BookNLPServer {
 
@@ -94,17 +97,21 @@ public class BookNLPServer {
                 "Usage: java BookNLPServer -s <json file> "+
                     "[-p <port>] [-h]");
             System.out.println(
-                "Port defaults to "+ DEFAULT_PORT +" if not provided.");
+                "Use -p to override the port specified in the settings file "+ 
+                "under the\n`text_processing_port` key. If not prsent in the "+
+                "setting file, then\n"+DEFAULT_PORT +" will be used.");
             return;
-        }
-
-        // Extract port.
-        if(cmd.hasOption("port")){
-            port = Integer.parseInt(cmd.getOptionValue("p"));
         }
 
         // Get the settings file and parse them.
         dbSettings = readDBConfigFile(cmd.getOptionValue("s"));
+
+        // Extract port.
+        if(cmd.hasOption("port")){
+            port = Integer.parseInt(cmd.getOptionValue("p"));
+        } else if(dbSettings.containsKey("text_processing_port")){
+            port = Integer.parseInt(dbSettings.get("text_processing_port"));
+        }
 
         System.out.println("dsn: "+ dbSettings.get("dsn"));
         System.out.println("authentication: "+ 
@@ -133,6 +140,7 @@ public class BookNLPServer {
      *  - authentication (boolean)
      *  - username (only read if authentication is true)
      *  - password (only read if authentication is true)
+     *  - text_processing_port
      * 
      * Key-value pairs are read into a HashMap. Everything is treated as a
      * String.
@@ -171,6 +179,9 @@ public class BookNLPServer {
             settings.put("password", (String) settingsJSON.get("password"));
         }
         
+        if(settingsJSON.containsKey("text_processing_port"))
+            settings.put("text_processing_port", ""+ 
+                settingsJSON.get("text_processing_port"));
 
         return settings;
     }
@@ -181,7 +192,8 @@ public class BookNLPServer {
      * processing the specified text, and updating the database.
      */
     private static class BookProcessor extends Thread {
-        private enum IdStatus {SUCCESS, ID_NOT_PRESENT, ID_ALREADY_PROCESSED};
+        private enum IdStatus {SUCCESS, ID_NOT_PRESENT, ID_ALREADY_PROCESSED,
+                               ERROR_QUERYING_DB};
 
         private Socket socket;
         private int clientNumber;
@@ -232,7 +244,8 @@ public class BookNLPServer {
          * entry with id = <book id> such that the processed field is 1.
          */
         public void run(){
-            String directoryPath, id, name;
+            String directoryPath, name;
+            int id;
             File directory, bookFile;
 
             try {
@@ -255,7 +268,7 @@ public class BookNLPServer {
                     return;
                 }
 
-                id = params[0];
+                id = Integer.parseInt(params[0]);
                 directoryPath = params[1];
                 name = params[2];
 
@@ -293,6 +306,10 @@ public class BookNLPServer {
                                    "the database.");
                         dbh.close();
                         return;
+                    case ERROR_QUERYING_DB:
+                        error(out, "Error: couldn't query the metadata table.");
+                        dbh.close();
+                        return;
                     default:
                         break;
                 }
@@ -307,7 +324,8 @@ public class BookNLPServer {
                 process(directory, bookFile, name);
                 
                 // Update the database.
-
+                if(!markBookAsProcessedInDB(id))
+                    log("Error: unable to update metadata table.");
 
             } catch (IOException e) {
                 log("Caught IOException: "+ e);
@@ -359,8 +377,24 @@ public class BookNLPServer {
          * @param id The id of the text to look up.
          * @return One of SUCCESS, ID_NOT_PRESENT, or ID_ALREADY_PROCESSED.
          */
-        public IdStatus getIdStatusInMetadataTable(String id){
-            return IdStatus.ID_NOT_PRESENT;
+        public IdStatus getIdStatusInMetadataTable(int id){
+            try{
+                PreparedStatement statement = dbh.prepareStatement(
+                    "select processed from metadata where id = ?");
+
+                statement.setInt(1, id);
+
+                ResultSet result = statement.executeQuery();
+                if(!result.next())
+                    return IdStatus.ID_NOT_PRESENT;
+
+                if(result.getInt("processed") != 0)
+                    return IdStatus.ID_ALREADY_PROCESSED;
+            } catch (SQLException e) {
+                return IdStatus.ERROR_QUERYING_DB;
+            }
+
+            return IdStatus.SUCCESS;
         }
 
         // /**
@@ -545,8 +579,20 @@ public class BookNLPServer {
          *  - processed_at (datetime)
          * 
          * @param id The id of the text to mark as processed.
+         * @return True if the update was successful.
          */
-        
+        public boolean markBookAsProcessedInDB(int id) throws SQLException {
+            PreparedStatement statement = dbh.prepareStatement(
+                "update metadata set "+
+                "processed = ?, processed_at = ?, where id = ?");
+
+            statement.setInt(1, 1);
+            statement.setTimestamp(2,
+                new java.sql.Timestamp(new Date().getTime()));
+            statement.setInt(3, id);
+
+            return statement.executeUpdate() == 1;
+        }
 
 
         /**
