@@ -7,7 +7,7 @@ $CONFIG_FILE = "../conf.json";
 $configFD = fopen($CONFIG_FILE, "r") or 
     error("Error reading configuration file.");
 // Strip out comments before parsing the config file.
-$CONFIG = json_decode(preg_replace("#[ \t]*//[^\n]*(\n|$)#", "\n", 
+$CONFIG = json_decode(preg_replace("#([ \t]*//[^\n]*(\n|$))|(^\s*$)#", "\n", 
     fread($configFD,filesize($CONFIG_FILE))));
 fclose($configFD);
 
@@ -360,15 +360,79 @@ function postText($path, $matches, $params){
             error("Could not move the uploaded file on the server.");
         } else {
             $dbh->commit();
-            // Kick off the processing.
-            // TODO
 
-            success("File uploaded and is being processed", 
-                array("id"=>$id, "md5sum"=>$md5sum));
+            // Kick off the processing.
+            $result = processText($id, $md5sum);
+
+            if($result["success"] === true)
+                success("File uploaded and is being processed", 
+                    array("id"=>$id, "md5sum"=>$md5sum));
+            else
+                error("File stored, but not processed.", $result["error"]);
         }
     }
 }
 
+/**
+ * Sends a request to the text processing server to process the given text.
+ * This assumes the server is listening on localhost at the port described by
+ * text_processing_port in the configuration file.
+ * 
+ * @param id The id of the text in the metadata table.
+ * @param md5sum The md5sum of the text (used as the base of the filename).
+ * @return An associative array with the following keys:
+ *      success -- true if the request was received and initial checks cleared,
+ *                 false otherwise.
+ *      error --  an error message (only if success == false)
+ */
+function processText($id, $md5sum) {
+    global $CONFIG;
+
+
+    // Open the socket.
+    if(!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
+        $errorcode = socket_last_error();
+        $errormsg = socket_strerror($errorcode);
+        
+        return array("success" => false,
+            "error" => "Couldn't create socket: [$errorcode] $errormsg.");
+    }
+
+    // Connect to the socket.
+    if(!socket_connect($sock, "127.0.0.1", $CONFIG->text_processing_port)) {
+        $errorcode = socket_last_error();
+        $errormsg = socket_strerror($errorcode);
+        
+        return array("success" => false,
+            "error" => "Could not connect: [$errorcode] $errormsg.");
+    }
+
+    $message = "$id\t{$CONFIG->text_storage}\t$md5sum\n";
+ 
+    // Send the request.
+    if(!socket_send ($sock, $message, strlen($message), 0)) {
+        $errorcode = socket_last_error();
+        $errormsg = socket_strerror($errorcode);
+         
+        return array("success" => false,
+            "error" => "Could not connect: [$errorcode] $errormsg.");
+    }
+     
+    // Read the reply from server
+    if(socket_recv($sock, $buffer, 2045, MSG_WAITALL) === FALSE)
+    {
+        $errorcode = socket_last_error();
+        $errormsg = socket_strerror($errorcode);
+         
+        return array("success" => false,
+            "error" => "Could not connect: [$errorcode] $errormsg.");
+    }
+
+    if($buffer === "success\n")
+        return array("success" => true);
+
+    return array("success" => false, "error" => $buffer);
+}
 
 
 ?>
