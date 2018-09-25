@@ -22,10 +22,9 @@ choose where to store original texts (must be writable by the apache user) and
 what database to use to store metadata. Any database that can be used with PHP
 Data Objects is okay to use.
 
-Install https://github.com/dbamman/book-nlp with the supporting models. Be sure
-to update `conf.yaml` with the location of book-nlp or copy the contents of the
-`book-nlp/lib/` folder and `book-nlp/book-nlp.jar` to the `lib/` folder in your
-when-entities-interact directory (or make symlinks).
+Install https://github.com/dbamman/book-nlp with the supporting models. Copy the 
+contents of the `book-nlp/lib/` folder and `book-nlp/book-nlp.jar` to the `lib/`
+folder in your when-entities-interact directory (or make symlinks).
 
 # Development
 
