@@ -12,7 +12,11 @@ fi
 
 sourceFiles=$(find src/main/java -name *.java)
 
-CLASSPATH="" javac -cp "lib/*:book-nlp/book-nlp.jar:book-nlp/lib/*" \
+sep=":"
+
+if [ -d "/c/" ] || [ -d "C:" ]; then 
+  sep=";"
+fi
+
+CLASSPATH="" javac -cp "lib/*${sep}book-nlp/book-nlp.jar${sep}book-nlp/lib/*" \
     -d bin/ $sourceFiles
-
-
