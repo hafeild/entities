@@ -178,6 +178,59 @@ function createTables($dbh){
         ")"
     );
     checkForStatementError($dbh, $status, "Error creating texts table.");
+
+    // Create annotations table.
+    $status = $dbh->exec("create table if not exists annotations(".
+            "id integer primary key autoincrement,".
+            "text_id integer,".
+            "user_id integer, ".
+            "foreign key(text_id) references texts(id), ".
+            "foreign key(user_id) references users(id)".
+        ")"
+    );
+    checkForStatementError($dbh, $status, "Error creating annotations table.");
+
+    // Create entity_groups table.
+    $status = $dbh->exec("create table if not exists entity_groups(".
+            "id integer primary key autoincrement,".
+            "name varchar(45))");
+    checkForStatementError($dbh, $status, "Error creating entity_groups table.");
+
+    // Create entities table.
+    $status = $dbh->exec("create table if not exists entities(".
+            "id integer primary key autoincrement,".
+            "entity_group_id integer,".
+            "annotation_id integer, ".
+            "foreign key(entity_group_id) references entity_groups(id), ".
+            "foreign key(annotation_id) references annotations(id)".
+        ")"
+    );
+    checkForStatementError($dbh, $status, "Error creating entities table.");
+
+
+    // Create entity_locations table.
+    $status = $dbh->exec("create table if not exists entity_locations(".
+            "id integer primary key autoincrement,".
+            "word_offset_start integer,".
+            "word_offset_end integer,".
+            "entity_id integer, ".
+            "foreign key(entity_id) references entities(id)".
+        ")"
+    );
+    checkForStatementError($dbh, $status, "Error creating entity_locations table.");
+
+    // Create entity_interactions table.
+    $status = $dbh->exec("create table if not exists entity_interactions(".
+            "id integer primary key autoincrement,".
+            "entity_a_location integer,".
+            "entity_b_location integer,".
+            "interaction_desc varchar(255), ".
+            "foreign key(entity_a_location) references entity_locations(id), ".
+            "foreign key(entity_b_location) references entity_locations(id)".
+        ")"
+    );
+    checkForStatementError($dbh, $status, "Error creating entity_interactions table.");
+
 }
 
 /**
