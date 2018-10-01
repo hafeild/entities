@@ -26,6 +26,9 @@ Install https://github.com/dbamman/book-nlp with the supporting models. Copy or
 symlink the `book-nlp` directory to the `when-entities-interact` directory
 (`book-nlp` should be a subdirectory).
 
+Make a copy or simlink to the `book-nlp/files/` directory in the 
+`when-entities-interact` directory.
+
 Download remaining dependencies and compile the Java side of things by running:
 
     ./make.sh

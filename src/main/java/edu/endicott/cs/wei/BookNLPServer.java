@@ -510,13 +510,6 @@ public class BookNLPServer {
             // options.addOption("printHtml", false,
             //         "write HTML file with coreference links and speaker ID for inspection");
 
-
-
-
-
-
-
-
             BookNLP bookNLP = new BookNLP();
 
             // Generate or read tokens
