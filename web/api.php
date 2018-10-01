@@ -164,19 +164,20 @@ function createTables($dbh){
     );
     checkForStatementError($dbh, $status, "Error creating users table.");
 
-    // Create metadata table.
-    $status = $dbh->exec("create table if not exists metadata(".
+    // Create texts metadata table.
+    $status = $dbh->exec("create table if not exists texts(".
             "id integer primary key autoincrement,".
             "title varchar(256),".
             "md5sum char(16) unique,".
             "processed integer(1),".
+            "error integer(1),".
             "uploaded_at datetime,".
             "processed_at datetime,".
             "uploaded_by integer, ".
             "foreign key(uploaded_by) references users(id)".
         ")"
     );
-    checkForStatementError($dbh, $status, "Error creating metadata table.");
+    checkForStatementError($dbh, $status, "Error creating texts table.");
 }
 
 /**
@@ -232,7 +233,7 @@ function getTexts($path, $matches, $params){
     );
 
     // Get the number of total uploads.
-    $statement = $dbh->prepare("select count(*) from metadata");
+    $statement = $dbh->prepare("select count(*) from texts");
     checkForStatementError($dbh,$statement,"Error getting number of uploads.");
 
     $statement->execute();
@@ -240,12 +241,12 @@ function getTexts($path, $matches, $params){
 
     if($endID >= 1){
         $statement = $dbh->prepare(
-            "select * from metadata where id between :start_id and :end_id");
+            "select * from texts where id between :start_id and :end_id");
             $statement->execute(array(":start_id" => $startID, 
                 ":end_id" => $endID));
         } else {
         $statement = $dbh->prepare(
-            "select * from metadata where id >= :start_id");
+            "select * from texts where id >= :start_id");
             $statement->execute(array(":start_id" => $startID));
         }
     checkForStatementError($dbh,$statement,"Error getting texts.");
@@ -297,7 +298,7 @@ function getText($path, $matches, $params){
         "success" => true
     );
 
-    $statement = $dbh->prepare("select * from metadata where id = :id");
+    $statement = $dbh->prepare("select * from texts where id = :id");
     checkForStatementError($dbh,$statement,"Error preparing db statement.");
     $statement->execute(array(":id" => $id));
     checkForStatementError($dbh,$statement,"Error getting text metadata.");
@@ -345,7 +346,7 @@ function postText($path, $matches, $params){
 
     // Check if another file with this signature exists; if not, add the file.
     $statement = $dbh->prepare(
-        "select * from metadata where md5sum = :md5sum");
+        "select * from texts where md5sum = :md5sum");
     checkForStatementError($dbh, $statement, 
         "Error preparing md5sum db statement.");
     $statement->execute(array(":md5sum" => $md5sum));
@@ -355,9 +356,9 @@ function postText($path, $matches, $params){
         $dbh->rollBack();
         error("This text has already been uploaded.", $row);
     } else {
-        $statement = $dbh->prepare("insert into metadata".
-            "(title,md5sum,processed,uploaded_at,processed_at,uploaded_by) ".
-            "values(:title, :md5sum, 0, DATETIME('now'), null, null)");
+        $statement = $dbh->prepare("insert into texts".
+            "(title,md5sum,processed,error,uploaded_at,processed_at,uploaded_by) ".
+            "values(:title, :md5sum, 0, 0, DATETIME('now'), null, null)");
         checkForStatementError($dbh, $statement, 
             "Error preparing upload db statement.");
         $statement->execute(array(

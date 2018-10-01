@@ -66,6 +66,7 @@ public class BookNLPServer {
     private static final String corefWeights = "files/coref.weights";
 
     private static final int DEFAULT_PORT = 3636;
+    private static final String TEXT_METADATA_TABLE = "texts";
 
     public String weights = corefWeights;
     public long port;
@@ -245,7 +246,7 @@ public class BookNLPServer {
          */
         public void run(){
             String directoryPath, name;
-            int id;
+            int id = -1;
             File directory, bookFile;
 
             try {
@@ -327,10 +328,19 @@ public class BookNLPServer {
                 if(!markBookAsProcessedInDB(id))
                     log("Error: unable to update metadata table.");
 
-            } catch (IOException e) {
-                log("Caught IOException: "+ e);
+            } catch (SQLException e) {
+                log("Problems connecting to the database.");
             } catch (Exception e) {
                 log("Caught Exception: "+ e);
+                if(id != -1)
+                    try{
+                        if(markBookAsErrorInDB(id))
+                            log("Error writing error to database.");
+                    } catch(SQLException sqlE){
+                        log("Error writing error to database: "+ sqlE);
+                    }
+                else
+                    log("Error: could not mark error in database; no id.");
             } finally {
                 try {
                     if(!socket.isClosed())
@@ -381,7 +391,8 @@ public class BookNLPServer {
         public IdStatus getIdStatusInMetadataTable(int id){
             try{
                 PreparedStatement statement = dbh.prepareStatement(
-                    "select processed from metadata where id = ?");
+                    "select processed from "+ TEXT_METADATA_TABLE +
+                    " where id = ?");
 
                 statement.setInt(1, id);
 
@@ -564,9 +575,8 @@ public class BookNLPServer {
         }
 
         /**
-         * Updates the database entry for the book with the given id. This
-         * assumes that there exists a table named `metadata` that contains at
-         * least the columns:
+         * Updates the database entry for the book with the given id. Assumes
+         * there's a table named `texts` with the following fields:
          * 
          *  - id
          *  - processed (1 or 0)
@@ -577,13 +587,28 @@ public class BookNLPServer {
          */
         public boolean markBookAsProcessedInDB(int id) throws SQLException {
             PreparedStatement statement = dbh.prepareStatement(
-                "update metadata set "+
-                "processed = ?, processed_at = DATETIME('now') where id = ?");
+                "update texts set "+
+                "processed = 1, processed_at = DATETIME('now') where id = ?");
+            statement.setInt(1, id);
 
-            statement.setInt(1, 1);
-            // statement.setTimestamp(2,
-                // new java.sql.Timestamp(new Date().getTime()));
-            statement.setInt(2, id);
+            return statement.executeUpdate() == 1;
+        }
+
+        /**
+         * Updates the database entry for the book with the given id indicating
+         * an error was encountered. Assumes there's a table named `texts` with 
+         * the following fields:
+         * 
+         *  - id
+         *  - error (1 or 0)
+         * 
+         * @param id The id of the text to mark as errored.
+         * @return True if the update was successful.
+         */
+        public boolean markBookAsErrorInDB(int id) throws SQLException {
+            PreparedStatement statement = dbh.prepareStatement(
+                "update texts set error = 1 where id = ?");
+            statement.setInt(1, id);
 
             return statement.executeUpdate() == 1;
         }
