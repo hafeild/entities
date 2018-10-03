@@ -68,6 +68,12 @@ public class BookNLPServer {
     private static final int DEFAULT_PORT = 3636;
     private static final String TEXT_METADATA_TABLE = "texts";
 
+    private static final int TOKEN_ID_COLUMN = 2;
+    private static final int ORIGINAL_WORD_COLUMN = 7;
+    private static final int POS_COLUMN = 10;
+    private static final int CHARACTER_ID_COLUMN = 14;
+    private static final int SUPERSENSE_COLUMN = 15;
+
     public String weights = corefWeights;
     public long port;
 
@@ -572,6 +578,90 @@ public class BookNLPServer {
 
             // Print out tokens
             PrintUtil.printTokens(book, tokenFile.getPath());
+        }
+
+        /**
+         * Creates two JSON representations of the text and entity information 
+         * encoded in a book-nlp token file (<basename>.tokens). These are saved
+         * to two files:
+         * 
+         *  - <basename>.entities.json
+         *  - <basename>.tokens.json
+         * 
+         * @param directory The directory where output files will be written.
+         * @param basename The name of the file (without extensions).
+         * 
+         * @throws IOException
+         */
+        public void processTokenFile(File directory, String basename) {
+            JSONObject entities = new JSONObject();
+            JSONObject locations = new JSONObject();
+            JSONObject interactions = new JSONObject();
+            JSONObject groups = new JSONObject();
+            JSONObject entityInfo = new JSONObject();
+            JSONArray tokens = new JSONArray();
+
+            String curCharacterText = null;
+            String curCharacterGroupId = null;
+            String curCharacterPOS = null;
+            int curCharacterStartOffset = -1;
+            int curCharacterEndOffset = -1;
+
+            File tokenFile = new File(directory, basename +".token");
+            BufferedReader tokenFileBuffer = 
+                new BufferedReader(new FileReader(tokenFile)); 
+            String line = tokenFileBuffer.readLine();
+
+            // Skip the header.
+            line = tokenFileBuffer.readLine();
+
+            // Go through each line of the file.
+            while(line != null){
+
+                // parse the line into columns.
+                String[] cols = line.split("\\t");
+
+                int characterId = Integer(cols[CHARACTER_ID_COLUMN]).intValue();
+                char supersenseStart = cols[SUPERSENSE_COLUMN].charAt(0);
+
+                // See if we're in a entity (col 15 > -1, col 16)
+                if(characterId > -1 && supersenseStart == 'I') {
+                    curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
+                    curCharacterEndOffset = cols[TOKEN_ID_COLUMN];
+            
+                } else {
+                    // Were we in one before? -- emit it.
+                    if(curCharacterText != null){
+                        // Add new character if POS is NNP
+                        if(curCharacterPOS == "NNP"){
+                            // if entities[curCharacterGroupId] is present:
+                                // if entities[curCharacterGroupId][name] != curCharacterText
+                                    // if entities[curCharacterGroupId-curCharacterText] isn't present:
+                                        // add it
+                        }
+
+                        // Add location.
+                    }
+
+                    // See if we're entering an entity (cols 16 > -1)
+                    if(characterId > -1 && supersenseStart == 'B'){
+                        curCharacterText = cols[ORIGINAL_WORD_COLUMN];
+                        curCharacterGroupId = cols[CHARACTER_ID_COLUMN];
+                        curCharacterStartOffset = cols[TOKEN_ID_COLUMN];
+                        curCharacterEndOffset = cols[TOKEN_ID_COLUMN];
+                        curCharacterPOS = cols[POS_COLUMN];
+
+                    // Otherwise, mark that we're no longer processing an
+                    // entity.
+                    } else {
+                        curCharacterText = null;
+                    }
+                }
+
+                // Add the text to tokens.
+                tokens.add(cols[ORIGINAL_WORD_COLUMN]);
+            }
+
         }
 
         /**
