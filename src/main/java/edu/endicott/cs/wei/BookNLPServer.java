@@ -12,6 +12,7 @@
 package edu.endicott.cs.wei;    
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -20,6 +21,7 @@ import java.net.Socket;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -330,6 +332,9 @@ public class BookNLPServer {
                 // Process the book.
                 process(directory, bookFile, name);
                 
+                // Output the entity info.
+                processTokenFile(directory, name);
+
                 // Update the database.
                 if(!markBookAsProcessedInDB(id))
                     log("Error: unable to update metadata table.");
@@ -593,7 +598,10 @@ public class BookNLPServer {
          * 
          * @throws IOException
          */
-        public void processTokenFile(File directory, String basename) {
+        public void processTokenFile(File directory, String basename) throws Exception {
+            HashMap<String, HashMap<String,String>> characterIdLookup = 
+                new HashMap<String, HashMap<String,String>>();
+
             JSONObject entities = new JSONObject();
             JSONObject locations = new JSONObject();
             JSONObject interactions = new JSONObject();
@@ -621,34 +629,74 @@ public class BookNLPServer {
                 // parse the line into columns.
                 String[] cols = line.split("\\t");
 
-                int characterId = Integer(cols[CHARACTER_ID_COLUMN]).intValue();
+                int characterId = 
+                    new Integer(cols[CHARACTER_ID_COLUMN]).intValue();
                 char supersenseStart = cols[SUPERSENSE_COLUMN].charAt(0);
 
                 // See if we're in a entity (col 15 > -1, col 16)
                 if(characterId > -1 && supersenseStart == 'I') {
                     curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
-                    curCharacterEndOffset = cols[TOKEN_ID_COLUMN];
+                    curCharacterEndOffset = 
+                        new Integer(cols[TOKEN_ID_COLUMN]).intValue();
             
                 } else {
                     // Were we in one before? -- emit it.
                     if(curCharacterText != null){
                         // Add new character if POS is NNP
                         if(curCharacterPOS == "NNP"){
+                            // Get entity id.
+                            if(characterIdLookup.containsKey(curCharacterGroupId)){
+                                HashMap<String,String> tmp = 
+                                    characterIdLookup.get(curCharacterGroupId);
+
+                                if(!tmp.containsKey(curCharacterText)){
+                                    tmp.put(curCharacterText, 
+                                        curCharacterGroupId +"-"+ tmp.size());
+                                }
+                            } else {
+                                characterIdLookup.put(curCharacterGroupId,
+                                    new HashMap<String, String>());
+                                characterIdLookup.get(curCharacterGroupId).
+                                    put(curCharacterText, curCharacterGroupId);
+
+                                // Make a new group entry.
+                                JSONObject newGroup = new JSONObject();
+                                newGroup.put("name", curCharacterText);
+                                groups.put(curCharacterGroupId, newGroup);
+                            }
+
+                            String key = characterIdLookup.
+                                get(curCharacterGroupId).get(curCharacterText);
+
                             // if entities[curCharacterGroupId] is present:
-                                // if entities[curCharacterGroupId][name] != curCharacterText
-                                    // if entities[curCharacterGroupId-curCharacterText] isn't present:
-                                        // add it
+                            if(!entities.containsKey(key)){
+                                JSONObject newEntity = new JSONObject();
+                                newEntity.put("name", curCharacterText);
+                                newEntity.put("group_id", curCharacterGroupId);
+                                entities.put(key, newEntity);
+                            }
                         }
 
                         // Add location.
+                        String locationKey = curCharacterStartOffset +"_"+
+                            curCharacterEndOffset;
+                        JSONObject newLocation = new JSONObject();
+                        newLocation.put("start", curCharacterStartOffset);
+                        newLocation.put("end", curCharacterEndOffset);
+                        newLocation.put("entity_id", characterIdLookup.
+                            get(curCharacterGroupId).get(curCharacterText));
+                        locations.put(locationKey, newLocation);
+                        
                     }
 
                     // See if we're entering an entity (cols 16 > -1)
                     if(characterId > -1 && supersenseStart == 'B'){
                         curCharacterText = cols[ORIGINAL_WORD_COLUMN];
                         curCharacterGroupId = cols[CHARACTER_ID_COLUMN];
-                        curCharacterStartOffset = cols[TOKEN_ID_COLUMN];
-                        curCharacterEndOffset = cols[TOKEN_ID_COLUMN];
+                        curCharacterStartOffset = 
+                            new Integer(cols[TOKEN_ID_COLUMN]).intValue();
+                        curCharacterEndOffset = 
+                            new Integer(cols[TOKEN_ID_COLUMN]).intValue();
                         curCharacterPOS = cols[POS_COLUMN];
 
                     // Otherwise, mark that we're no longer processing an
@@ -662,6 +710,19 @@ public class BookNLPServer {
                 tokens.add(cols[ORIGINAL_WORD_COLUMN]);
             }
 
+            // Assemble the entity info object.
+            entityInfo.put("entities", entities);
+            entityInfo.put("groups", groups);
+            entityInfo.put("locations", locations);
+            entityInfo.put("interactions", interactions);
+
+            // Write out character info.
+            entityInfo.writeJSONString(
+                new FileWriter(new File(directory, basename+".entities.json")));
+
+            // Write out token info.
+            tokens.writeJSONString(
+                new FileWriter(new File(directory, basename+".tokens.json")));
         }
 
         /**
