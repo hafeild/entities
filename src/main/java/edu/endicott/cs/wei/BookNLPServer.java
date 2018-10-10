@@ -629,13 +629,13 @@ public class BookNLPServer {
 
             // Go through each line of the file.
             while(line != null){
-                log(line);
-                log("curCharacterText: "+ curCharacterText +"; "+
-                    "curCharacterGroupId: "+ curCharacterGroupId +"; "+
-                    "curCharacterPOS: "+ curCharacterPOS +"; "+
-                    "curCharacterStartOffset: "+ curCharacterStartOffset +"; "+
-                    "curCharacterEndOffset: "+ curCharacterEndOffset
-                    );
+                // log(line);
+                // log("curCharacterText: "+ curCharacterText +"; "+
+                //     "curCharacterGroupId: "+ curCharacterGroupId +"; "+
+                //     "curCharacterPOS: "+ curCharacterPOS +"; "+
+                //     "curCharacterStartOffset: "+ curCharacterStartOffset +"; "+
+                //     "curCharacterEndOffset: "+ curCharacterEndOffset
+                //     );
                 // parse the line into columns.
                 String[] cols = line.split("\\t");
 
@@ -645,7 +645,7 @@ public class BookNLPServer {
 
                 // See if we're in a entity (col 15 > -1, col 16)
                 if(characterId > -1 && supersenseStart == 'I') {
-                    log("Found continuation of character.");
+                    // log("Found continuation of character.");
                     curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
                     curCharacterEndOffset = 
                         new Integer(cols[TOKEN_ID_COLUMN]).intValue();
@@ -653,12 +653,12 @@ public class BookNLPServer {
                 } else {
                     // Were we in one before? -- emit it.
                     if(curCharacterText != null){
-                        log("Ended character location (NNP or Pronoun), processing...");
+                        // log("Ended character location (NNP or Pronoun), processing...");
                         String entityId = curCharacterGroupId;
 
                         // Add new character if POS is NNP
-                        if(curCharacterPOS == "NNP"){
-                            log("Found character (curCharacterPos == NNP)");
+                        if(curCharacterPOS.equals("NNP")){
+                            // log("Found character (curCharacterPos == NNP)");
 
                             // Get entity id.
                             if(characterIdLookup.containsKey(curCharacterGroupId)){
@@ -690,7 +690,7 @@ public class BookNLPServer {
                                 newEntity.put("name", curCharacterText);
                                 newEntity.put("group_id", curCharacterGroupId);
                                 entities.put(entityId, newEntity);
-                                log("Adding entitiy: "+ entityId +", "+ curCharacterText);
+                                // log("Adding entitiy: "+ entityId +", "+ curCharacterText);
                             }
                         }
 
@@ -707,7 +707,7 @@ public class BookNLPServer {
 
                     // See if we're entering an entity (cols 16 > -1)
                     if(characterId > -1 && supersenseStart == 'B'){
-                        log("Found beginning of new character...");
+                        // log("Found beginning of new character...");
                         curCharacterText = cols[ORIGINAL_WORD_COLUMN];
                         curCharacterGroupId = cols[CHARACTER_ID_COLUMN];
                         curCharacterStartOffset = 
@@ -737,12 +737,16 @@ public class BookNLPServer {
             entityInfo.put("interactions", interactions);
 
             // Write out character info.
-            entityInfo.writeJSONString(
-                new FileWriter(new File(directory, basename+".entities.json")));
+            FileWriter entityJSONFile = new FileWriter(
+                new File(directory, basename+".entities.json"));
+            entityInfo.writeJSONString(entityJSONFile);
+            entityJSONFile.close();
 
             // Write out token info.
-            tokens.writeJSONString(
-                new FileWriter(new File(directory, basename+".tokens.json")));
+            FileWriter tokensJSONFile = new FileWriter(
+                new File(directory, basename+".tokens.json"));
+            tokens.writeJSONString(tokensJSONFile);
+            tokensJSONFile.close();
         }
 
         /**
