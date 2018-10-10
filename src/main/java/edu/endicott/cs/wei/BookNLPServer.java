@@ -333,6 +333,7 @@ public class BookNLPServer {
                 process(directory, bookFile, name);
                 
                 // Output the entity info.
+                log("Processing token file to generate json files.");
                 processTokenFile(directory, name);
 
                 // Update the database.
