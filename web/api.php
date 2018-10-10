@@ -241,13 +241,13 @@ function getTexts($path, $matches, $params){
     if($endID >= 1){
         $statement = $dbh->prepare(
             "select * from metadata where id between :start_id and :end_id");
-            $statement->execute(array(":start_id" => $startID, 
-                ":end_id" => $endID));
-        } else {
+        $statement->execute(array(":start_id" => $startID, 
+            ":end_id" => $endID));
+    } else {
         $statement = $dbh->prepare(
             "select * from metadata where id >= :start_id");
-            $statement->execute(array(":start_id" => $startID));
-        }
+        $statement->execute(array(":start_id" => $startID));
+    }
     checkForStatementError($dbh,$statement,"Error getting texts.");
 
     while(($count == -1 || $rowsReturned < $count) 
