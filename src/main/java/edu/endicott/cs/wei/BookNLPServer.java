@@ -342,8 +342,10 @@ public class BookNLPServer {
 
             } catch (SQLException e) {
                 log("Problems connecting to the database.");
+                e.printStackTrace();
             } catch (Exception e) {
                 log("Caught Exception: "+ e);
+                e.printStackTrace();
                 if(id != -1)
                     try{
                         if(markBookAsErrorInDB(id))
@@ -360,6 +362,7 @@ public class BookNLPServer {
 
                 } catch (IOException e) {
                     log("Couldn't close a socket, what's going on?");
+                    e.printStackTrace();
                 } finally {
                     try{
                         if(dbh != null)
@@ -626,7 +629,13 @@ public class BookNLPServer {
 
             // Go through each line of the file.
             while(line != null){
-
+                log(line);
+                log("curCharacterText: "+ curCharacterText +"; "+
+                    "curCharacterGroupId: "+ curCharacterGroupId +"; "+
+                    "curCharacterPOS: "+ curCharacterPOS +"; "+
+                    "curCharacterStartOffset: "+ curCharacterStartOffset +"; "+
+                    "curCharacterEndOffset: "+ curCharacterEndOffset
+                    );
                 // parse the line into columns.
                 String[] cols = line.split("\\t");
 
@@ -636,6 +645,7 @@ public class BookNLPServer {
 
                 // See if we're in a entity (col 15 > -1, col 16)
                 if(characterId > -1 && supersenseStart == 'I') {
+                    log("Found continuation of character.");
                     curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
                     curCharacterEndOffset = 
                         new Integer(cols[TOKEN_ID_COLUMN]).intValue();
@@ -643,8 +653,13 @@ public class BookNLPServer {
                 } else {
                     // Were we in one before? -- emit it.
                     if(curCharacterText != null){
+                        log("Ended character location (NNP or Pronoun), processing...");
+                        String entityId = curCharacterGroupId;
+
                         // Add new character if POS is NNP
                         if(curCharacterPOS == "NNP"){
+                            log("Found character (curCharacterPos == NNP)");
+
                             // Get entity id.
                             if(characterIdLookup.containsKey(curCharacterGroupId)){
                                 HashMap<String,String> tmp = 
@@ -666,15 +681,16 @@ public class BookNLPServer {
                                 groups.put(curCharacterGroupId, newGroup);
                             }
 
-                            String key = characterIdLookup.
+                            entityId = characterIdLookup.
                                 get(curCharacterGroupId).get(curCharacterText);
 
                             // if entities[curCharacterGroupId] is present:
-                            if(!entities.containsKey(key)){
+                            if(!entities.containsKey(entityId)){
                                 JSONObject newEntity = new JSONObject();
                                 newEntity.put("name", curCharacterText);
                                 newEntity.put("group_id", curCharacterGroupId);
-                                entities.put(key, newEntity);
+                                entities.put(entityId, newEntity);
+                                log("Adding entitiy: "+ entityId +", "+ curCharacterText);
                             }
                         }
 
@@ -684,14 +700,14 @@ public class BookNLPServer {
                         JSONObject newLocation = new JSONObject();
                         newLocation.put("start", curCharacterStartOffset);
                         newLocation.put("end", curCharacterEndOffset);
-                        newLocation.put("entity_id", characterIdLookup.
-                            get(curCharacterGroupId).get(curCharacterText));
+                        newLocation.put("entity_id", entityId);
                         locations.put(locationKey, newLocation);
                         
                     }
 
                     // See if we're entering an entity (cols 16 > -1)
                     if(characterId > -1 && supersenseStart == 'B'){
+                        log("Found beginning of new character...");
                         curCharacterText = cols[ORIGINAL_WORD_COLUMN];
                         curCharacterGroupId = cols[CHARACTER_ID_COLUMN];
                         curCharacterStartOffset = 
@@ -709,6 +725,9 @@ public class BookNLPServer {
 
                 // Add the text to tokens.
                 tokens.add(cols[ORIGINAL_WORD_COLUMN]);
+
+                // Next line.
+                line = tokenFileBuffer.readLine();
             }
 
             // Assemble the entity info object.
