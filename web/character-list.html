@@ -85,29 +85,50 @@
             $.get({
                 url: 'api.php/texts/'+id,
                 success: function(data){
+
+
                     $('#response').html('Attempt '+ attemptNo +'\n'+
                         JSON.stringify(data, null, 4));
                     if(data.success && ''+data.text.processed === '0'){
                         attemptNo++;
                         timeoutId = setTimeout(getTextInfo, 2500);
                     } else if(data.success) {
+
                         $('#title').html(data.text.title);
                         var charListOuterElm = $('#character-list');
                         charListOuterElm.html('');
                         var charListElm = $('<li>');
                         charListOuterElm.append(charListElm);
 
-                        var i;
-                        for(i = 0; i < data.character_info.characters.length; i++){
-                            var char = data.character_info.characters[i];
+                        var entityId, groupId, i;
+                        for(entityId in data.annotation.entities){
+                            var entity = data.annotation.entities[entityId];
+                            var group = data.annotation.groups[entity.group_id];
+                            if(!group.entities){
+                                group.entities = [];
+                            }
+                            group.entities.push(entity);
+
+                            // var names = [];
+                            // var j;
+                            // for(j = 0; j < char.names.length; j++){
+                            //     names.push(char.names[j].n +' ('+ 
+                            //         char.names[j].c +')');
+                            // }
+                            // charListElm.append('<li>'+ names.join(', ') +'</li>');
+                        }
+
+                        for(groupId in data.annotation.groups){
+                            var group = data.annotation.groups[groupId];
                             var names = [];
-                            var j;
-                            for(j = 0; j < char.names.length; j++){
-                                names.push(char.names[j].n +' ('+ 
-                                    char.names[j].c +')');
+                            for(i = 0; i < group.entities.length; i++){
+                                names.push(group.entities[i].name);
                             }
                             charListElm.append('<li>'+ names.join(', ') +'</li>');
                         }
+
+
+
                     }
                 }
             });

@@ -124,12 +124,12 @@ function getTexts($path, $matches, $params){
 
     if($endID >= 1){
         $statement = $dbh->prepare(
-            "select * from metadata where id between :start_id and :end_id");
+            "select * from texts where id between :start_id and :end_id");
         $statement->execute(array(":start_id" => $startID, 
             ":end_id" => $endID));
     } else {
         $statement = $dbh->prepare(
-            "select * from metadata where id >= :start_id");
+            "select * from texts where id >= :start_id");
         $statement->execute(array(":start_id" => $startID));
     }
     checkForStatementError($dbh,$statement,"Error getting texts.");
@@ -162,6 +162,7 @@ function getTexts($path, $matches, $params){
  *      * uploaded_at
  *      * processed_at
  *      * uploaded_by
+ *  - annotation
  * 
  * @param path Ignored.
  * @param matches First match (index 1) must be the id of the text to retrieve
@@ -194,11 +195,11 @@ function getText($path, $matches, $params){
 
     $results["text"] = $row;
 
-    if("".$row["processed"] == "1"){
+    if($row["processed"] == 1){
         //$filename = $CONFIG->text_storage."/".$row["md5sum"].".ids.json.book";
         $filename = $CONFIG->text_storage."/".$row["md5sum"].".entities.json";
         $fd = fopen($filename, "r");
-        $results["character_info"] = json_decode(fread($fd,filesize($filename)));
+        $results["annotation"] = json_decode(fread($fd,filesize($filename)));
         fclose($fd);
     }
 
