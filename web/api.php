@@ -29,35 +29,26 @@ if($method === "POST" && key_exists("_method", $_POST)){
 }
 
 // Available REST routes.
-$routes = array(
+$routes = [
     // Get list of processed files
-    array("pattern"   => "#^/texts/?(\?.*)?$#", 
-          "method"    => "GET", 
-          "call"      => getTexts),
+    generateRoute("GET", "#^/texts/?(\?.*)?$#", getTexts),
 
     // Store text file; send back whether processed or not
-    array("pattern" => "#^/texts/?$#", 
-          "method" => "POST", 
-          "call" => postText),
+    generateRoute("POST", "#^/texts/??$#", postText),
 
     // Store text file; send back whether processed or not
-    array("pattern" => "#^/texts/(\d+)/?$#", 
-          "method" => "GET", 
-          "call" => getText),
+    generateRoute("GET", "#^/texts/(\d+)/?$#", getText),
 
     // Get entity list for file
-    array("pattern" => "#^/texts/(\d+)/entities/?#", 
-          "method" => "GET", 
-          "call" => getEntities),
+    generateRoute("GET", "#^/texts/(\d+)/entities/?#", getEntities),
 
-    array("pattern" => "#^/texts/(\d+)/entities/?#", 
-          "method" => "PATCH", 
-          "call" => editEntity),
+    // Updates properties of an entity.
+    generateRoute("PATCH", "#^/texts/(\d+)/entities/?#", editEntity),
 
 #     "entities" => array("method" => "POST", "call" => addEntity),
 
     // Check progress of file
-);
+];
 
 
 // Valid requests:
@@ -501,5 +492,22 @@ function processText($id, $md5sum) {
     return array("success" => false, "error" => $buffer);
 }
 
+/**
+ * Generates a route map with three fields:
+ *   - method
+ *   - pattern
+ *   - call
+ *  
+ * @param method The method to match. All caps.
+ * @param pattern The pattern the URI must match (including grouping of ids).
+ * @param call The controller to call on a method + pattern match.
+ */
+function generateRoute($method, $pattern, $call){
+    return [
+        "method" => $method,
+        "pattern" => $pattern,
+        "call" => $call
+    ];
+}
 
 ?>
