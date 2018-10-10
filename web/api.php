@@ -1,17 +1,15 @@
 <?php
+// File:    api.php
+// Author:  Hank Feild
+// Date:    Sep. 2018
+// Purpose: Handles routing for text annotation API. 
 
 header('Content-type: application/json');
 
-// Read in the config file.
-$CONFIG_FILE = "../conf.json";
-$configFD = fopen($CONFIG_FILE, "r") or 
-    error("Error reading configuration file.");
-// Strip out comments before parsing the config file.
-$CONFIG = json_decode(preg_replace("#([ \t]*//[^\n]*(\n|$))|(^\s*$)#", "\n", 
-    fread($configFD,filesize($CONFIG_FILE))));
-fclose($configFD);
+require_once("init.php");
+require_once("model.php");
 
-$dbh = null;
+
 
 // Extracts the requested path. Assumes the URI is in the format: 
 // .../api.php/<path>, where <path> is what is extracted.
@@ -29,35 +27,26 @@ if($method === "POST" && key_exists("_method", $_POST)){
 }
 
 // Available REST routes.
-$routes = array(
+$routes = [
     // Get list of processed files
-    array("pattern"   => "#^/texts/?(\?.*)?$#", 
-          "method"    => "GET", 
-          "call"      => getTexts),
+    generateRoute("GET", "#^/texts/?(\?.*)?$#", getTexts),
 
     // Store text file; send back whether processed or not
-    array("pattern" => "#^/texts/?$#", 
-          "method" => "POST", 
-          "call" => postText),
+    generateRoute("POST", "#^/texts/??$#", postText),
 
     // Store text file; send back whether processed or not
-    array("pattern" => "#^/texts/(\d+)/?$#", 
-          "method" => "GET", 
-          "call" => getText),
+    generateRoute("GET", "#^/texts/(\d+)/?$#", getText),
 
     // Get entity list for file
-    array("pattern" => "#^/texts/(\d+)/entities/?#", 
-          "method" => "GET", 
-          "call" => getEntities),
+    generateRoute("GET", "#^/texts/(\d+)/entities/?#", getEntities),
 
-    array("pattern" => "#^/texts/(\d+)/entities/?#", 
-          "method" => "PATCH", 
-          "call" => editEntity),
+    // Updates properties of an entity.
+    generateRoute("PATCH", "#^/texts/(\d+)/entities/?#", editEntity),
 
 #     "entities" => array("method" => "POST", "call" => addEntity),
 
     // Check progress of file
-);
+];
 
 
 // Valid requests:
@@ -84,111 +73,6 @@ foreach($routes as $route){
 // We've only reached this point if the route wasn't recognized.
 error("Route not found: $path.");
 
-/**
- * Dies and prints a JSON object with these fields:
- *   - success (set to false)
- *   - message (the error message passed in as an argument)
- * 
- * @param message The error message to include with the message field.
- * @param additionalData A string or array with additional information in it.
- *                       Optional; defaults to "".
- * @param success Sets the success value; defaults to false.
- */
-function error($message, $additionalData="", $success=false){
-    die(json_encode(array(
-        "success" => $success,
-        "message"   => $message,
-        "additional_data" => $additionalData
-    )));
-}
-
-/**
- * An alias for error.
- */
-function success($message, $additionalData=""){
-    error($message, $additionalData, true);
-}
-
-/**
- * Checks if status is false and, if so, reports the error info along with the
- * given error message before dying.
- * 
- * @param dbh The PDO database handle.
- * @param status The status to check (false = error).
- * @param error The error message to prepend to the database error info.
- */
-function checkForStatementError($dbh, $status, $error){
-    if($status===false){ 
-        error($error ." :: ". $dbh->errorInfo()[2]); 
-    }
-}
-
-/**
- * Connects to the database as specified in the config file (see $CONFIG_FILE
- * above).
- * 
- * @return A PDO object for the database.
- */
-function connectToDB(){
-    global $CONFIG;
-    global $dbh;
-
-    if($dbh === null){
-        try {
-            if($CONFIG->authentication){
-                $dbh = new PDO($CONFIG->dsn, $CONFIG->user, $CONFIG->password);
-            } else {
-                $dbh = new PDO($CONFIG->dsn);
-            }
-
-            createTables($dbh);
-        } catch (PDOException $e) {
-            error("Connection failed: ". $e->getMessage() . 
-                "; dsn: ". $CONFIG->dsn);
-        }
-    }
-    return $dbh;
-}
-
-/**
- * Creates database tables that don't exist.
- */
-function createTables($dbh){
-
-    // Create users table.
-    $status = $dbh->exec("create table if not exists users(".
-        "id integer primary key autoincrement,".
-        "username varchar(50),".
-        "password varchar(255),".
-        "created_at datetime)"
-    );
-    checkForStatementError($dbh, $status, "Error creating users table.");
-
-    // Create metadata table.
-    $status = $dbh->exec("create table if not exists metadata(".
-            "id integer primary key autoincrement,".
-            "title varchar(256),".
-            "md5sum char(16) unique,".
-            "processed integer(1),".
-            "uploaded_at datetime,".
-            "processed_at datetime,".
-            "uploaded_by integer, ".
-            "foreign key(uploaded_by) references users(id)".
-        ")"
-    );
-    checkForStatementError($dbh, $status, "Error creating metadata table.");
-}
-
-/**
- * @return The value corresponding to the given key if the key exists;
- *         otherwise the default is returned.
- */
-function getWithDefault($array, $key, $default){
-    if(key_exists($key, $array)){
-        return $array[$key];
-    }
-    return $default;
-}
 
 /**
  * Displays the metadata for the texts that have been processed or are
@@ -232,7 +116,7 @@ function getTexts($path, $matches, $params){
     );
 
     // Get the number of total uploads.
-    $statement = $dbh->prepare("select count(*) from metadata");
+    $statement = $dbh->prepare("select count(*) from texts");
     checkForStatementError($dbh,$statement,"Error getting number of uploads.");
 
     $statement->execute();
@@ -297,7 +181,7 @@ function getText($path, $matches, $params){
         "success" => true
     );
 
-    $statement = $dbh->prepare("select * from metadata where id = :id");
+    $statement = $dbh->prepare("select * from texts where id = :id");
     checkForStatementError($dbh,$statement,"Error preparing db statement.");
     $statement->execute(array(":id" => $id));
     checkForStatementError($dbh,$statement,"Error getting text metadata.");
@@ -311,7 +195,8 @@ function getText($path, $matches, $params){
     $results["text"] = $row;
 
     if("".$row["processed"] == "1"){
-        $filename = $CONFIG->text_storage."/".$row["md5sum"].".ids.json.book";
+        //$filename = $CONFIG->text_storage."/".$row["md5sum"].".ids.json.book";
+        $filename = $CONFIG->text_storage."/".$row["md5sum"].".entities.json";
         $fd = fopen($filename, "r");
         $results["character_info"] = json_decode(fread($fd,filesize($filename)));
         fclose($fd);
@@ -345,7 +230,7 @@ function postText($path, $matches, $params){
 
     // Check if another file with this signature exists; if not, add the file.
     $statement = $dbh->prepare(
-        "select * from metadata where md5sum = :md5sum");
+        "select * from texts where md5sum = :md5sum");
     checkForStatementError($dbh, $statement, 
         "Error preparing md5sum db statement.");
     $statement->execute(array(":md5sum" => $md5sum));
@@ -355,9 +240,9 @@ function postText($path, $matches, $params){
         $dbh->rollBack();
         error("This text has already been uploaded.", $row);
     } else {
-        $statement = $dbh->prepare("insert into metadata".
-            "(title,md5sum,processed,uploaded_at,processed_at,uploaded_by) ".
-            "values(:title, :md5sum, 0, DATETIME('now'), null, null)");
+        $statement = $dbh->prepare("insert into texts".
+            "(title,md5sum,processed,error,uploaded_at,processed_at,uploaded_by) ".
+            "values(:title, :md5sum, 0, 0, DATETIME('now'), null, null)");
         checkForStatementError($dbh, $statement, 
             "Error preparing upload db statement.");
         $statement->execute(array(
@@ -447,5 +332,22 @@ function processText($id, $md5sum) {
     return array("success" => false, "error" => $buffer);
 }
 
+/**
+ * Generates a route map with three fields:
+ *   - method
+ *   - pattern
+ *   - call
+ *  
+ * @param method The method to match. All caps.
+ * @param pattern The pattern the URI must match (including grouping of ids).
+ * @param call The controller to call on a method + pattern match.
+ */
+function generateRoute($method, $pattern, $call){
+    return [
+        "method" => $method,
+        "pattern" => $pattern,
+        "call" => $call
+    ];
+}
 
 ?>

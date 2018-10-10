@@ -12,6 +12,7 @@
 package edu.endicott.cs.wei;    
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -20,6 +21,7 @@ import java.net.Socket;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,6 +68,13 @@ public class BookNLPServer {
     private static final String corefWeights = "files/coref.weights";
 
     private static final int DEFAULT_PORT = 3636;
+    private static final String TEXT_METADATA_TABLE = "texts";
+
+    private static final int TOKEN_ID_COLUMN = 2;
+    private static final int ORIGINAL_WORD_COLUMN = 7;
+    private static final int POS_COLUMN = 10;
+    private static final int CHARACTER_ID_COLUMN = 14;
+    private static final int SUPERSENSE_COLUMN = 15;
 
     public String weights = corefWeights;
     public long port;
@@ -245,7 +254,7 @@ public class BookNLPServer {
          */
         public void run(){
             String directoryPath, name;
-            int id;
+            int id = -1;
             File directory, bookFile;
 
             try {
@@ -323,14 +332,29 @@ public class BookNLPServer {
                 // Process the book.
                 process(directory, bookFile, name);
                 
+                // Output the entity info.
+                log("Processing token file to generate json files.");
+                processTokenFile(directory, name);
+
                 // Update the database.
                 if(!markBookAsProcessedInDB(id))
                     log("Error: unable to update metadata table.");
 
-            } catch (IOException e) {
-                log("Caught IOException: "+ e);
+            } catch (SQLException e) {
+                log("Problems connecting to the database.");
+                e.printStackTrace();
             } catch (Exception e) {
                 log("Caught Exception: "+ e);
+                e.printStackTrace();
+                if(id != -1)
+                    try{
+                        if(markBookAsErrorInDB(id))
+                            log("Error writing error to database.");
+                    } catch(SQLException sqlE){
+                        log("Error writing error to database: "+ sqlE);
+                    }
+                else
+                    log("Error: could not mark error in database; no id.");
             } finally {
                 try {
                     if(!socket.isClosed())
@@ -338,6 +362,7 @@ public class BookNLPServer {
 
                 } catch (IOException e) {
                     log("Couldn't close a socket, what's going on?");
+                    e.printStackTrace();
                 } finally {
                     try{
                         if(dbh != null)
@@ -381,7 +406,8 @@ public class BookNLPServer {
         public IdStatus getIdStatusInMetadataTable(int id){
             try{
                 PreparedStatement statement = dbh.prepareStatement(
-                    "select processed from metadata where id = ?");
+                    "select processed from "+ TEXT_METADATA_TABLE +
+                    " where id = ?");
 
                 statement.setInt(1, id);
 
@@ -510,13 +536,6 @@ public class BookNLPServer {
             // options.addOption("printHtml", false,
             //         "write HTML file with coreference links and speaker ID for inspection");
 
-
-
-
-
-
-
-
             BookNLP bookNLP = new BookNLP();
 
             // Generate or read tokens
@@ -571,9 +590,164 @@ public class BookNLPServer {
         }
 
         /**
-         * Updates the database entry for the book with the given id. This
-         * assumes that there exists a table named `metadata` that contains at
-         * least the columns:
+         * Creates two JSON representations of the text and entity information 
+         * encoded in a book-nlp token file (<basename>.tokens). These are saved
+         * to two files:
+         * 
+         *  - <basename>.entities.json
+         *  - <basename>.tokens.json
+         * 
+         * @param directory The directory where output files will be written.
+         * @param basename The name of the file (without extensions).
+         * 
+         * @throws IOException
+         */
+        public void processTokenFile(File directory, String basename) throws Exception {
+            HashMap<String, HashMap<String,String>> characterIdLookup = 
+                new HashMap<String, HashMap<String,String>>();
+
+            JSONObject entities = new JSONObject();
+            JSONObject locations = new JSONObject();
+            JSONObject interactions = new JSONObject();
+            JSONObject groups = new JSONObject();
+            JSONObject entityInfo = new JSONObject();
+            JSONArray tokens = new JSONArray();
+
+            String curCharacterText = null;
+            String curCharacterGroupId = null;
+            String curCharacterPOS = null;
+            int curCharacterStartOffset = -1;
+            int curCharacterEndOffset = -1;
+
+            File tokenFile = new File(directory, basename +".token");
+            BufferedReader tokenFileBuffer = 
+                new BufferedReader(new FileReader(tokenFile)); 
+            String line = tokenFileBuffer.readLine();
+
+            // Skip the header.
+            line = tokenFileBuffer.readLine();
+
+            // Go through each line of the file.
+            while(line != null){
+                log(line);
+                log("curCharacterText: "+ curCharacterText +"; "+
+                    "curCharacterGroupId: "+ curCharacterGroupId +"; "+
+                    "curCharacterPOS: "+ curCharacterPOS +"; "+
+                    "curCharacterStartOffset: "+ curCharacterStartOffset +"; "+
+                    "curCharacterEndOffset: "+ curCharacterEndOffset
+                    );
+                // parse the line into columns.
+                String[] cols = line.split("\\t");
+
+                int characterId = 
+                    new Integer(cols[CHARACTER_ID_COLUMN]).intValue();
+                char supersenseStart = cols[SUPERSENSE_COLUMN].charAt(0);
+
+                // See if we're in a entity (col 15 > -1, col 16)
+                if(characterId > -1 && supersenseStart == 'I') {
+                    log("Found continuation of character.");
+                    curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
+                    curCharacterEndOffset = 
+                        new Integer(cols[TOKEN_ID_COLUMN]).intValue();
+            
+                } else {
+                    // Were we in one before? -- emit it.
+                    if(curCharacterText != null){
+                        log("Ended character location (NNP or Pronoun), processing...");
+                        String entityId = curCharacterGroupId;
+
+                        // Add new character if POS is NNP
+                        if(curCharacterPOS == "NNP"){
+                            log("Found character (curCharacterPos == NNP)");
+
+                            // Get entity id.
+                            if(characterIdLookup.containsKey(curCharacterGroupId)){
+                                HashMap<String,String> tmp = 
+                                    characterIdLookup.get(curCharacterGroupId);
+
+                                if(!tmp.containsKey(curCharacterText)){
+                                    tmp.put(curCharacterText, 
+                                        curCharacterGroupId +"-"+ tmp.size());
+                                }
+                            } else {
+                                characterIdLookup.put(curCharacterGroupId,
+                                    new HashMap<String, String>());
+                                characterIdLookup.get(curCharacterGroupId).
+                                    put(curCharacterText, curCharacterGroupId);
+
+                                // Make a new group entry.
+                                JSONObject newGroup = new JSONObject();
+                                newGroup.put("name", curCharacterText);
+                                groups.put(curCharacterGroupId, newGroup);
+                            }
+
+                            entityId = characterIdLookup.
+                                get(curCharacterGroupId).get(curCharacterText);
+
+                            // if entities[curCharacterGroupId] is present:
+                            if(!entities.containsKey(entityId)){
+                                JSONObject newEntity = new JSONObject();
+                                newEntity.put("name", curCharacterText);
+                                newEntity.put("group_id", curCharacterGroupId);
+                                entities.put(entityId, newEntity);
+                                log("Adding entitiy: "+ entityId +", "+ curCharacterText);
+                            }
+                        }
+
+                        // Add location.
+                        String locationKey = curCharacterStartOffset +"_"+
+                            curCharacterEndOffset;
+                        JSONObject newLocation = new JSONObject();
+                        newLocation.put("start", curCharacterStartOffset);
+                        newLocation.put("end", curCharacterEndOffset);
+                        newLocation.put("entity_id", entityId);
+                        locations.put(locationKey, newLocation);
+                        
+                    }
+
+                    // See if we're entering an entity (cols 16 > -1)
+                    if(characterId > -1 && supersenseStart == 'B'){
+                        log("Found beginning of new character...");
+                        curCharacterText = cols[ORIGINAL_WORD_COLUMN];
+                        curCharacterGroupId = cols[CHARACTER_ID_COLUMN];
+                        curCharacterStartOffset = 
+                            new Integer(cols[TOKEN_ID_COLUMN]).intValue();
+                        curCharacterEndOffset = 
+                            new Integer(cols[TOKEN_ID_COLUMN]).intValue();
+                        curCharacterPOS = cols[POS_COLUMN];
+
+                    // Otherwise, mark that we're no longer processing an
+                    // entity.
+                    } else {
+                        curCharacterText = null;
+                    }
+                }
+
+                // Add the text to tokens.
+                tokens.add(cols[ORIGINAL_WORD_COLUMN]);
+
+                // Next line.
+                line = tokenFileBuffer.readLine();
+            }
+
+            // Assemble the entity info object.
+            entityInfo.put("entities", entities);
+            entityInfo.put("groups", groups);
+            entityInfo.put("locations", locations);
+            entityInfo.put("interactions", interactions);
+
+            // Write out character info.
+            entityInfo.writeJSONString(
+                new FileWriter(new File(directory, basename+".entities.json")));
+
+            // Write out token info.
+            tokens.writeJSONString(
+                new FileWriter(new File(directory, basename+".tokens.json")));
+        }
+
+        /**
+         * Updates the database entry for the book with the given id. Assumes
+         * there's a table named `texts` with the following fields:
          * 
          *  - id
          *  - processed (1 or 0)
@@ -584,13 +758,28 @@ public class BookNLPServer {
          */
         public boolean markBookAsProcessedInDB(int id) throws SQLException {
             PreparedStatement statement = dbh.prepareStatement(
-                "update metadata set "+
-                "processed = ?, processed_at = DATETIME('now') where id = ?");
+                "update texts set "+
+                "processed = 1, processed_at = DATETIME('now') where id = ?");
+            statement.setInt(1, id);
 
-            statement.setInt(1, 1);
-            // statement.setTimestamp(2,
-                // new java.sql.Timestamp(new Date().getTime()));
-            statement.setInt(2, id);
+            return statement.executeUpdate() == 1;
+        }
+
+        /**
+         * Updates the database entry for the book with the given id indicating
+         * an error was encountered. Assumes there's a table named `texts` with 
+         * the following fields:
+         * 
+         *  - id
+         *  - error (1 or 0)
+         * 
+         * @param id The id of the text to mark as errored.
+         * @return True if the update was successful.
+         */
+        public boolean markBookAsErrorInDB(int id) throws SQLException {
+            PreparedStatement statement = dbh.prepareStatement(
+                "update texts set error = 1 where id = ?");
+            statement.setInt(1, id);
 
             return statement.executeUpdate() == 1;
         }
