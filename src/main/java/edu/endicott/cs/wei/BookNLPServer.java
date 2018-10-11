@@ -644,7 +644,7 @@ public class BookNLPServer {
                 char supersenseStart = cols[SUPERSENSE_COLUMN].charAt(0);
 
                 // See if we're in a entity (col 15 > -1, col 16)
-                if(characterId > -1 && supersenseStart == 'I') {
+                if(characterId > -1 && supersenseStart == 'I' && curCharacterText != null) {
                     // log("Found continuation of character.");
                     curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
                     curCharacterEndOffset = 
