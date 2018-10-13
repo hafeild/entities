@@ -75,6 +75,12 @@ public class BookNLPServer {
     private static final int POS_COLUMN = 10;
     private static final int CHARACTER_ID_COLUMN = 14;
     private static final int SUPERSENSE_COLUMN = 15;
+    private static final HashSet<String> NOUN_TYPES = new HashSet<String>();
+    static {
+        NOUN_TYPES.add("NNP");
+        NOUN_TYPES.add("NNPS");
+        NOUN_TYPES.add("NN");
+    }
 
     public String weights = corefWeights;
     public long port;
@@ -619,6 +625,8 @@ public class BookNLPServer {
             int curCharacterStartOffset = -1;
             int curCharacterEndOffset = -1;
 
+            int prevCharacterId = -1; 
+
             File tokenFile = new File(directory, basename +".token");
             BufferedReader tokenFileBuffer = 
                 new BufferedReader(new FileReader(tokenFile)); 
@@ -644,7 +652,8 @@ public class BookNLPServer {
                 char supersenseStart = cols[SUPERSENSE_COLUMN].charAt(0);
 
                 // See if we're in a entity (col 15 > -1, col 16)
-                if(characterId > -1 && supersenseStart == 'I' && curCharacterText != null) {
+                // if(characterId > -1 && supersenseStart == 'I' && curCharacterText != null) {
+                if(characterId > -1 && characterId == prevCharacterId) {
                     // log("Found continuation of character.");
                     curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
                     curCharacterEndOffset = 
@@ -657,7 +666,7 @@ public class BookNLPServer {
                         String entityId = curCharacterGroupId;
 
                         // Add new character if POS is NNP
-                        if(curCharacterPOS.equals("NNP")){
+                        if(NOUN_TYPES.contains(curCharacterPOS)){
                             // log("Found character (curCharacterPos == NNP)");
 
                             // Get entity id.
@@ -706,7 +715,8 @@ public class BookNLPServer {
                     }
 
                     // See if we're entering an entity (cols 16 > -1)
-                    if(characterId > -1 && supersenseStart == 'B'){
+                    // if(characterId > -1 && (supersenseStart == 'B' || supersenseStart == 'I') ){
+                    if(characterId > -1 && characterId != prevCharacterId ){
                         // log("Found beginning of new character...");
                         curCharacterText = cols[ORIGINAL_WORD_COLUMN];
                         curCharacterGroupId = cols[CHARACTER_ID_COLUMN];
@@ -728,6 +738,8 @@ public class BookNLPServer {
 
                 // Next line.
                 line = tokenFileBuffer.readLine();
+
+                prevCharacterId = characterId;
             }
 
             // Assemble the entity info object.
