@@ -8,7 +8,9 @@ header('Content-type: application/json');
 
 require_once("init.php");
 require_once("model.php");
+require_once("model-annotations-sql.php");
 
+$user = ["user_id" => 1];
 
 
 // Extracts the requested path. Assumes the URI is in the format: 
@@ -42,6 +44,15 @@ $routes = [
 
     // Updates properties of an entity.
     generateRoute("PATCH", "#^/texts/(\d+)/entities/?#", editEntity),
+
+    // Adds a new annotation.
+    generateRoute("POST", "#^/texts/(\d+)/annotations/?$#", postAnnotation),
+
+    // Gets a list of all annotations.
+    generateRoute("GET", "#^/annotations/?$#", getAnnotations),
+
+    // Retrieves the requested annotation.
+    generateRoute("GET", "#^/annotations/(\d+)/?$#", getAnnotation)
 
 #     "entities" => array("method" => "POST", "call" => addEntity),
 
@@ -163,6 +174,10 @@ function getTexts($path, $matches, $params){
  *      * processed_at
  *      * uploaded_by
  *  - annotation
+ *      * entities
+ *      * groups
+ *      * interactions
+ *      * locations
  * 
  * @param path Ignored.
  * @param matches First match (index 1) must be the id of the text to retrieve
@@ -177,31 +192,9 @@ function getText($path, $matches, $params){
     }
 
     $id = $matches[1];
-    $dbh = connectToDB();
-    $results = array(
-        "success" => true
-    );
 
-    $statement = $dbh->prepare("select * from texts where id = :id");
-    checkForStatementError($dbh,$statement,"Error preparing db statement.");
-    $statement->execute(array(":id" => $id));
-    checkForStatementError($dbh,$statement,"Error getting text metadata.");
-
-    $row = $statement->fetch(PDO::FETCH_ASSOC);
-
-    if(!$row){
-        error("No text with id $id found in the database.");
-    }
-
-    $results["text"] = $row;
-
-    if($row["processed"] == 1){
-        //$filename = $CONFIG->text_storage."/".$row["md5sum"].".ids.json.book";
-        $filename = $CONFIG->text_storage."/".$row["md5sum"].".entities.json";
-        $fd = fopen($filename, "r");
-        $results["annotation"] = json_decode(fread($fd,filesize($filename)));
-        fclose($fd);
-    }
+    $results = getOriginalAnnotation($id);
+    $results["success"] = true;
 
     return $results;
 }
@@ -287,7 +280,6 @@ function postText($path, $matches, $params){
 function processText($id, $md5sum) {
     global $CONFIG;
 
-
     // Open the socket.
     if(!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
         $errorcode = socket_last_error();
@@ -331,6 +323,87 @@ function processText($id, $md5sum) {
         return array("success" => true);
 
     return array("success" => false, "error" => $buffer);
+}
+
+/**
+ * Post a new annotation by copying the processed annotation on disk over to
+ * the database. Returns the id of the annotation.
+ * 
+ * @param path Ignored.
+ * @param matches First match should be the text id.
+ * @param params The request parameters. Ignored.
+ */
+function postAnnotation($path, $matches, $params){
+    global $user;
+
+    if(count($matches) < 2){
+        error("Must include the id of the text in URI.");
+    }
+
+    $textId = $matches[1];
+
+    // Lookup text data.
+    $textData = getOriginalAnnotation($textId);
+
+    addAnnotation($user["user_id"], $textId, $textData["annotation"]);
+
+    return array("success" => true);
+}
+
+/**
+ * Retrieves metadata about all of the annotations in the database. The 
+ * returned object looks like this:
+ *      - success (true)
+ *      - annotations (list of objects, each with the following fields)
+ *          * annotation_id
+ *          * title
+ *          * text_id
+ *          * username (owner)
+ *          * user id  (owner)
+ * 
+ * @param path Ignored.
+ * @param matches Ignored.
+ * @param params The request parameters. Ignored.
+ */
+function getAnnotations($path, $matches, $params){
+    $annotations = lookupAnnotations();
+
+    return [
+        "success" => true,
+        "annotations" => $annotations
+    ];
+}
+
+/**
+ * Retrieves the annotation with the given id:
+ *      - success (true)
+ *      - annotation_data
+ *          * annotation_id
+ *          * title
+ *          * text_id
+ *          * username (owner)
+ *          * user id  (owner)
+ *          * annotation
+ *              - entities
+ *              - groups
+ *              - interactions
+ *              - locations
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id.
+ * @param params The request parameters. Ignored.
+ */
+function getAnnotation($path, $matches, $params){
+    if(count($matches) < 2){
+        error("Must include the id of the annotation in URI.");
+    }
+
+    $annotations = lookupAnnotation($matches[1]);
+
+    return [
+        "success" => true,
+        "annotation_data" => $annotations
+    ];
 }
 
 /**

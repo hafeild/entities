@@ -19,6 +19,7 @@
     </style>
     <script>
     var timeoutId;
+    var currentTextId = null;
 
     var getTexts = function(){
         $.get({
@@ -93,8 +94,13 @@
                         attemptNo++;
                         timeoutId = setTimeout(getTextInfo, 2500);
                     } else if(data.success) {
+                        currentTextId = id;
 
                         $('#title').html(data.text.title);
+
+                        // Clear the annotation list.
+                        $('#annotations').html('');
+
                         var charListOuterElm = $('#character-list');
                         charListOuterElm.html('');
                         var charListElm = $('<li>');
@@ -136,6 +142,57 @@
         getTextInfo();
     };
 
+    var addAnnotation = function(){
+        if(currentTextId == null) return;
+
+        console.log(`api.php/texts/${currentTextId}/annotations`);
+
+        $.post({
+            url: `api.php/texts/${currentTextId}/annotations`,
+            success: function(data){
+                console.log(data);
+                $('#response').html(JSON.stringify(data, null, 4));
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                console.log(errorThrown);
+                $('#response').html('ERROR: '+ errorThrown);
+            }
+        });
+    };
+
+    var getAnnotations = function(){
+        if(currentTextId == null) return;
+
+        console.log(`api.php/annotations`);
+
+        $.get({
+            url: `api.php/annotations`,
+            success: function(data){
+                console.log(data);
+                $('#response').html(JSON.stringify(data, null, 4));
+                $('#annotations').html('');
+                var annotationList = $('<ul>');
+                annotationList.appendTo('#annotations');
+                if(data.success){
+                    var i;
+                    for(i = 0; i < data.annotations.length; i++){
+                        var a = data.annotations[i];
+                        $(`<li>(${a.annotation_id}) ${a.title} annotated by `+
+                          `${a.username} <button class="get-annotation" `+
+                          `data-id="${a.annotation_id}">load `+
+                          `annotation</button></li>`).appendTo(annotationList);
+                    }
+                }
+
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                console.log(errorThrown);
+                $('#response').html('ERROR: '+ errorThrown);
+            }
+        });
+    };
+
+
     var loadText = function(){
         pollTextStatus($(this).data('id'));
     };
@@ -145,6 +202,8 @@
         $(document).on('click', '#get-texts', getTexts);
         $('#file-upload-form').on('submit', upload);
         $(document).on('click', 'a.onpage', loadText);
+        $(document).on('click', '#add-annotation', addAnnotation);
+        $(document).on('click', '#get-annotations', getAnnotations);
     });
 
     </script>
@@ -167,6 +226,13 @@
 
 <h2>Extracted characters</h2>
 <h3 id="title"></h3>
+<button id="add-annotation">Add annotation</button>
+<button id="get-annotations">List annotations</button>
+
+<div id="annotations">
+
+</div>
+
 <div id="character-list">
 
 </div>
