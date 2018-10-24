@@ -165,7 +165,7 @@ function lookupAnnotation($id){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title, text_id, username, ".
-                "user.id as user_id, annotation from annotations ".
+                "users.id as user_id, annotation from annotations ".
                 "join users join texts where text_id = texts.id and ".
                 "users.id = created_by and annotations.id = :id");
         $statement->execute([
