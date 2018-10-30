@@ -175,7 +175,7 @@ function lookupAnnotation($id){
         $res = $statement->fetch(PDO::FETCH_ASSOC);
         
         // Convert annotation value into a PHP array.
-        $res["annotation"] = json_decode($res["annotation"]);
+        $res["annotation"] = json_decode($res["annotation"], true);
         return $res;
 
     } catch(Exception $e){
@@ -197,7 +197,7 @@ function updateAnnotation($annotationId, $userId, $updater){
 
     $dbh->beginTransaction();
 
-    $annotationData = getAnnotation($annotationId);
+    $annotationData = lookupAnnotation($annotationId);
 
     if($annotationData["user_id"] != $userId){
         $dbh->rollback();
@@ -211,7 +211,7 @@ function updateAnnotation($annotationId, $userId, $updater){
                 "where id = :id");
         $statement->execute([
             ":id" => $annotationId,
-            ":annotation" => json_encode($updater($annotationData["annotation"]))
+            ":annotation" => json_encode($updater($annotationData["annotation"]), true)
         ]);
         $dbh->commit();
 

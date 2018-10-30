@@ -43,7 +43,9 @@ $routes = [
     generateRoute("GET", "#^/texts/(\d+)/entities/?#", getEntities),
 
     // Updates properties of an entity.
-    generateRoute("PATCH", "#^/texts/(\d+)/entities/?#", editEntity),
+    //generateRoute("PATCH", "#^/texts/(\d+)/entities/?#", editEntity),
+    generateRoute("PATCH", "#^/annotations/(\d+)/entities/(\d+)/?#", editEntity),
+    generateRoute("PATCH", "#^/annotations/(\d+)/?#", editAnnotation),
 
     // Adds a new annotation.
     generateRoute("POST", "#^/texts/(\d+)/annotations/?$#", postAnnotation),
@@ -406,6 +408,74 @@ function getAnnotation($path, $matches, $params){
     ];
 }
 
+
+/**
+ * Updates the annotation with the given id, and returns:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id.
+ * @param params The request parameters. Should contain a JSON string under
+ *               "data" with the following structure:
+ * 
+ *       - entities
+ *          <entityId>: {name, group_id}
+ *       - groups
+ *          <groupId>: {name}
+ *       - locations
+ *          <locationId>: {start, end, entity_id}
+ *       - interactions
+ *          <interactionId>: {locations, label}
+ */
+function editAnnotation($path, $matches, $params){
+    global $user;
+    if(count($matches) < 2){
+        error("Must include the id of the annotation in URI.");
+    }
+
+    $validUpdateFields = [
+        "entities" => ["name"=>1, "group_id"=>1],
+        "groups" => ["name"=>1],
+        "locations" => ["start"=>1, "end"=>1, "entity_id"=>1],
+        "interactions" => ["locations"=>1, "label"=>1]
+    ];
+
+    $data = json_decode($params["data"], true);
+
+    // Update the annotation.
+    $updater = function($annotation) use(&$validUpdateFields, &$data){
+        foreach($validUpdateFields as $field => $x){
+            if(array_key_exists($field, $data)){
+                foreach($data[$field] as $id => $val){
+                    // Check if this is being deleted.
+                    if(array_key_exists($id, $annotation[$field]) && $val == "DELETE"){
+                        unset($annotation[$field][$id]);
+                    } else {
+                        // Check if this is new or updated.
+                        if(!array_key_exists($id, $annotation[$field])){
+                            $annotation[$field][$id] = [];
+                        }
+                        foreach($validUpdateFields[$field] as $subfield => $y){
+                            if(array_key_exists($subfield, $val)){
+                                $annotation[$field][$id][$subfield] =
+                                    $val[$subfield];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $annotation;
+    };
+
+    updateAnnotation($matches[1], $user["user_id"], $updater);
+
+    return [
+        "success" => true
+    ];
+}
 /**
  * Generates a route map with three fields:
  *   - method
@@ -423,5 +493,7 @@ function generateRoute($method, $pattern, $call){
         "call" => $call
     ];
 }
+
+
 
 ?>

@@ -159,6 +159,7 @@
         var groupId, entityId;
         var fullySelectedGroups = [];
         var selectedEntitiesSize, selectedGroupsSize, fullySelectedGroupsSize;
+        var changes = {entities: {}, groups: {}, locations: {}, interactions: {}};
         
         $('.groups input:checked').each(function(i, elm){
             var groupId = $(this).parents('li.group').data('id');
@@ -203,11 +204,15 @@
             for(entityId in selectedEntities){
                 var oldGroupId = selectedEntities[entityId];
                 // TODO -- this needs to go to the server!
+                changes.entities[entityId] = {group_id: newGroupId};
                 annotation_data.annotation.entities[entityId].group_id = newGroupId;
 
                 delete annotation_data.annotation.groups[oldGroupId].entities[entityId];
 
                 if(annotation_data.annotation.groups[newGroupId].name == null){
+                    // TODO -- this needs to go to the server.
+                    changes.groups[newGroupId] = {name:  
+                        annotation_data.annotation.entities[entityId].name};
                     annotation_data.annotation.groups[newGroupId].name = 
                         annotation_data.annotation.entities[entityId].name;
                 }
@@ -228,6 +233,7 @@
                 if(oldGroupId == targetGroupId) continue;
 
                 // TODO -- this needs to go to the server!
+                changes.entities[entityId] = {group_id: targetGroupId}
                 annotation_data.annotation.entities[entityId].group_id = targetGroupId;
 
                 delete annotation_data.annotation.groups[oldGroupId].entities[entityId];
@@ -245,10 +251,26 @@
                 if(groupId == targetGroupId) continue;
 
                 // TODO -- this needs to go to the server!
+                changes.groups[groupId] = "DELETE";
                 delete annotation_data.annotation.groups[groupId];
             }
-
         }
+
+        console.log(`To: api.php/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
+        // Upload changes to the server.
+        $.post({
+            url: `api.php/annotations/${annotation_data.annotation_id}`,
+            data: {_method: 'PATCH', data: JSON.stringify(changes)},
+            success: function(data){
+                $('#response').html(`Updating modifications `+
+                    `(${JSON.stringify(changes)}) `+
+                    `${JSON.stringify(data, null, 4)}`);
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                $('#response').html('ERROR: '+ errorThrown);
+                console.log(jqXHR, textStatus, errorThrown);
+            }
+        });
 
         // This isn't efficient! 
         displayAnnotation(annotation_data);
