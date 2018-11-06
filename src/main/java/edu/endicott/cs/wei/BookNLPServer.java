@@ -775,8 +775,11 @@ public class BookNLPServer {
         public boolean markBookAsProcessedInDB(int id) throws SQLException {
             PreparedStatement statement = dbh.prepareStatement(
                 "update texts set "+
-                "processed = 1, processed_at = DATETIME('now') where id = ?");
+                "processed = 1, processed_at = ? where id = ?");
             statement.setInt(1, id);
+            statement.setTimestamp(2, 
+                new Timestamp(new Date().getTime())
+            );
 
             return statement.executeUpdate() == 1;
         }
