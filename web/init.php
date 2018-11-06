@@ -14,6 +14,15 @@ $CONFIG = json_decode(preg_replace("#([ \t]*//[^\n]*(\n|$))|(^\s*$)#", "\n",
 fclose($configFD);
 
 
+// Get user credentials (if currently logged in).
+$user = null;
+if(array_key_exists("WEI", $_COOKIE)){
+    if($_COOKIE["WEI"] != ""){
+        $user = getUserInfoByAuthToken($_COOKIE["WEI"]);
+    }
+}
+
+
 /**
  * Dies and prints a JSON object with these fields:
  *   - success (set to false)

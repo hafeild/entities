@@ -10,8 +10,6 @@ require_once("init.php");
 require_once("model.php");
 require_once("model-annotations-sql.php");
 
-$user = ["user_id" => 1];
-
 
 // Extracts the requested path. Assumes the URI is in the format: 
 // .../api.php/<path>, where <path> is what is extracted.
@@ -238,12 +236,13 @@ function postText($path, $matches, $params){
     } else {
         $statement = $dbh->prepare("insert into texts".
             "(title,md5sum,processed,error,uploaded_at,processed_at,uploaded_by) ".
-            "values(:title, :md5sum, 0, 0, DATETIME('now'), null, null)");
+            "values(:title, :md5sum, 0, 0, :time, null, null)");
         checkForStatementError($dbh, $statement, 
             "Error preparing upload db statement.");
         $statement->execute(array(
             ":md5sum" => $md5sum, 
-            ":title" => $params["title"]
+            ":title"  => $params["title"],
+            ":time"   => curDateTime()
         ));
         checkForStatementError($dbh, $statement, 
             "Error adding upload information to db.");

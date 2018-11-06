@@ -21,6 +21,14 @@ function checkForStatementError($dbh, $status, $error){
 }
 
 /**
+ * @return The current timestamp in the format Y-m-d H:i:s.
+ */
+function curDateTime() {
+    // return new DateTime();
+   return (new DateTime())->format("Y-m-d H:i:s");
+}
+
+/**
  * Connects to the database as specified in the config file (see $CONFIG_FILE
  * above).
  * 
@@ -60,6 +68,7 @@ function createTables($dbh){
         "id integer primary key autoincrement,".
         "username varchar(50),".
         "password varchar(255),".
+        "auth_token varchar(100),".
         "created_at datetime)"
     );
     checkForStatementError($dbh, $status, "Error creating users table.");
@@ -176,4 +185,107 @@ function getOriginalAnnotation($id){
     }
 
     return $results;
+}
+
+/////////////////////////////////
+// User control.
+/////////////////////////////////
+
+/**
+ * Saves the data for the given username. 
+ * 
+ * @param username The username.
+ * @param password The password hash for the user.
+ */
+function addNewUser($username, $password){
+    $dbh =  connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "insert into users(username, password, created_at) ".
+            "values(:username, :password, :time)");
+
+        $success = $statement->execute(array(
+            ":username" => $username, 
+            ":password" => $password,
+            ":time"     => curDateTime()
+        ));
+    } catch(PDOException $e){
+        die("There was an error saving to the database: ". $e->getMessage());
+    }
+}
+
+/**
+ * Retrieves data for the given username. 
+ * 
+ * @param username The username to lookup.
+ * @return The data associated with the given username, or null if the username
+ *         doesn't exist. The returned data is an associative array with these
+ *         fields:
+ *           - id
+ *           - username
+ *           - password
+ *           - auth_token
+ */
+function getUserInfo($username){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "select * from users where username = :username");
+        $success = $statement->execute(array(
+            ":username" => $username));
+           
+        return $statement->fetch(PDO::FETCH_ASSOC);
+    } catch(PDOException $e){
+        die("There was an error reading from the database: ". $e->getMessage());
+    }
+}
+
+/**
+ * Retrieves data for the given auth token. 
+ * 
+ * @param auth_token The auth token to look the user up by.
+ * @return The data associated with the given username, or null if the username
+ *         doesn't exist. The returned data is an associative array with these
+ *         fields:
+ *           - id
+ *           - username
+ *           - password
+ *           - auth_token
+ */
+function getUserInfoByAuthToken($auth_token){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "select * from users where auth_token = :auth_token");
+        $success = $statement->execute(array(
+            ":auth_token" => $auth_token));
+           
+        return $statement->fetch(PDO::FETCH_ASSOC);
+    } catch(PDOException $e){
+        die("There was an error reading from the database: ". $e->getMessage());
+    }
+}
+
+/**
+ * Retrieves data for the given auth token. 
+ * 
+ * @param userId The id of the user.
+ * @param authToken The auth token to assign the user.
+ */
+function setUserAuthToken($userId, $authToken){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "update users set auth_token = :auth_token ".
+                "where id = :user_id");
+        $success = $statement->execute(array(
+            ":user_id"    => $userId,
+            ":auth_token" => $authToken));
+    } catch(PDOException $e){
+        die("There was an error updating the database: ". $e->getMessage());
+    }
 }
