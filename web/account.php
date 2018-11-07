@@ -67,12 +67,12 @@ function login($data){
     // Generate an authentication token.
     $authToken = bin2hex(random_bytes(25));
     setUserAuthToken($user['id'], $authToken);
-    if(array_key_exists($data["remember-me"]))
+    if(array_key_exists("remember-me", $data))
         setcookie("WEI", $authToken, time()+60*60*24*14); // 2 weeks.
     else
         setcookie("WEI", $authToken);
 
-    redirectToApp("", "Welcome!");
+    redirectToApp();
 }
 
 /**
@@ -119,19 +119,26 @@ function redirectToSignup($error="", $message="") {
  * Redirects to the main app page, adding in provided errors or messages.
  */
 function redirectToApp($error="", $message="") {
-    redirectToPage("character-list.html", $error, $message);
+    redirectToPage("character-list.php", $error, $message);
 }
 
 /**
  * Redirects to the given page, adding in provided errors or messages.
  */
 function redirectToPage($page, $error="", $message="") {
+    $params = "";
+    if($error != "" || $message != ""){
+        $params = "?";
+        if($error != "")
+            $params .= "error=". rawurlencode($error) ."&";
+        if($message != "")
+            $params .="message=". rawurlencode($message);
+    }
     echo '
     <!DOCTYPE html>
     <html>
     <head>
-        <meta http-equiv="refresh" content="0; url='. $page .'?error='. 
-        rawurlencode($error) .'&message='. rawurlencode($message) .'" />
+        <meta http-equiv="refresh" content="0; url='. $page . $params .'" />
     </head>
     </html>
     <html>

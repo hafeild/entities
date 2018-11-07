@@ -13,9 +13,11 @@ $CONFIG = json_decode(preg_replace("#([ \t]*//[^\n]*(\n|$))|(^\s*$)#", "\n",
     fread($configFD,filesize($CONFIG_FILE))));
 fclose($configFD);
 
+require_once("model.php");
+
+$user = null;
 
 // Get user credentials (if currently logged in).
-$user = null;
 if(array_key_exists("WEI", $_COOKIE)){
     if($_COOKIE["WEI"] != ""){
         $user = getUserInfoByAuthToken($_COOKIE["WEI"]);

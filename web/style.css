@@ -78,3 +78,7 @@ input.bottom {
     background: #333;
     color: #eee;
 }
+
+.page {
+    display: none;
+}

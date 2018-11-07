@@ -370,8 +370,20 @@ var loadText = function(){
     pollTextStatus($(this).data('id'));
 };
 
+var showPage = function(){
+    var page = window.location.hash;
+    if(page == "" || page == "#"){
+        page = "#texts";
+    }
+
+    $('.page').hide();
+    $(`${page}.page`).show();
+};
+
 $(document).ready(function(){
-    getTexts();
+    //getTexts();
+    showPage();
+    window.onhashchange = showPage;
     $(document).on('click', '#get-texts', getTexts);
     $('#file-upload-form').on('submit', upload);
     $(document).on('click', 'a.onpage', loadText);
@@ -380,4 +392,5 @@ $(document).ready(function(){
     $(document).on('click', '.get-annotation', getAnnotation);
     $(document).on('click', '.group .select-all', selectAllInGroup);
     $(document).on('click', '#group-selected', groupSelected);
+    $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
 });
