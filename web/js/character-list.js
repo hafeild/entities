@@ -57,7 +57,7 @@ var upload = function(event){
 
 var displayAnnotation = function(data){
     // Clear the annotation list.
-    $('#annotations').html('');
+    $('#annotation-list').html('');
 
     var charListOuterElm = $('#character-list');
     var charListElm = $('<ul class="groups">');
@@ -314,9 +314,9 @@ var getAnnotations = function(){
         success: function(data){
             console.log(data);
             $('#response').html(JSON.stringify(data, null, 4));
-            $('#annotations').html('');
+            $('#annotation-list').html('');
             var annotationList = $('<ul>');
-            annotationList.appendTo('#annotations');
+            annotationList.appendTo('#annotation-list');
             if(data.success){
                 var i;
                 for(i = 0; i < data.annotations.length; i++){

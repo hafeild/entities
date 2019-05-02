@@ -71,7 +71,7 @@ require_once("controllers.php");
 
     <div class="container">
         <div id="texts" class="page">
-            <?php $texts = getTexts("", [], [])["texts"]; ?>
+            <?php $texts = controller\getTexts("", [], [])["texts"]; ?>
 
             <?php if($user != null){ ?>
             <h2>Your texts</h2>
@@ -83,7 +83,7 @@ require_once("controllers.php");
                     $text = $texts[$i];
                     if($text["uploaded_by"] == $user["id"]){ 
                         $textsPrinted++; ?>
-                        <li><a href="#" class="onpage" data-id="<?= $text["id"] ?>"
+                        <li><a href="#annotatinos" class="onpage" data-id="<?= $text["id"] ?>"
                             ><?= $text["title"] ?></a> (processed: 
                             <?= $text["processed"] ? "yes" : "no" ?>)
                         </li>
@@ -102,7 +102,7 @@ require_once("controllers.php");
                 <?php 
                 for($i = 0; $i < count($texts); $i++){
                     $text = $texts[$i]; ?>
-                    <li><a href="#" class="onpage" data-id="<?= $text["id"] ?>"
+                    <li><a href="#annotations" class="onpage" data-id="<?= $text["id"] ?>"
                         ><?= $text["title"] ?></a> (processed: 
                         <?= $text["processed"] ? "yes" : "no" ?>)
                     </li>
@@ -129,10 +129,10 @@ require_once("controllers.php");
         <div id="annotations" class="page">
             <h2>Extracted characters</h2>
             <h3 id="title"></h3>
-            <button id="add-annotation">Add annotation</button>
+            <button id="add-annotation">Fork annotation</button>
             <button id="get-annotations">List annotations</button>
 
-            <div id="annotations">
+            <div id="annotation-list">
 
             </div>
 

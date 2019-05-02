@@ -30,30 +30,30 @@ if($method === "POST" && key_exists("_method", $_POST)){
 // Available REST routes.
 $routes = [
     // Get list of processed files
-    generateRoute("GET", "#^/texts/?(\?.*)?$#", getTexts),
+    controller\generateRoute("GET", "#^/texts/?(\?.*)?$#", controller\getTexts),
 
     // Store text file; send back whether processed or not
-    generateRoute("POST", "#^/texts/??$#", postText),
+    controller\generateRoute("POST", "#^/texts/??$#", controller\postText),
 
     // Store text file; send back whether processed or not
-    generateRoute("GET", "#^/texts/(\d+)/?$#", getText),
+    controller\generateRoute("GET", "#^/texts/(\d+)/?$#", controller\getText),
 
     // Get entity list for file
-    generateRoute("GET", "#^/texts/(\d+)/entities/?#", getEntities),
+    controller\generateRoute("GET", "#^/texts/(\d+)/entities/?#", getEntities),
 
     // Updates properties of an entity.
     //generateRoute("PATCH", "#^/texts/(\d+)/entities/?#", editEntity),
-    generateRoute("PATCH", "#^/annotations/(\d+)/entities/(\d+)/?#", editEntity),
-    generateRoute("PATCH", "#^/annotations/(\d+)/?#", editAnnotation),
+    controller\generateRoute("PATCH", "#^/annotations/(\d+)/entities/(\d+)/?#", editEntity),
+    controller\generateRoute("PATCH", "#^/annotations/(\d+)/?#", controller\editAnnotation),
 
     // Adds a new annotation.
-    generateRoute("POST", "#^/texts/(\d+)/annotations/?$#", postAnnotation),
+    controller\generateRoute("POST", "#^/texts/(\d+)/annotations/?$#", controller\postAnnotation),
 
     // Gets a list of all annotations.
-    generateRoute("GET", "#^/annotations/?$#", getAnnotations),
+    controller\generateRoute("GET", "#^/annotations/?$#", controller\getAnnotations),
 
     // Retrieves the requested annotation.
-    generateRoute("GET", "#^/annotations/(\d+)/?$#", getAnnotation)
+    controller\generateRoute("GET", "#^/annotations/(\d+)/?$#", controller\getAnnotation)
 
 #     "entities" => array("method" => "POST", "call" => addEntity),
 

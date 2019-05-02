@@ -1,4 +1,5 @@
 <?php
+namespace controller;
 
 /**
  * Displays the metadata for the texts that have been processed or are
@@ -61,7 +62,7 @@ function getTexts($path, $matches, $params){
     checkForStatementError($dbh,$statement,"Error getting texts.");
 
     while(($count == -1 || $rowsReturned < $count) 
-            && $row = $statement->fetch(PDO::FETCH_ASSOC)){
+            && $row = $statement->fetch(\PDO::FETCH_ASSOC)){
         array_push($results["texts"], $row);
         $lastID = $row["id"];
         $rowsReturned++;
@@ -74,6 +75,7 @@ function getTexts($path, $matches, $params){
 
     return $results;
 }
+
 
 /**
  * Displays the metadata for the texts that have been processed or are
@@ -144,7 +146,7 @@ function postText($path, $matches, $params){
         "Error preparing md5sum db statement.");
     $statement->execute(array(":md5sum" => $md5sum));
     checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
-    $row = $statement->fetch(PDO::FETCH_ASSOC);
+    $row = $statement->fetch(\PDO::FETCH_ASSOC);
     if($row){
         $dbh->rollBack();
         error("This text has already been uploaded.", $row);
