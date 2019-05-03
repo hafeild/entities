@@ -1,5 +1,6 @@
 <?php
-namespace controller;
+
+class Controllers {
 
 /**
  * Displays the metadata for the texts that have been processed or are
@@ -27,7 +28,7 @@ namespace controller;
  *                  - end_id
  *                  - count (defaults to -1, which means all)
  */
-function getTexts($path, $matches, $params){
+public static function getTexts($path, $matches, $params){
     $startID = getWithDefault($params, "start_id", 1);
     $endID = getWithDefault($params, "end_id", -1);
     $count = getWithDefault($params, "count", -1);
@@ -101,7 +102,7 @@ function getTexts($path, $matches, $params){
  *                metadata for.
  * @param params Ignored.
  */
-function getText($path, $matches, $params){
+public static function getText($path, $matches, $params){
     global $CONFIG;
 
     if(count($matches) < 2){
@@ -126,7 +127,7 @@ function getText($path, $matches, $params){
  *                  - title (required)
  *                  - file (required)
  */
-function postText($path, $matches, $params){
+public static function postText($path, $matches, $params){
     global $CONFIG;
 
     if(!key_exists("title", $params) or !key_exists("file", $_FILES)){
@@ -195,7 +196,7 @@ function postText($path, $matches, $params){
  *                 false otherwise.
  *      error --  an error message (only if success == false)
  */
-function processText($id, $md5sum) {
+public static function processText($id, $md5sum) {
     global $CONFIG;
 
     // Open the socket.
@@ -251,7 +252,7 @@ function processText($id, $md5sum) {
  * @param matches First match should be the text id.
  * @param params The request parameters. Ignored.
  */
-function postAnnotation($path, $matches, $params){
+public static function postAnnotation($path, $matches, $params){
     global $user;
 
     if(count($matches) < 2){
@@ -283,7 +284,7 @@ function postAnnotation($path, $matches, $params){
  * @param matches Ignored.
  * @param params The request parameters. Ignored.
  */
-function getAnnotations($path, $matches, $params){
+public static function getAnnotations($path, $matches, $params){
     $annotations = lookupAnnotations();
 
     return [
@@ -311,7 +312,7 @@ function getAnnotations($path, $matches, $params){
  * @param matches First group should contain the annotation id.
  * @param params The request parameters. Ignored.
  */
-function getAnnotation($path, $matches, $params){
+public static function getAnnotation($path, $matches, $params){
     if(count($matches) < 2){
         error("Must include the id of the annotation in URI.");
     }
@@ -345,7 +346,7 @@ function getAnnotation($path, $matches, $params){
  *       - interactions
  *          <interactionId>: {locations, label}
  */
-function editAnnotation($path, $matches, $params){
+public static function editAnnotation($path, $matches, $params){
     global $user;
     if(count($matches) < 2){
         error("Must include the id of the annotation in URI.");
@@ -402,11 +403,14 @@ function editAnnotation($path, $matches, $params){
  * @param pattern The pattern the URI must match (including grouping of ids).
  * @param call The controller to call on a method + pattern match.
  */
-function generateRoute($method, $pattern, $call){
+public static function generateRoute($method, $pattern, $call){
     return [
         "method" => $method,
         "pattern" => $pattern,
         "call" => $call
     ];
 }
+
+}
+
 ?>
