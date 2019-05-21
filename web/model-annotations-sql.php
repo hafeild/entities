@@ -203,7 +203,7 @@ function updateAnnotation($annotationId, $userId, $updater){
 
     if($annotationData["user_id"] != $userId){
         $dbh->rollback();
-        error("User is not authorized to modify the annotation with id ".
+        error("User $userId is not authorized to modify the annotation with id ".
             $annotationId);
     }
 

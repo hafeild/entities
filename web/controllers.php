@@ -395,7 +395,7 @@ public static function editAnnotation($path, $matches, $params){
         return $annotation;
     };
 
-    updateAnnotation($matches[1], $user["user_id"], $updater);
+    updateAnnotation($matches[1], $user["id"], $updater);
 
     return [
         "success" => true

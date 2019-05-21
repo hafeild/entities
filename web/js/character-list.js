@@ -236,6 +236,7 @@ var groupSelected = function(){
         }
     }
 
+    console.log(annotation_data);
     console.log(`To: api.php/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
     // Upload changes to the server.
     $.post({
