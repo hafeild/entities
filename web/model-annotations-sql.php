@@ -38,6 +38,7 @@ function connectToAnnotationDB(){
  *          - groups
  *          - interactions
  *          - locations
+ * @return The id of the newly added annotation.
  */
 function addAnnotation($userId, $textId, $annotation){
     $dbh = connectToAnnotationDB();
@@ -51,6 +52,7 @@ function addAnnotation($userId, $textId, $annotation){
             ":user_id" => $userId,
             ":annotation" => json_encode($annotation)
         ]);
+        return $dbh->lastInsertId();
     } catch(Exception $e){
         error("Error adding annotation: ". $e->getMessage());
     }

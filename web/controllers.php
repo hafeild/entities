@@ -246,7 +246,12 @@ public static function processText($id, $md5sum) {
 
 /**
  * Post a new annotation by copying the processed annotation on disk over to
- * the database. Returns the id of the annotation.
+ * the database. Returns the following 
+ * 
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ *      - id (id of new annotation)
  * 
  * @param path Ignored.
  * @param matches First match should be the text id.
@@ -264,9 +269,12 @@ public static function postAnnotation($path, $matches, $params){
     // Lookup text data.
     $textData = getOriginalAnnotation($textId);
 
-    addAnnotation($user["user_id"], $textId, $textData["annotation"]);
+    $id = addAnnotation($user["user_id"], $textId, $textData["annotation"]);
 
-    return array("success" => true);
+    return [
+        "success" => true,
+        "id" => $id
+    ];
 }
 
 /**
