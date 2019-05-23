@@ -65,7 +65,7 @@ require_once("controllers.php");
 
     <div class="container">
         <div id="texts" class="page">
-            <?php $texts = Controllers::getTexts("", [], [])["texts"]; ?>
+            <?php $texts = Controllers::getTexts("", [], [], 'json')["texts"]; ?>
 
             <?php if($user != null){ ?>
             <h2>Your texts</h2>

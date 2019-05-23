@@ -4,7 +4,7 @@ var annotation_data = null;
 
 var getTexts = function(){
     $.get({
-        url: 'api.php/texts',
+        url: 'json/texts',
         success: function(data){
             $('#response').html(JSON.stringify(data, null, 4));
 
@@ -32,7 +32,7 @@ var upload = function(event){
     console.log('Uploading form data...');
 
     $.post({
-        url: 'api.php/texts', 
+        url: 'json/texts', 
         data: new FormData($('#file-upload-form')[0]),
         success: function(data){
             $('#response').html(JSON.stringify(data, null, 4));
@@ -237,10 +237,10 @@ var groupSelected = function(){
     }
 
     console.log(annotation_data);
-    console.log(`To: api.php/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
+    console.log(`To: json/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
     // Upload changes to the server.
     $.post({
-        url: `api.php/annotations/${annotation_data.annotation_id}`,
+        url: `json/annotations/${annotation_data.annotation_id}`,
         data: {_method: 'PATCH', data: JSON.stringify(changes)},
         success: function(data){
             $('#response').html(`Updating modifications `+
@@ -267,7 +267,7 @@ var pollTextStatus = function(id){
 
     var getTextInfo = function(){
         $.get({
-            url: 'api.php/texts/'+id,
+            url: 'json/texts/'+id,
             success: function(data){
 
 
@@ -292,10 +292,10 @@ var pollTextStatus = function(id){
 var addAnnotation = function(){
     if(currentTextId == null) return;
 
-    console.log(`api.php/texts/${currentTextId}/annotations`);
+    console.log(`json/texts/${currentTextId}/annotations`);
 
     $.post({
-        url: `api.php/texts/${currentTextId}/annotations`,
+        url: `json/texts/${currentTextId}/annotations`,
         success: function(data){
             console.log(data);
             $('#response').html(JSON.stringify(data, null, 4));
@@ -308,10 +308,10 @@ var addAnnotation = function(){
 };
 
 var getAnnotations = function(){
-    console.log(`api.php/annotations`);
+    console.log(`json/annotations`);
 
     $.get({
-        url: `api.php/annotations`,
+        url: `json/annotations`,
         success: function(data){
             console.log(data);
             $('#response').html(JSON.stringify(data, null, 4));
@@ -340,10 +340,10 @@ var getAnnotations = function(){
 var getAnnotation = function(){
     var annotationId = $(this).data('id');
 
-    console.log(`api.php/annotations/${annotationId}`);
+    console.log(`json/annotations/${annotationId}`);
 
     $.get({
-        url: `api.php/annotations/${annotationId}`,
+        url: `json/annotations/${annotationId}`,
         success: function(data){
             console.log(data);
             $('#response').html(JSON.stringify(data, null, 4));

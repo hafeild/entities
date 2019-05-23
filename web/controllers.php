@@ -28,7 +28,7 @@ class Controllers {
  *                  - end_id
  *                  - count (defaults to -1, which means all)
  */
-public static function getTexts($path, $matches, $params){
+public static function getTexts($path, $matches, $params, $format){
     $startID = getWithDefault($params, "start_id", 1);
     $endID = getWithDefault($params, "end_id", -1);
     $count = getWithDefault($params, "count", -1);
@@ -102,7 +102,7 @@ public static function getTexts($path, $matches, $params){
  *                metadata for.
  * @param params Ignored.
  */
-public static function getText($path, $matches, $params){
+public static function getText($path, $matches, $params, $format){
     global $CONFIG;
 
     if(count($matches) < 2){
@@ -127,7 +127,7 @@ public static function getText($path, $matches, $params){
  *                  - title (required)
  *                  - file (required)
  */
-public static function postText($path, $matches, $params){
+public static function postText($path, $matches, $params, $format){
     global $CONFIG;
 
     if(!key_exists("title", $params) or !key_exists("file", $_FILES)){
@@ -257,7 +257,7 @@ public static function processText($id, $md5sum) {
  * @param matches First match should be the text id.
  * @param params The request parameters. Ignored.
  */
-public static function postAnnotation($path, $matches, $params){
+public static function postAnnotation($path, $matches, $params, $format){
     global $user;
 
     if(count($matches) < 2){
@@ -292,7 +292,7 @@ public static function postAnnotation($path, $matches, $params){
  * @param matches Ignored.
  * @param params The request parameters. Ignored.
  */
-public static function getAnnotations($path, $matches, $params){
+public static function getAnnotations($path, $matches, $params, $format){
     $annotations = lookupAnnotations();
 
     return [
@@ -320,7 +320,7 @@ public static function getAnnotations($path, $matches, $params){
  * @param matches First group should contain the annotation id.
  * @param params The request parameters. Ignored.
  */
-public static function getAnnotation($path, $matches, $params){
+public static function getAnnotation($path, $matches, $params, $format){
     if(count($matches) < 2){
         error("Must include the id of the annotation in URI.");
     }
@@ -354,7 +354,7 @@ public static function getAnnotation($path, $matches, $params){
  *       - interactions
  *          <interactionId>: {locations, label}
  */
-public static function editAnnotation($path, $matches, $params){
+public static function editAnnotation($path, $matches, $params, $format){
     global $user;
     if(count($matches) < 2){
         error("Must include the id of the annotation in URI.");

@@ -1,23 +1,21 @@
 <?php
-// File:    api.php
-// Author:  Hank Feild
-// Date:    Sep. 2018
-// Purpose: Handles routing for text annotation API. 
-
-header('Content-type: application/json');
+// File: routes.php
+// Author: Hank Feild
+// Date: 2019-05-23 (modified from Sep 2018)
+// Purpose: Routes all JSON and HTML traffic.
 
 require_once("init.php");
 require_once("model.php");
 require_once("model-annotations-sql.php");
 require_once("controllers.php");
 
-
 // Extracts the requested path. Assumes the URI is in the format: 
 // .../api.php/<path>, where <path> is what is extracted.
 if(isset($_SERVER['REQUEST_URI']))
-    $path = preg_replace("#^.*/api.php#", "", $_SERVER['REQUEST_URI']);
+    $path = preg_replace("#^(/json)?/#", "", $_SERVER['REQUEST_URI']);
 else
     $path = "";
+
 
 // Determine the method. If the request is POST, then there should be a
 // "_method" parameter which will hold the method to use (POST, PATCH, or 
@@ -30,44 +28,59 @@ if($method === "POST" && key_exists("_method", $_POST)){
 // Available REST routes.
 $routes = [
     // Get list of processed files
-    Controllers::generateRoute("GET", "#^/texts/?(\?.*)?$#", 
+    Controllers::generateRoute("GET", "#^texts/?(\?.*)?$#", 
         'Controllers::getTexts'),
 
     // Store text file; send back whether processed or not
-    Controllers::generateRoute("POST", "#^/texts/??$#", 
+    Controllers::generateRoute("POST", "#^texts/??$#", 
         'Controllers::postText'),
 
     // Store text file; send back whether processed or not
-    Controllers::generateRoute("GET", "#^/texts/(\d+)/?$#", 
+    Controllers::generateRoute("GET", "#^texts/(\d+)/?$#", 
         'Controllers::getText'),
 
     // Get entity list for file
-    Controllers::generateRoute("GET", "#^/texts/(\d+)/entities/?#", 
+    Controllers::generateRoute("GET", "#^texts/(\d+)/entities/?#", 
         'getEntities'),
 
     // Updates properties of an entity.
     //generateRoute("PATCH", "#^/texts/(\d+)/entities/?#", 'editEntity'),
     Controllers::generateRoute("PATCH", 
-        "#^/annotations/(\d+)/entities/(\d+)/?#", 'editEntity'),
+        "#^annotations/(\d+)/entities/(\d+)/?#", 'editEntity'),
     Controllers::generateRoute("PATCH", 
-        "#^/annotations/(\d+)/?#", 'Controllers::editAnnotation'),
+        "#^annotations/(\d+)/?#", 'Controllers::editAnnotation'),
 
     // Adds a new annotation.
-    Controllers::generateRoute("POST", "#^/texts/(\d+)/annotations/?$#", 
+    Controllers::generateRoute("POST", "#^texts/(\d+)/annotations/?$#", 
         'Controllers::postAnnotation'),
 
     // Gets a list of all annotations.
-    Controllers::generateRoute("GET", "#^/annotations/?$#", 
+    Controllers::generateRoute("GET", "#^annotations/?$#", 
         'Controllers::getAnnotations'),
 
     // Retrieves the requested annotation.
-    Controllers::generateRoute("GET", "#^/annotations/(\d+)/?$#", 
+    Controllers::generateRoute("GET", "#^annotations/(\d+)/?$#", 
         'Controllers::getAnnotation')
 
 #     "entities" => array("method" => "POST", "call" => addEntity),
 
     // Check progress of file
 ];
+
+// echo "Path: $path<br>\n";
+
+if($path == "" || file_exists($path)){
+    return false;
+}
+
+// Check what response format is being requested.
+if(preg_match("#^/json/#", $_SERVER['REQUEST_URI']) === 1){
+    header('Content-type: application/json; charset=utf-8');
+    $format = "json";
+} else {
+    header('Content-type: text/html; charset=utf-8');
+    $format = "html";
+}
 
 
 // Valid requests:
@@ -85,7 +98,11 @@ foreach($routes as $route){
         }
 
         // Call the controller.
-        echo json_encode($route["call"]($path, $matches, $params));
+        if($format == "json"){
+            echo json_encode($route["call"]($path, $matches, $params, $format));
+        } else {
+            $route["call"]($path, $matches, $params, $format);
+        }
 
         exit();
     }
@@ -96,5 +113,7 @@ error("Route not found: $path.");
 
 
 
+
+?>
 
 ?>
