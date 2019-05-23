@@ -22,9 +22,6 @@ require_once("controllers.php");
     
 
 
-
-
-    <!-- Fixed navbar -->
     <!-- Fixed navbar -->
     <nav class="navbar navbar-default navbar-fixed-top">
         <div class="container">
@@ -35,13 +32,10 @@ require_once("controllers.php");
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="#">When Entities Interact</a>
+            <a class="navbar-brand" href="#">Enteractions</a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li><a href="#texts">Texts</a></li>
-                <li><a href="#annotations">Annotations</a></li>
-                <li><a href="#upload">Upload text</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
 
