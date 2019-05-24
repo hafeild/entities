@@ -58,8 +58,10 @@ function addAnnotation($userId, $textId, $annotation){
     }
 }
 /**
- * Retrieves all the annotation metadata.
+ * Retrieves annotation metadata.
  * 
+ * @param textId (OPTIONAL) If present, restricts the annotations returned to 
+ *               just those associated with the given text id.
  * @return An array of annotation metadata. Each element has the fields:
  *          - annotation_id
  *          - title
@@ -67,16 +69,20 @@ function addAnnotation($userId, $textId, $annotation){
  *          - username (owner)
  *          - user id  (owner)
  */
-function lookupAnnotations(){
+function lookupAnnotations($textId = null){
     $dbh = connectToAnnotationDB();
+
+    $filter = "";
+    if($textId != null)
+        $filter = "and text_id = :text_id";
 
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title, text_id, username, ".
                 "users.id as user_id from annotations ".
                 "join users join texts where text_id = texts.id and ".
-                "users.id = created_by");
-        $statement->execute();
+                "users.id = created_by $filter");
+        $statement->execute([':text_id' => $textId]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(Exception $e){

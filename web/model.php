@@ -141,10 +141,26 @@ function createTables($dbh){
     // checkForStatementError($dbh, $status, "Error creating entity_interactions table.");
 }
 
+/**
+ * Extracts the metadata for the text with the given id from the database. 
+ * 
+ * @param id The id of the text to fetch.
+ * @return An associative array of book metadata with these fields:
+ *      * id
+ *      * title
+ *      * md5sum
+ *      * processed (true/false; false means actively being processed)
+ *      * uploaded_at
+ *      * processed_at
+ *      * uploaded_by
+ *      * uploaded_by_username
+ */
 function getTextMetadata($id){
     $dbh = connectToDB();
 
-    $statement = $dbh->prepare("select * from texts where id = :id");
+    $statement = $dbh->prepare("select texts.*, username as ". 
+        "uploaded_by_username from texts join users where texts.id = :id and ". 
+        "users.id = texts.uploaded_by");
     checkForStatementError($dbh,$statement,"Error preparing db statement.");
     $statement->execute(array(":id" => $id));
     checkForStatementError($dbh,$statement,"Error getting text metadata.");

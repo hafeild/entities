@@ -119,7 +119,7 @@ function redirectToSignup($error="", $message="") {
  * Redirects to the main app page, adding in provided errors or messages.
  */
 function redirectToApp($error="", $message="") {
-    redirectToPage("character-list.php", $error, $message);
+    redirectToPage("/", $error, $message);
 }
 
 /**

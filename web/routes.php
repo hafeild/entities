@@ -57,6 +57,8 @@ $routes = [
     // Gets a list of all annotations.
     Controllers::generateRoute("GET", "#^annotations/?$#", 
         'Controllers::getAnnotations'),
+    Controllers::generateRoute("GET", "#^texts/(\d+)/annotations/?$#", 
+        'Controllers::getAnnotations'),
 
     // Retrieves the requested annotation.
     Controllers::generateRoute("GET", "#^annotations/(\d+)/?$#", 
@@ -78,7 +80,7 @@ if(preg_match("#^/json/#", $_SERVER['REQUEST_URI']) === 1){
     header('Content-type: application/json; charset=utf-8');
     $format = "json";
 } else {
-    header('Content-type: text/html; charset=utf-8');
+    // header('Content-type: text/html; charset=utf-8');
     $format = "html";
 }
 
@@ -110,10 +112,5 @@ foreach($routes as $route){
 
 // We've only reached this point if the route wasn't recognized.
 error("Route not found: $path.");
-
-
-
-
-?>
 
 ?>

@@ -27,6 +27,9 @@ class Controllers {
  *                  - start_id
  *                  - end_id
  *                  - count (defaults to -1, which means all)
+ * @param format The format of the response, 'json' or 'html'. 
+ * @return If format is 'json', returns an associative array with the fields
+ *         outlines above; otherwise, returns nothing.
  */
 public static function getTexts($path, $matches, $params, $format){
     $startID = getWithDefault($params, "start_id", 1);
@@ -74,7 +77,11 @@ public static function getTexts($path, $matches, $params, $format){
     $results["end_id"] = $lastID;
     $results["returned_count"] = $rowsReturned;
 
-    return $results;
+    if($format == "json"){
+        return $results;
+    } else {
+        Controllers::render("Texts", "views/texts.php", $results);
+    }
 }
 
 
@@ -101,6 +108,9 @@ public static function getTexts($path, $matches, $params, $format){
  * @param matches First match (index 1) must be the id of the text to retrieve
  *                metadata for.
  * @param params Ignored.
+ * @param format The format of the response, 'json' or 'html' (unsupported).
+ * @return If format is 'json', returns an associative array with the fields
+ *         outlines above; otherwise, returns nothing.
  */
 public static function getText($path, $matches, $params, $format){
     global $CONFIG;
@@ -126,6 +136,9 @@ public static function getText($path, $matches, $params, $format){
  * @param params The request parameters. The following fields are allowed:
  *                  - title (required)
  *                  - file (required)
+ * @param format The format of the response, 'json' or 'html' (unsupported).
+ * @return If format is 'json', returns an associative array with the fields
+ *         outlines above; otherwise, returns nothing.
  */
 public static function postText($path, $matches, $params, $format){
     global $CONFIG;
@@ -256,6 +269,9 @@ public static function processText($id, $md5sum) {
  * @param path Ignored.
  * @param matches First match should be the text id.
  * @param params The request parameters. Ignored.
+ * @param format The format of the response, 'json' or 'html' (unsupported). 
+ * @return If format is 'json', returns an associative array with the fields
+ *         outlines above; otherwise, returns nothing.
  */
 public static function postAnnotation($path, $matches, $params, $format){
     global $user;
@@ -278,8 +294,18 @@ public static function postAnnotation($path, $matches, $params, $format){
 }
 
 /**
- * Retrieves metadata about all of the annotations in the database. The 
- * returned object looks like this:
+ * Retrieves metadata about all of the annotations in the database. If the
+ * request format is 'html', the views/annotations.php view is rendered; 
+ * the global $data variable is populated with two keys:
+ *   - annotations (a list of objects as described below)
+ *   - text (an object with information about the text -- only applies if a text
+ *           id is provided as the first match in $matches)
+ *     * id
+ *     * title
+ *     
+ * If 'json', the returned 
+ * object looks like this:
+ * 
  *      - success (true)
  *      - annotations (list of objects, each with the following fields)
  *          * annotation_id
@@ -289,20 +315,47 @@ public static function postAnnotation($path, $matches, $params, $format){
  *          * user id  (owner)
  * 
  * @param path Ignored.
- * @param matches Ignored.
+ * @param matches Either the first match is the id of the text to fetch 
+ *                annotations for, or if missing, the all annotations are 
+ *                retrieved.
  * @param params The request parameters. Ignored.
+ * @param format The format of the response, 'json' or 'html'.
+ * @return If format is 'json', returns an associative array with the fields
+ *         outlines above; otherwise, returns nothing.
  */
 public static function getAnnotations($path, $matches, $params, $format){
-    $annotations = lookupAnnotations();
 
-    return [
-        "success" => true,
-        "annotations" => $annotations
-    ];
+    if(count($matches) >= 2){
+        $annotations = lookupAnnotations($matches[1]);
+        if($format == "html")
+            $text = getTextMetadata($matches[1]);
+    } else {
+        $annotations = lookupAnnotations();
+        $text = null;
+    }
+
+
+    if($format == "json"){
+        return [
+            "success" => true,
+            "annotations" => $annotations
+        ];
+    } else {
+        Controllers::render("Annotations", "views/annotations.php", 
+            [
+                "annotations" => $annotations,
+                "text" => $text
+            ]
+        );
+    }
 }
 
 /**
- * Retrieves the annotation with the given id:
+ * Retrieves the annotation with the given id. If the request format is 'html',
+ * the views/annotation.php page is rendered with the annotation_data (see 
+ * below) in the global $data variable. If 'json', the following object is
+ * returned:
+ * 
  *      - success (true)
  *      - annotation_data
  *          * annotation_id
@@ -319,6 +372,9 @@ public static function getAnnotations($path, $matches, $params, $format){
  * @param path Ignored.
  * @param matches First group should contain the annotation id.
  * @param params The request parameters. Ignored.
+ * @param format The format of the response, 'json' or 'html'.
+ * @return If format is 'json', returns an associative array with the fields
+ *         outlines above; otherwise, returns nothing.
  */
 public static function getAnnotation($path, $matches, $params, $format){
     if(count($matches) < 2){
@@ -327,10 +383,14 @@ public static function getAnnotation($path, $matches, $params, $format){
 
     $annotations = lookupAnnotation($matches[1]);
 
-    return [
-        "success" => true,
-        "annotation_data" => $annotations
-    ];
+    if($format == "json"){
+        return [
+            "success" => true,
+            "annotation_data" => $annotations
+        ];
+    } else {
+        Controllers::render("Annotations", "views/annotation.php", $annotations);
+    }
 }
 
 
@@ -417,6 +477,15 @@ public static function generateRoute($method, $pattern, $call){
         "pattern" => $pattern,
         "call" => $call
     ];
+}
+
+public static function render($title_, $view_, $data_){
+    global $title, $view, $data;
+    $title = $title_;
+    $view = $view_;
+    $data = $data_;
+
+    require("views/master.php");
 }
 
 }
