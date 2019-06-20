@@ -62,6 +62,8 @@ $routes = [
 
     // Retrieves the requested annotation.
     Controllers::generateRoute("GET", "#^annotations/(\d+)/?$#", 
+        'Controllers::getAnnotation'),
+    Controllers::generateRoute("GET", "#^texts/\d+/annotations/(\d+)/?$#", 
         'Controllers::getAnnotation')
 
 #     "entities" => array("method" => "POST", "call" => addEntity),

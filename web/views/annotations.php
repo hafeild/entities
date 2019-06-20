@@ -2,15 +2,16 @@
 
 <div id="annotation-list">
     <ul>
-        <?php foreach($data["annotations"] as $annotation) ?>
+        <?php foreach($data["annotations"] as $annotation) {?>
         <li>(<?= $annotation["annotation_id"] ?>) 
             <?= $annotation["title"] ?> 
             annotated by <?= $annotation["username"] ?>
-            <button class="get-annotation" 
-                data-id="<?= $annotation["annotation_id"] ?>">
+            <a class="btn btn-sm btn-default" role="button" 
+                href="/texts/<?= $data["text"]["id"]?>/annotations/<?= $annotation["annotation_id"] ?>">
                 load annotation
-            </button>
+            </a>
         </li>
+        <?php } ?>
 
 </div>
 

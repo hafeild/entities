@@ -12,7 +12,7 @@
                     $text = $texts[$i];
                     if($text["uploaded_by"] == $user["id"]){ 
                         $textsPrinted++; ?>
-                        <li><a href="#annotations" class="onpage" data-id="<?= $text["id"] ?>"
+                        <li><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" data-id="<?= $text["id"] ?>"
                             ><?= $text["title"] ?></a> (processed: 
                             <?= $text["processed"] ? "yes" : "no" ?>)
                         </li>

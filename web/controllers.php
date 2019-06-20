@@ -266,10 +266,10 @@ public static function processText($id, $md5sum) {
  * Post a new annotation by copying the processed annotation on disk over to
  * the database. Returns the following 
  * 
- *      - success (true or false)
- *      - message (if error encountered)
- *      - additional_data (if error encountered)
- *      - id (id of new annotation)
+ *   - success (true or false)
+ *   - message (if error encountered)
+ *   - additional_data (if error encountered)
+ *   - id (id of new annotation)
  * 
  * @param path Ignored.
  * @param matches First match should be the text id.
@@ -306,19 +306,25 @@ public static function postAnnotation($path, $matches, $params, $format){
  *   - annotations (a list of objects as described below)
  *   - text (an object with information about the text -- only applies if a text
  *           id is provided as the first match in $matches)
- *     * id
- *     * title
+ *      * id
+ *      * title
+ *      * md5sum
+ *      * processed (true/false; false means actively being processed)
+ *      * uploaded_at
+ *      * processed_at
+ *      * uploaded_by
+ *      * uploaded_by_username
  *     
  * If 'json', the returned 
  * object looks like this:
  * 
- *      - success (true)
- *      - annotations (list of objects, each with the following fields)
- *          * annotation_id
- *          * title
- *          * text_id
- *          * username (owner)
- *          * user id  (owner)
+ *   - success (true)
+ *   - annotations (list of objects, each with the following fields)
+ *      * annotation_id
+ *      * title
+ *      * text_id
+ *      * username (owner)
+ *      * user_id  (owner)
  * 
  * @param path Ignored.
  * @param matches Either the first match is the id of the text to fetch 
@@ -342,6 +348,8 @@ public static function getAnnotations($path, $matches, $params, $format){
         $text = null;
     }
 
+    // if($annotations == null)
+    //     $annotations = [];
 
     if($format == "json"){
         return [
@@ -389,15 +397,21 @@ public static function getAnnotation($path, $matches, $params, $format){
         error("Must include the id of the annotation in URI.");
     }
 
-    $annotations = lookupAnnotation($matches[1]);
+    $annotation = lookupAnnotation($matches[1]);
 
     if($format == "json"){
         return [
             "success" => true,
-            "annotation_data" => $annotations
+            "annotation_data" => $annotation
         ];
     } else {
-        Controllers::render("Annotations", "views/annotation.php", $annotations);
+        $text = getTextMetadata($annotation["text_id"]);
+        Controllers::render("Annotations", "views/annotation.php", 
+            [
+                "annotation" => $annotation,
+                "text" => $text
+            ]
+        );
     }
 }
 
