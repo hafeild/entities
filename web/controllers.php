@@ -153,53 +153,21 @@ public static function postText($path, $matches, $params, $format){
 
     $tmpFile = $_FILES["file"]["tmp_name"];
     $md5sum = md5_file($tmpFile);
-    $dbh = connectToDB();
 
-    $dbh->beginTransaction();
+    $text = addText($md5sum, $tmpFile, $params["title"], $user["user_id"]);
 
-    // Check if another file with this signature exists; if not, add the file.
-    $statement = $dbh->prepare(
-        "select * from texts where md5sum = :md5sum");
-    checkForStatementError($dbh, $statement, 
-        "Error preparing md5sum db statement.");
-    $statement->execute(array(":md5sum" => $md5sum));
-    checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
-    $row = $statement->fetch(\PDO::FETCH_ASSOC);
-    if($row){
-        $dbh->rollBack();
-        error("This text has already been uploaded.", $row);
+    // Kick off the processing.
+    $result = processText($text["id"], $md5sum);
+
+    if($format == "html"){
+        
+        success("File uploaded and is being processed", 
+            array("id"=>$text["id"], "md5sum"=>$md5sum));
+        
     } else {
-        $statement = $dbh->prepare("insert into texts".
-            "(title,md5sum,processed,error,uploaded_at,processed_at,uploaded_by) ".
-            "values(:title, :md5sum, 0, 0, :time, null, :user_id)");
-        checkForStatementError($dbh, $statement, 
-            "Error preparing upload db statement.");
-        $statement->execute(array(
-            ":md5sum"  => $md5sum, 
-            ":title"   => $params["title"],
-            ":time"    => curDateTime(),
-            ":user_id" => $user["user_id"]
-        ));
-        checkForStatementError($dbh, $statement, 
-            "Error adding upload information to db.");
-        $id = $dbh->lastInsertId();
-
-        if(!rename($tmpFile, $CONFIG->text_storage ."/$md5sum.txt")){
-            $dbh->rollBack();
-            error("Could not move the uploaded file on the server.");
-        } else {
-            $dbh->commit();
-
-            // Kick off the processing.
-            $result = processText($id, $md5sum);
-
-            if($result["success"] === true)
-                success("File uploaded and is being processed", 
-                    array("id"=>$id, "md5sum"=>$md5sum));
-            else
-                error("File stored, but not processed.", $result["error"]);
-        }
+        error("File stored, but not processed.", $result["error"]);
     }
+
 }
 
 /**
@@ -501,11 +469,13 @@ public static function generateRoute($method, $pattern, $call){
     ];
 }
 
-public static function render($title_, $view_, $data_){
-    global $title, $view, $data;
+public static function render($title_, $view_, $data_, $errors_=[], $messages_=[]){
+    global $title, $view, $data, $errors, $messages;
     $title = $title_;
     $view = $view_;
     $data = $data_;
+    $errors = $errors_;
+    $messages = $messages_;
 
     require("views/master.php");
 }

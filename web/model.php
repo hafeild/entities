@@ -305,3 +305,45 @@ function setUserAuthToken($userId, $authToken){
         die("There was an error updating the database: ". $e->getMessage());
     }
 }
+
+function addText($md5sum, $file, $title, $user_id){
+    global $CONFIG;
+    $dbh = connectToDB();
+    $dbh->beginTransaction();
+
+    // Check if another file with this signature exists; if not, add the file.
+    $statement = $dbh->prepare(
+        "select * from texts where md5sum = :md5sum");
+    checkForStatementError($dbh, $statement, 
+        "Error preparing md5sum db statement.");
+    $statement->execute(array(":md5sum" => $md5sum));
+    checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
+    $row = $statement->fetch(\PDO::FETCH_ASSOC);
+    if($row){
+        $dbh->rollBack();
+        error("This text has already been uploaded.", $row);
+    } else {
+        $statement = $dbh->prepare("insert into texts".
+            "(title,md5sum,processed,error,uploaded_at,processed_at,uploaded_by) ".
+            "values(:title, :md5sum, 0, 0, :time, null, :user_id)");
+        checkForStatementError($dbh, $statement, 
+            "Error preparing upload db statement.");
+        $statement->execute(array(
+            ":md5sum"  => $md5sum, 
+            ":title"   => $title,
+            ":time"    => curDateTime(),
+            ":user_id" => $user_id
+        ));
+        checkForStatementError($dbh, $statement, 
+            "Error adding upload information to db.");
+        $id = $dbh->lastInsertId();
+
+        if(!rename($file, $CONFIG->text_storage ."/$md5sum.txt")){
+            $dbh->rollBack();
+            error("Could not move the uploaded file on the server.");
+        } else {
+            $dbh->commit();
+            return getTextMetadata($id);
+        }
+    }
+}

@@ -61,7 +61,7 @@ input.bottom {
 }
 
 #messages, #errors {
-    display: none;
+    /* display: none; */
 }
 
 .logout {
