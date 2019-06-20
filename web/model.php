@@ -162,7 +162,7 @@ function getTextMetadata($id){
         "uploaded_by_username from texts join users where texts.id = :id and ". 
         "users.id = texts.uploaded_by");
     checkForStatementError($dbh,$statement,"Error preparing db statement.");
-    $statement->execute(array(":id" => $id));
+    $statement->execute([":id" => $id]);
     checkForStatementError($dbh,$statement,"Error getting text metadata.");
 
     return $statement->fetch(PDO::FETCH_ASSOC);

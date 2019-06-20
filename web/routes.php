@@ -71,7 +71,9 @@ $routes = [
 
 // echo "Path: $path<br>\n";
 
-if($path == "" || file_exists($path)){
+if($path == ""){
+    $path = "texts";
+} elseif(file_exists($path)){
     return false;
 }
 

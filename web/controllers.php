@@ -141,10 +141,14 @@ public static function getText($path, $matches, $params, $format){
  *         outlines above; otherwise, returns nothing.
  */
 public static function postText($path, $matches, $params, $format){
-    global $CONFIG;
+    global $CONFIG, $user;
 
     if(!key_exists("title", $params) or !key_exists("file", $_FILES)){
         error("Missing title and/or file parameters.");
+    }
+
+    if($user == null){
+        error("Must be logged in to add a text.");
     }
 
     $tmpFile = $_FILES["file"]["tmp_name"];
@@ -167,13 +171,14 @@ public static function postText($path, $matches, $params, $format){
     } else {
         $statement = $dbh->prepare("insert into texts".
             "(title,md5sum,processed,error,uploaded_at,processed_at,uploaded_by) ".
-            "values(:title, :md5sum, 0, 0, :time, null, null)");
+            "values(:title, :md5sum, 0, 0, :time, null, :user_id)");
         checkForStatementError($dbh, $statement, 
             "Error preparing upload db statement.");
         $statement->execute(array(
-            ":md5sum" => $md5sum, 
-            ":title"  => $params["title"],
-            ":time"   => curDateTime()
+            ":md5sum"  => $md5sum, 
+            ":title"   => $params["title"],
+            ":time"    => curDateTime(),
+            ":user_id" => $user["user_id"]
         ));
         checkForStatementError($dbh, $statement, 
             "Error adding upload information to db.");
@@ -294,7 +299,8 @@ public static function postAnnotation($path, $matches, $params, $format){
 }
 
 /**
- * Retrieves metadata about all of the annotations in the database. If the
+ * Retrieves metadata about all of the annotations in the database, or just
+ * for the text with the match at index 1 in the $matches parameter. If the
  * request format is 'html', the views/annotations.php view is rendered; 
  * the global $data variable is populated with two keys:
  *   - annotations (a list of objects as described below)
@@ -325,10 +331,12 @@ public static function postAnnotation($path, $matches, $params, $format){
  */
 public static function getAnnotations($path, $matches, $params, $format){
 
+    // Check if a particular text id was passed in.
     if(count($matches) >= 2){
         $annotations = lookupAnnotations($matches[1]);
-        if($format == "html")
+        if($format == "html"){
             $text = getTextMetadata($matches[1]);
+        }
     } else {
         $annotations = lookupAnnotations();
         $text = null;
