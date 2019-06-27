@@ -38,16 +38,22 @@ if(array_key_exists("WEI", $_COOKIE)){
 function error($message, $additionalData="", $success=false){
     global $format;
 
+    $data = [
+        "success" => $success,
+        "message"   => $message,
+        "additional_data" => $additionalData
+    ];
+
     if($format == "json"){
         // JSON
-        die(json_encode(array(
-            "success" => $success,
-            "message"   => $message,
-            "additional_data" => $additionalData
-        )));
+        die(json_encode($data));
     } else {
         // HTML
-        
+        if($success)
+            Controllers::render("Success", "views/success.php", $data);
+        else 
+            Controllers::render("Error", "views/error.php", $data);
+        exit();
     }
 }
 

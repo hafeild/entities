@@ -59,20 +59,20 @@ global $user;
     </nav>
       
     <div class="container">
-        <div id="errors" class="alert alert-danger" role="alert" 
+        <div id="errors" class="alert alert-danger errors" role="alert" 
             <?= count($errors) > 0 ? "" : 'style="display: none"' ?>>
             <?php foreach($errors as $error) { ?>
                 <p><?= $error ?></p>
             <?php } ?>
         </div>
 
-        <div id="messages" class="alert alert-success" role="alert" 
+        <div id="messages" class="alert alert-success messages" role="alert" 
             <?= count($messages) > 0 ? "" : 'style="display: none"' ?>>
             <?php foreach($messages as $message) { ?>
                 <p><?= $message ?></p>
             <?php } ?>
         </div>
-        
+
         <?php require($view) ?>
     </div>
 
