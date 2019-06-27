@@ -28,10 +28,17 @@ class Controllers {
  *                  - end_id
  *                  - count (defaults to -1, which means all)
  * @param format The format of the response, 'json' or 'html'. 
+ * @param data An associative array to pass on to the renderer (for HTML).
+ * @param errors An array of errors to display on the rendered page 
+ *               (for calling this from, e.g., `postTexts()`).
+ * @param messages An array of messages to display on the rendered page 
+ *                 (for calling this from, e.g., `postTexts()`).
  * @return If format is 'json', returns an associative array with the fields
  *         outlines above; otherwise, returns nothing.
  */
-public static function getTexts($path, $matches, $params, $format){
+public static function getTexts($path, $matches, $params, $format,
+    $data = [],  $errors = [], $messages = []){
+
     $startID = getWithDefault($params, "start_id", 1);
     $endID = getWithDefault($params, "end_id", -1);
     $count = getWithDefault($params, "count", -1);
@@ -39,12 +46,12 @@ public static function getTexts($path, $matches, $params, $format){
     $dbh = connectToDB();
     $rowsReturned = 0;
     $lastID = -1;
-    $results = array(
-        "success" => true,
-        "start_id" => $startID,
-        "request_params" => $params,
-        "texts" => array()
-    );
+
+    $results = $data;
+    $results["success"] = true;
+    $results["start_id"] = $startID;
+    $results["request_params"] = $params;
+    $results["texts"] = [];
 
     // Get the number of total uploads.
     $statement = $dbh->prepare("select count(*) from texts");
@@ -80,7 +87,8 @@ public static function getTexts($path, $matches, $params, $format){
     if($format == "json"){
         return $results;
     } else {
-        Controllers::render("Texts", "views/texts.php", $results);
+        Controllers::render("Texts", "views/texts.php", $results, 
+            $errors, $messages);
     }
 }
 
@@ -152,6 +160,8 @@ public static function postText($path, $matches, $params, $format){
     }
 
     $tmpFile = $_FILES["file"]["tmp_name"];
+    if($tmpFile === "")
+        error("No name given to temporary file.", $_FILES["file"]);
     $md5sum = md5_file($tmpFile);
 
     $text = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
@@ -164,11 +174,15 @@ public static function postText($path, $matches, $params, $format){
     $data = ["id"=>$text["id"], "md5sum"=>$md5sum];
 
     if($format == "html"){
+        $errors = [];
+        $messages = [];
         if($result["success"] === true)
-            Controllers::render("Texts", "views/texts.php", $data, [], $successMessages);
+            $messages = $successMessages;
         else
-            Controllers::render("Texts", "views/texts.php", $data, $errorMessages, []);
+            $errors = $errorMessages;
 
+        Controllers::getTexts($path, [], [], "html", ["uploaded_text" => $data],
+            $errors, $messages);
     } else {
         if($result["success"] === true){
             success($successMessages[0], $successMessages[1]);

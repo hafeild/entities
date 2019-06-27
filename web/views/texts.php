@@ -15,8 +15,8 @@
     <div class="modal fade" tabindex="-1" role="dialog" id="text-upload-modal">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
-                <form enctype="multipart/form-data"
-                    method="post" action="/texts/">
+                <form enctype="multipart/form-data" method="POST" 
+                    action="/texts/">
                     <div class="modal-header">
                         <button type="button" class="close" data-dismiss="modal"
                             aria-label="Close"
@@ -75,8 +75,7 @@
     <h2>All texts</h2>
     <div id="text-list">
         <ul>
-        <?php 
-        for($i = 0; $i < count($texts); $i++){
+        <?php for($i = 0; $i < count($texts); $i++){
             $text = $texts[$i]; ?>
             <li><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" 
                 data-id="<?= $text["id"] ?>"
@@ -85,22 +84,13 @@
             </li>
         <?php }
         if(count($texts) == 0){ ?>
-            <p>No texts found :( <a href="#upload">Upload one!</a></p>
+            <p>No texts found :(</p>
         <?php } ?>
         </ul>
     </div>
     <button id="refresh-texts">Refresh</button>
 </div>
 
-
-<div id="upload" class="page">
-    <h2>Upload text</h2>
-    <form id="file-upload-form" enctype="multipart/form-data" method="post">
-        Title: <input type="text" name="title"/><br/>
-        Select a plain text file to upload <input type="file" name="file"/><br/>
-        <input type="submit" value="Upload"/>
-    </form>
-</div>
 
 <!-- <h2>Server response</h2>
 <div id="response"></div> -->
