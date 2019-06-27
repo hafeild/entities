@@ -394,4 +394,6 @@ $(document).ready(function(){
     $(document).on('click', '.group .select-all', selectAllInGroup);
     $(document).on('click', '#group-selected', groupSelected);
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
+    // Autofocus the first input of a modal.
+    $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
 });

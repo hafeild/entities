@@ -36,11 +36,19 @@ if(array_key_exists("WEI", $_COOKIE)){
  * @param success Sets the success value; defaults to false.
  */
 function error($message, $additionalData="", $success=false){
-    die(json_encode(array(
-        "success" => $success,
-        "message"   => $message,
-        "additional_data" => $additionalData
-    )));
+    global $format;
+
+    if($format == "json"){
+        // JSON
+        die(json_encode(array(
+            "success" => $success,
+            "message"   => $message,
+            "additional_data" => $additionalData
+        )));
+    } else {
+        // HTML
+        
+    }
 }
 
 /**

@@ -154,18 +154,27 @@ public static function postText($path, $matches, $params, $format){
     $tmpFile = $_FILES["file"]["tmp_name"];
     $md5sum = md5_file($tmpFile);
 
-    $text = addText($md5sum, $tmpFile, $params["title"], $user["user_id"]);
+    $text = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
 
     // Kick off the processing.
-    $result = processText($text["id"], $md5sum);
+    $result = Controllers::processText($text["id"], $md5sum);
+
+    $successMessages = ["The file has been uploaded and is being processed."];
+    $errorMessages = ["File stored, but not processed.", $result["error"]];
+    $data = ["id"=>$text["id"], "md5sum"=>$md5sum];
 
     if($format == "html"){
-        
-        success("File uploaded and is being processed", 
-            array("id"=>$text["id"], "md5sum"=>$md5sum));
-        
+        if($result["success"] === true)
+            Controllers::render("Texts", "views/texts.php", $data, [], $successMessages);
+        else
+            Controllers::render("Texts", "views/texts.php", $data, $errorMessages, []);
+
     } else {
-        error("File stored, but not processed.", $result["error"]);
+        if($result["success"] === true){
+            success($successMessages[0], $successMessages[1]);
+        } else {
+            error($errorMessages[0], $errorMessages[1]);
+        }
     }
 
 }

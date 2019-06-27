@@ -35,7 +35,7 @@ $routes = [
     Controllers::generateRoute("POST", "#^texts/??$#", 
         'Controllers::postText'),
 
-    // Store text file; send back whether processed or not
+    // Retrieve info about a specific text.
     Controllers::generateRoute("GET", "#^texts/(\d+)/?$#", 
         'Controllers::getText'),
 
