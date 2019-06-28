@@ -1,3 +1,15 @@
+<?php
+/**
+ * Returns the "just-uploaded" CSS class if the given text id matches the id of
+ * the text just uploaded.
+ */
+function justUploadedClass($textId) {
+    global $data;
+    if(array_key_exists("uploaded_text", $data) && $textId == $data["uploaded_text"]["id"])
+        return "just-uploaded";
+    return "";
+}
+?>
 
 <div id="texts" class="page">
     <?php $texts = $data["texts"]; ?>
@@ -57,7 +69,7 @@
             $text = $texts[$i];
             if($text["uploaded_by"] == $user["id"]){ 
                 $textsPrinted++; ?>
-                <li><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" data-id="<?= $text["id"] ?>"
+                <li class="<?= justUploadedClass($text["id"]) ?>"><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" data-id="<?= $text["id"] ?>"
                     ><?= $text["title"] ?></a> (processed: 
                     <?= $text["processed"] ? "yes" : "no" ?>)
                 </li>
@@ -77,7 +89,7 @@
         <ul>
         <?php for($i = 0; $i < count($texts); $i++){
             $text = $texts[$i]; ?>
-            <li><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" 
+            <li class="<?=  justUploadedClass($text["id"]) ?>"><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" 
                 data-id="<?= $text["id"] ?>"
                 ><?= $text["title"] ?></a> (processed: 
                 <?= $text["processed"] ? "yes" : "no" ?>)
@@ -88,7 +100,6 @@
         <?php } ?>
         </ul>
     </div>
-    <button id="refresh-texts">Refresh</button>
 </div>
 
 
