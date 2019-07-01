@@ -18,6 +18,7 @@ function connectToAnnotationDB(){
             "text_id integer,".
             "created_by integer,".
             "annotation text,".
+            "parent_annotation_id integer,".
             "foreign key(created_by) references users(id),".
             "foreign key(text_id) references texts(id)".
         ")");
@@ -33,6 +34,8 @@ function connectToAnnotationDB(){
  * 
  * @param userId The id of the user.
  * @param textId The id of the text.
+ * @param parentAnnotationId The id of the annotation this is adapted from;
+ *               use null if this is the root annotation for this text.
  * @param annotation The annotation to save. Should have the following fields:
  *          - entities
  *          - groups
@@ -40,16 +43,17 @@ function connectToAnnotationDB(){
  *          - locations
  * @return The id of the newly added annotation.
  */
-function addAnnotation($userId, $textId, $annotation){
+function addAnnotation($userId, $textId, $parentAnnotationId, $annotation){
     $dbh = connectToAnnotationDB();
 
     try{
         $statement = $dbh->prepare(
-            "insert into annotations(text_id, created_by, annotation) ".
-                "values(:text_id, :user_id, :annotation)");
+            "insert into annotations(text_id, created_by, parent_annotation_id, annotation) ".
+                "values(:text_id, :user_id, :parent_annotation_id, :annotation)");
         $statement->execute([
             ":text_id" => $textId,
             ":user_id" => $userId,
+            ":parent_annotation_id" => $parentAnnotationId,
             ":annotation" => json_encode($annotation)
         ]);
         return $dbh->lastInsertId();
@@ -68,6 +72,7 @@ function addAnnotation($userId, $textId, $annotation){
  *          - text_id
  *          - username (owner)
  *          - user id  (owner)
+ *          - parent_annotation_id
  */
 function lookupAnnotations($textId = null){
     $dbh = connectToAnnotationDB();
@@ -79,7 +84,7 @@ function lookupAnnotations($textId = null){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title, text_id, username, ".
-                "users.id as user_id from annotations ".
+                "users.id as user_id, parent_annotation_id from annotations ".
                 "join users join texts where text_id = texts.id and ".
                 "users.id = created_by $filter");
         $statement->execute([':text_id' => $textId]);
@@ -101,6 +106,7 @@ function lookupAnnotations($textId = null){
  *          - text_id
  *          - username (owner)
  *          - user id  (owner)
+ *          - parent_annotation_id
  */
 function lookupAnnotationsByUser($userId){
     $dbh = connectToAnnotationDB();
@@ -108,7 +114,7 @@ function lookupAnnotationsByUser($userId){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title, text_id, username, ".
-                "user.id as user_id from annotations ".
+                "user.id as user_id, parent_annotation_id from annotations ".
                 "join users join texts where text_id = texts.id and ".
                 "users.id = created_by and created_by = :user_id");
         $statement->execute([
@@ -131,6 +137,7 @@ function lookupAnnotationsByUser($userId){
  *          - text_id
  *          - username (owner)
  *          - user id  (owner)
+ *          - parent_annotation_id
  */
 function lookupAnnotationsByText($textId){
     $dbh = connectToAnnotationDB();
@@ -138,7 +145,7 @@ function lookupAnnotationsByText($textId){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title, text_id, username, ".
-                "user.id as user_id from annotations ".
+                "user.id as user_id, parent_annotation_id from annotations ".
                 "join users join texts where text_id = texts.id and ".
                 "users.id = created_by and text_id = :text_id");
         $statement->execute([
@@ -161,6 +168,7 @@ function lookupAnnotationsByText($textId){
  *          - text_id
  *          - username (owner)
  *          - user_id  (owner)
+ *          - parent_annotation_id
  *          - annotation
  *              * entities
  *              * groups
@@ -173,7 +181,8 @@ function lookupAnnotation($id){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title, text_id, username, ".
-                "users.id as user_id, annotation from annotations ".
+                "users.id as user_id, parent_annotation_id, annotation ".
+                "from annotations ".
                 "join users join texts where text_id = texts.id and ".
                 "users.id = created_by and annotations.id = :id");
         $statement->execute([

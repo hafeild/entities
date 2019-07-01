@@ -171,7 +171,10 @@ public static function postText($path, $matches, $params, $format){
 
     $successMessages = ["The file has been uploaded and is being processed."];
     $errorMessages = ["File stored, but not processed.", $result["error"]];
-    $data = ["id"=>$text["id"], "md5sum"=>$md5sum];
+    $data = [
+        "id"=>$text["id"], 
+        "md5sum"=>$md5sum
+    ];
 
     if($format == "html"){
         $errors = [];
