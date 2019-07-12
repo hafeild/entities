@@ -19,6 +19,9 @@ function connectToAnnotationDB(){
             "created_by integer,".
             "annotation text,".
             "parent_annotation_id integer,".
+            "method text,".
+            "created_at datetime,".
+            "updated_at datetime,".
             "foreign key(created_by) references users(id),".
             "foreign key(text_id) references texts(id)".
         ")");
@@ -37,24 +40,36 @@ function connectToAnnotationDB(){
  * @param parentAnnotationId The id of the annotation this is adapted from;
  *               use null if this is the root annotation for this text.
  * @param annotation The annotation to save. Should have the following fields:
- *          - entities
- *          - groups
- *          - interactions
- *          - locations
+ *       - entities
+ *          <entityId>: {name, group_id}
+ *       - groups
+ *          <groupId>: {name}
+ *       - locations
+ *          <locationId>: {start, end, entity_id}
+ *       - interactions
+ *          <interactionId>: {locations, label}
+ * @param methodDescription A description of the method used for this, e.g.,
+ *                          "manual", "BookNLP", "blank slate".
  * @return The id of the newly added annotation.
  */
-function addAnnotation($userId, $textId, $parentAnnotationId, $annotation){
+function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
+    $methodDescription){
+
     $dbh = connectToAnnotationDB();
 
     try{
         $statement = $dbh->prepare(
-            "insert into annotations(text_id, created_by, parent_annotation_id, annotation) ".
-                "values(:text_id, :user_id, :parent_annotation_id, :annotation)");
+            "insert into annotations(" .
+                "text_id, created_by, parent_annotation_id, annotation, ". 
+                "method, created_at, updated_at) ".
+                "values(:text_id, :user_id, :parent_annotation_id, ". 
+                ":annotation, :method, DATETIME('now'), DATETIME('now'))");
         $statement->execute([
-            ":text_id" => $textId,
-            ":user_id" => $userId,
+            ":text_id"              => $textId,
+            ":user_id"              => $userId,
             ":parent_annotation_id" => $parentAnnotationId,
-            ":annotation" => json_encode($annotation)
+            ":annotation"           => json_encode($annotation),
+            ":method"               => $methodDescription
         ]);
         return $dbh->lastInsertId();
     } catch(Exception $e){

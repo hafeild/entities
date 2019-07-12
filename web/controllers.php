@@ -155,37 +155,46 @@ public static function postText($path, $matches, $params, $format){
         error("Missing title and/or file parameters.");
     }
 
-    if($user == null){
-        error("Must be logged in to add a text.");
-    }
+    confirmUserLoggedIn();
 
     $tmpFile = $_FILES["file"]["tmp_name"];
     if($tmpFile === "")
         error("No name given to temporary file.", $_FILES["file"]);
     $md5sum = md5_file($tmpFile);
 
+    // Create a metadata entry for this text.
     $text = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
 
-    // Kick off the processing.
-    $result = Controllers::processText($text["id"], $md5sum);
+    // Add a root annotation.
+    $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
+        // new stdClass() forces the empty array to show up as an object in the 
+        // JSON.
+        "entities"      => new stdClass(), 
+        "groups"        => new stdClass(),
+        "locations"     => new stdClass(),
+        "interactions"  => new stdClass()
+    ], "blank slate");
 
-    $successMessages = ["The file has been uploaded and is being processed."];
-    $errorMessages = ["File stored, but not processed.", $result["error"]];
+    // Kick off the processing.
+    $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
+        $user["id"]);
+
+    if($result["success"] === true){
+        $successMessages = ["The file has been uploaded and is being processed."];
+        $errorMessages = [];
+    } else {
+        $successMessages = [];
+        $errorMessages = ["File stored, but not processed.", $result["error"]];
+    }
+
     $data = [
         "id"=>$text["id"], 
         "md5sum"=>$md5sum
     ];
 
     if($format == "html"){
-        $errors = [];
-        $messages = [];
-        if($result["success"] === true)
-            $messages = $successMessages;
-        else
-            $errors = $errorMessages;
-
         Controllers::getTexts($path, [], [], "html", ["uploaded_text" => $data],
-            $errors, $messages);
+            $errorsMessages, $successMessages);
     } else {
         if($result["success"] === true){
             success($successMessages[0], $successMessages[1]);
@@ -201,53 +210,65 @@ public static function postText($path, $matches, $params, $format){
  * This assumes the server is listening on localhost at the port described by
  * text_processing_port in the configuration file.
  * 
- * @param id The id of the text in the metadata table.
+ * @param textId The id of the text in the metadata table.
  * @param md5sum The md5sum of the text (used as the base of the filename).
+ * @param parentAnnotationId The id of the parent annotation.
+ * @param creatorId The id of the user who created this annotation.
  * @return An associative array with the following keys:
  *      success -- true if the request was received and initial checks cleared,
  *                 false otherwise.
  *      error --  an error message (only if success == false)
  */
-public static function processText($id, $md5sum) {
+public static function processText($textId, $md5sum, $parentAnnotationId, 
+    $creatorId) {
+
     global $CONFIG;
 
     // Open the socket.
     if(!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
-        $errorcode = socket_last_error();
-        $errormsg = socket_strerror($errorcode);
+        $errorCode = socket_last_error();
+        $errorMessage = socket_strerror($errorCode);
         
         return array("success" => false,
-            "error" => "Couldn't create socket: [$errorcode] $errormsg.");
+            "error" => "Couldn't create socket: [$errorCode] $errorMessage.");
     }
 
     // Connect to the socket.
     if(!socket_connect($sock, "127.0.0.1", $CONFIG->text_processing_port)) {
-        $errorcode = socket_last_error();
-        $errormsg = socket_strerror($errorcode);
+        $errorCode = socket_last_error();
+        $errorMessage = socket_strerror($errorCode);
         
         return array("success" => false,
-            "error" => "Could not connect: [$errorcode] $errormsg.");
+            "error" => "Could not connect: [$errorCode] $errorMessage.");
     }
 
-    $message = "$id\t{$CONFIG->text_storage}\t$md5sum\n";
+    // Message to send to the automatic annotation service.
+    $message = join("\t", [
+        $textId,                // Id of the text.
+        $CONFIG->text_storage,  // Storage location.
+        $md5sum,                // Text name.
+        $parentAnnotationId,    // Annotation this is forked from.
+        $creatorId,             // Id of creator.
+        "\n"
+    ]);
  
     // Send the request.
     if(!socket_send ($sock, $message, strlen($message), 0)) {
-        $errorcode = socket_last_error();
-        $errormsg = socket_strerror($errorcode);
+        $errorCode = socket_last_error();
+        $errorMessage = socket_strerror($errorCode);
          
         return array("success" => false,
-            "error" => "Could not connect: [$errorcode] $errormsg.");
+            "error" => "Could not connect: [$errorCode] $errorMessage.");
     }
      
     // Read the reply from server
     if(socket_recv($sock, $buffer, 2045, MSG_WAITALL) === FALSE)
     {
-        $errorcode = socket_last_error();
-        $errormsg = socket_strerror($errorcode);
+        $errorCode = socket_last_error();
+        $errorMessage = socket_strerror($errorCode);
          
         return array("success" => false,
-            "error" => "Could not connect: [$errorcode] $errormsg.");
+            "error" => "Could not connect: [$errorCode] $errorMessage.");
     }
 
     if($buffer === "success\n")
@@ -266,7 +287,8 @@ public static function processText($id, $md5sum) {
  *   - id (id of new annotation)
  * 
  * @param path Ignored.
- * @param matches First match should be the text id.
+ * @param matches First match should be the text id, second should be the
+ *                annotation id to fork.
  * @param params The request parameters. Ignored.
  * @param format The format of the response, 'json' or 'html' (unsupported). 
  * @return If format is 'json', returns an associative array with the fields
@@ -275,21 +297,36 @@ public static function processText($id, $md5sum) {
 public static function postAnnotation($path, $matches, $params, $format){
     global $user;
 
-    if(count($matches) < 2){
-        error("Must include the id of the text in URI.");
+    if(count($matches) < 3){
+        error("Must include the ids of the text and annotation in URI.");
     }
 
+    confirmUserLoggedIn();
+
     $textId = $matches[1];
+    $parentAnnotationId = $matches[2];
 
     // Lookup text data.
-    $textData = getOriginalAnnotation($textId);
+    $textData = lookupAnnotation($parentAnnotationId);
 
-    $id = addAnnotation($user["user_id"], $textId, $textData["annotation"]);
+    // Confirm that the user has permissions to fork this annotation. Either
+    // the annotation must be public or the user must have at least read
+    // permissions for it.
+    // TODO
 
-    return [
-        "success" => true,
-        "id" => $id
-    ];
+    $newAnnotationId = addAnnotation($user["user_id"], $textId, 
+        $parentAnnotationId, $textData["annotation"], "manual");
+
+    if($format == "html"){
+        // Reroute to new annotation.
+        // TODO May want to embed a "success" message.
+        Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId");
+    } else {
+        return [
+            "success" => true,
+            "id" => $newAnnotationId
+        ];
+    }
 }
 
 /**
@@ -436,6 +473,11 @@ public static function editAnnotation($path, $matches, $params, $format){
         error("Must include the id of the annotation in URI.");
     }
 
+    $annotationId = $matches[1];
+
+    // TODO Ensure the annotation exists.
+    // TODO Ensure the user has write permissions for this.
+
     $validUpdateFields = [
         "entities" => ["name"=>1, "group_id"=>1],
         "groups" => ["name"=>1],
@@ -471,7 +513,7 @@ public static function editAnnotation($path, $matches, $params, $format){
         return $annotation;
     };
 
-    updateAnnotation($matches[1], $user["id"], $updater);
+    updateAnnotation($annotationId, $user["id"], $updater);
 
     return [
         "success" => true
@@ -495,6 +537,24 @@ public static function generateRoute($method, $pattern, $call){
     ];
 }
 
+/**
+ * Renders a view using views/master.php as the page wrapper. Several attribute
+ * of the view can be set (see below).
+ * 
+ * @param title_ The text to use in the page title. Globalized as $title.
+ * @param view_ The full path to the view template to render. This should be a
+ *              PHP or HTML file. E.g., "views/texts.php" will render the
+ *              text.php template within the views/master.php page wrapper.
+ *              This is globalized as $view.
+ * @param data_ Any data needed by the view template. This is globalized as
+ *              $data.
+ * @param errors_ An array of error messages; Optional, defaults to []. The
+ *              master page wrapper has code to handle displaying these. 
+ *              Globalized as $errors.
+ * @param messages_ An array of non-error messages; Optional, defaults to []. 
+ *              the master page wrapper has code to handle displaying these. 
+ *              Globalized as $messages.
+ */
 public static function render($title_, $view_, $data_, $errors_=[], $messages_=[]){
     global $title, $view, $data, $errors, $messages;
     $title = $title_;
@@ -504,6 +564,18 @@ public static function render($title_, $view_, $data_, $errors_=[], $messages_=[
     $messages = $messages_;
 
     require("views/master.php");
+}
+
+/**
+ * Sends a redirect response with the given URL. As a backup, also emits
+ * HTML to refresh to the new URL in the event the user's browser does not
+ * respond to the Location header.
+ * 
+ * @param url The URL to redirect to.
+ */
+public static function redirectTo($url){
+    header('Location: '.$url);
+    die('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url='. $url .'"></head></html>');
 }
 
 }

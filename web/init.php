@@ -74,3 +74,15 @@ function getWithDefault($array, $key, $default){
     }
     return $default;
 }
+
+/**
+ * Checks if the user is logged in; if not, an error is generated in the 
+ * appropriate format (JSON or HTML).
+ */
+function confirmUserLoggedIn(){
+    global $user;
+
+    if($user == null){
+        error("Must be logged in to add a text.");
+    }
+}
