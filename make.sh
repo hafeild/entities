@@ -18,5 +18,7 @@ if [ -d "/c/" ] || [ -d "C:" ]; then
   sep=";"
 fi
 
+echo "CLASSPATH=\"\" javac -cp \"lib/*${sep}book-nlp/book-nlp.jar${sep}book-nlp/lib/*\" -d bin/ $sourceFiles"
+
 CLASSPATH="" javac -cp "lib/*${sep}book-nlp/book-nlp.jar${sep}book-nlp/lib/*" \
     -d bin/ $sourceFiles
