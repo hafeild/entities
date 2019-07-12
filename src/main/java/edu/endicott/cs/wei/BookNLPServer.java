@@ -259,8 +259,8 @@ public class BookNLPServer {
          * entry with id = <book id> such that the processed field is 1.
          */
         public void run(){
-            String directoryPath, name;
-            int id = -1;
+            String directoryPath, name, annotation;
+            int textId = -1, parentAnnotationId = -1, creatorId;
             File directory, bookFile;
 
             try {
@@ -275,17 +275,23 @@ public class BookNLPServer {
                 String paramString = in.readLine();
                 String[] params = paramString.split("\t");
 
+                log("Message received:");
+                log(paramString);
+
                 // Check that there are exactly three parameters.
-                if(params.length != 3){
-                   error(out, "Error: there should be 3 tab"+
-                        "-delimited parameters (book id, directory, book "+
-                        "name), not "+ 	(params.length));
+                if(params.length != 5){
+                   error(out, "Error: there should be 5 tab"+
+                        "-delimited parameters (text id, directory, book "+
+                        "name, parent annotation id, creator id), not "+ 
+                        (params.length));
                     return;
                 }
 
-                id = Integer.parseInt(params[0]);
+                textId = Integer.parseInt(params[0]);
                 directoryPath = params[1];
                 name = params[2];
+                parentAnnotationId = Integer.parseInt(params[3]);
+                creatorId = Integer.parseInt(params[4]);
 
                 // Check that the directory and book exist.
                 directory = new File(directoryPath);
@@ -310,14 +316,14 @@ public class BookNLPServer {
 
                 // Check that there's an entry for the text in the database
                 // and it's not already processed.
-                switch(getIdStatusInMetadataTable(id)){
+                switch(getIdStatusInMetadataTable(textId)){
                     case ID_ALREADY_PROCESSED:
                         error(out, "Error: this text has already been "+
                                    "processed.");
                         dbh.close();
                         return;
                     case ID_NOT_PRESENT:
-                        error(out, "Error: no entry with this id exists in "+
+                        error(out, "Error: no text with this id exists in "+
                                    "the database.");
                         dbh.close();
                         return;
@@ -332,7 +338,7 @@ public class BookNLPServer {
                 // Let the client know that the request was received 
                 // successfully.
                 out.println("success");
-                log("Successfully received parameters:\t"+ paramString);
+                log("Successfully parsed parameters.");
                 socket.close();
 
                 // Process the book.
@@ -340,10 +346,13 @@ public class BookNLPServer {
                 
                 // Output the entity info.
                 log("Processing token file to generate json files.");
-                processTokenFile(directory, name);
+                annotation = processTokenFile(directory, name);
+                if(!postAnnotationToDB(textId, parentAnnotationId, creatorId, 
+                    "BookNLP", annotation))
+                    log("Error: unable to post annotation to database.");
 
                 // Update the database.
-                if(!markBookAsProcessedInDB(id))
+                if(!markTextAsProcessedInDB(textId))
                     log("Error: unable to update metadata table.");
 
             } catch (SQLException e) {
@@ -352,9 +361,9 @@ public class BookNLPServer {
             } catch (Exception e) {
                 log("Caught Exception: "+ e);
                 e.printStackTrace();
-                if(id != -1)
+                if(textId != -1)
                     try{
-                        if(markBookAsErrorInDB(id))
+                        if(markTextAsErrorInDB(textId))
                             log("Error writing error to database.");
                     } catch(SQLException sqlE){
                         log("Error writing error to database: "+ sqlE);
@@ -600,15 +609,15 @@ public class BookNLPServer {
          * encoded in a book-nlp token file (<basename>.tokens). These are saved
          * to two files:
          * 
-         *  - <basename>.entities.json
+         *  - <basename>.annotation.json
          *  - <basename>.tokens.json
          * 
          * @param directory The directory where output files will be written.
          * @param basename The name of the file (without extensions).
-         * 
+         * @return The annotation as a JSON string.
          * @throws IOException
          */
-        public void processTokenFile(File directory, String basename) throws Exception {
+        public String processTokenFile(File directory, String basename) throws Exception {
             HashMap<String, HashMap<String,String>> characterIdLookup = 
                 new HashMap<String, HashMap<String,String>>();
 
@@ -750,7 +759,7 @@ public class BookNLPServer {
 
             // Write out character info.
             FileWriter entityJSONFile = new FileWriter(
-                new File(directory, basename+".entities.json"));
+                new File(directory, basename+".annotation.json"));
             entityInfo.writeJSONString(entityJSONFile);
             entityJSONFile.close();
 
@@ -759,10 +768,12 @@ public class BookNLPServer {
                 new File(directory, basename+".tokens.json"));
             tokens.writeJSONString(tokensJSONFile);
             tokensJSONFile.close();
+
+            return entityInfo.toString();
         }
 
         /**
-         * Updates the database entry for the book with the given id. Assumes
+         * Updates the database entry for the text with the given id. Assumes
          * there's a table named `texts` with the following fields:
          * 
          *  - id
@@ -772,20 +783,51 @@ public class BookNLPServer {
          * @param id The id of the text to mark as processed.
          * @return True if the update was successful.
          */
-        public boolean markBookAsProcessedInDB(int id) throws SQLException {
+        public boolean markTextAsProcessedInDB(int id) throws SQLException {
             PreparedStatement statement = dbh.prepareStatement(
                 "update texts set "+
                 "processed = 1, processed_at = ? where id = ?");
-            statement.setInt(1, id);
-            statement.setTimestamp(2, 
-                new Timestamp(new Date().getTime())
+            statement.setString(1, 
+                new Timestamp(new Date().getTime()).toString()
             );
+            statement.setInt(2, id);
+            return statement.executeUpdate() == 1;
+        }
+
+        /**
+         * Adds the annotation (in JSON format) to the annotations table of the
+         * database.
+         * 
+         * @param textId The id of the text.
+         * @param parentAnnotationId The id of the parent annotation.
+         * @param creatorId The id of the user who created this annotation.
+         * @param method The method used to generate this annotation (e.g., 
+         *               "manual", "BookNLP", etc.).
+         * @param annotation The annotation (JSON string).
+         * @return True if the post was successful.
+         */
+        public boolean postAnnotationToDB(int textId, int parentAnnotationId,
+            int creatorId, String method, String annotation) 
+            throws SQLException {
+
+            String curTime = new Timestamp(new Date().getTime()).toString();
+            PreparedStatement statement = dbh.prepareStatement(
+                "insert into annotations (text_id,created_by,annotation,"+
+                "parent_annotation_id,method,created_at,updated_at) values "+
+                "(?,?,?,?,?,?,?)");
+            statement.setInt(1, textId);
+            statement.setInt(2, creatorId);
+            statement.setString(3, annotation);
+            statement.setInt(4, parentAnnotationId);
+            statement.setString(5, method);
+            statement.setString(6, curTime);
+            statement.setString(7, curTime);
 
             return statement.executeUpdate() == 1;
         }
 
         /**
-         * Updates the database entry for the book with the given id indicating
+         * Updates the database entry for the text with the given id indicating
          * an error was encountered. Assumes there's a table named `texts` with 
          * the following fields:
          * 
@@ -795,14 +837,13 @@ public class BookNLPServer {
          * @param id The id of the text to mark as errored.
          * @return True if the update was successful.
          */
-        public boolean markBookAsErrorInDB(int id) throws SQLException {
+        public boolean markTextAsErrorInDB(int id) throws SQLException {
             PreparedStatement statement = dbh.prepareStatement(
                 "update texts set error = 1 where id = ?");
             statement.setInt(1, id);
 
             return statement.executeUpdate() == 1;
         }
-
 
         /**
          * Sends an error to the given socket stream, logs it, then closes the
