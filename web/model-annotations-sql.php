@@ -22,6 +22,8 @@ function connectToAnnotationDB(){
             "method text,".
             "created_at datetime,".
             "updated_at datetime,".
+            "automated_method_in_progress boolean default FALSE,". 
+            "automated_method_error boolean default FALSE,".
             "foreign key(created_by) references users(id),".
             "foreign key(text_id) references texts(id)".
         ")");
@@ -50,10 +52,11 @@ function connectToAnnotationDB(){
  *          <interactionId>: {locations, label}
  * @param methodDescription A description of the method used for this, e.g.,
  *                          "manual", "BookNLP", "blank slate".
+ * @param automatedMethodInProgress Optional (default is false).
  * @return The id of the newly added annotation.
  */
 function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
-    $methodDescription){
+    $methodDescription, $automatedMethodInProgress=false){
 
     $dbh = connectToAnnotationDB();
 
@@ -61,15 +64,17 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
         $statement = $dbh->prepare(
             "insert into annotations(" .
                 "text_id, created_by, parent_annotation_id, annotation, ". 
-                "method, created_at, updated_at) ".
+                "method, created_at, updated_at, automated_method_in_progress) ".
                 "values(:text_id, :user_id, :parent_annotation_id, ". 
-                ":annotation, :method, DATETIME('now'), DATETIME('now'))");
+                ":annotation, :method, DATETIME('now'), DATETIME('now'), ".
+                ":automated_method_in_progress)");
         $statement->execute([
             ":text_id"              => $textId,
             ":user_id"              => $userId,
             ":parent_annotation_id" => $parentAnnotationId,
             ":annotation"           => json_encode($annotation),
-            ":method"               => $methodDescription
+            ":method"               => $methodDescription,
+            ":automated_method_in_progress" => $automatedMethodInProgress
         ]);
         return $dbh->lastInsertId();
     } catch(Exception $e){

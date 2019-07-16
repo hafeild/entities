@@ -78,10 +78,7 @@ function createTables($dbh){
             "id integer primary key autoincrement,".
             "title varchar(256),".
             "md5sum char(16) unique,".
-            "processed integer(1),".
-            "error integer(1),".
             "uploaded_at datetime,".
-            "processed_at datetime,".
             "uploaded_by integer, ".
             "foreign key(uploaded_by) references users(id)".
         ")"
@@ -324,8 +321,8 @@ function addText($md5sum, $file, $title, $user_id){
         error("This text has already been uploaded.", $row);
     } else {
         $statement = $dbh->prepare("insert into texts".
-            "(title,md5sum,processed,error,uploaded_at,processed_at,uploaded_by) ".
-            "values(:title, :md5sum, 0, 0, :time, null, :user_id)");
+            "(title,md5sum,uploaded_at,uploaded_by) ".
+            "values(:title, :md5sum, :time, :user_id)");
         checkForStatementError($dbh, $statement, 
             "Error preparing upload db statement.");
         $statement->execute(array(

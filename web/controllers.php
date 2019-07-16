@@ -194,7 +194,7 @@ public static function postText($path, $matches, $params, $format){
 
     if($format == "html"){
         Controllers::getTexts($path, [], [], "html", ["uploaded_text" => $data],
-            $errorsMessages, $successMessages);
+            $errorMessages, $successMessages);
     } else {
         if($result["success"] === true){
             success($successMessages[0], $successMessages[1]);
@@ -222,7 +222,7 @@ public static function postText($path, $matches, $params, $format){
 public static function processText($textId, $md5sum, $parentAnnotationId, 
     $creatorId) {
 
-    global $CONFIG;
+    global $CONFIG, $user;
 
     // Open the socket.
     if(!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
@@ -242,13 +242,16 @@ public static function processText($textId, $md5sum, $parentAnnotationId,
             "error" => "Could not connect: [$errorCode] $errorMessage.");
     }
 
+    // Create an annotation entry.
+    $annotationId = addAnnotation($user["id"], $textId, $parentAnnotationId, 
+        null, "BookNLP", true);
+
     // Message to send to the automatic annotation service.
     $message = join("\t", [
         $textId,                // Id of the text.
         $CONFIG->text_storage,  // Storage location.
         $md5sum,                // Text name.
-        $parentAnnotationId,    // Annotation this is forked from.
-        $creatorId,             // Id of creator.
+        $annotationId,          // Annotation entry id.
         "\n"
     ]);
  
