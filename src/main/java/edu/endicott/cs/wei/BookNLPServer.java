@@ -68,7 +68,6 @@ public class BookNLPServer {
     private static final String corefWeights = "files/coref.weights";
 
     private static final int DEFAULT_PORT = 3636;
-    private static final String TEXT_METADATA_TABLE = "texts";
 
     private static final int TOKEN_ID_COLUMN = 2;
     private static final int ORIGINAL_WORD_COLUMN = 7;
@@ -260,7 +259,7 @@ public class BookNLPServer {
          */
         public void run(){
             String directoryPath, name, annotation;
-            int textId = -1, parentAnnotationId = -1, creatorId;
+            int textId = -1, annotationId = -1;
             File directory, bookFile;
 
             try {
@@ -279,10 +278,10 @@ public class BookNLPServer {
                 log(paramString);
 
                 // Check that there are exactly three parameters.
-                if(params.length != 5){
+                if(params.length != 4){
                    error(out, "Error: there should be 5 tab"+
                         "-delimited parameters (text id, directory, book "+
-                        "name, parent annotation id, creator id), not "+ 
+                        "name, annotation id), not "+ 
                         (params.length));
                     return;
                 }
@@ -290,8 +289,7 @@ public class BookNLPServer {
                 textId = Integer.parseInt(params[0]);
                 directoryPath = params[1];
                 name = params[2];
-                parentAnnotationId = Integer.parseInt(params[3]);
-                creatorId = Integer.parseInt(params[4]);
+                annotationId = Integer.parseInt(params[3]);
 
                 // Check that the directory and book exist.
                 directory = new File(directoryPath);
@@ -316,7 +314,7 @@ public class BookNLPServer {
 
                 // Check that there's an entry for the text in the database
                 // and it's not already processed.
-                switch(getIdStatusInMetadataTable(textId)){
+                switch(getAnnotationStatus(annotationId)){
                     case ID_ALREADY_PROCESSED:
                         error(out, "Error: this text has already been "+
                                    "processed.");
@@ -347,13 +345,8 @@ public class BookNLPServer {
                 // Output the entity info.
                 log("Processing token file to generate json files.");
                 annotation = processTokenFile(directory, name);
-                if(!postAnnotationToDB(textId, parentAnnotationId, creatorId, 
-                    "BookNLP", annotation))
+                if(!postAnnotationToDB(annotationId, annotation))
                     log("Error: unable to post annotation to database.");
-
-                // Update the database.
-                if(!markTextAsProcessedInDB(textId))
-                    log("Error: unable to update metadata table.");
 
             } catch (SQLException e) {
                 log("Problems connecting to the database.");
@@ -412,27 +405,29 @@ public class BookNLPServer {
         }
 
         /**
-         * Checks that an entry with the given id is present and it's
-         * processed column is 0 in the metadata table of the database.
+         * Checks that the annotation entry with the given id is present and
+         * it's `processed` column is 0 in the annotation table of the database.
          * 
-         * @param id The id of the text to look up.
+         * @param annotationId The id of the annotation to look up.
          * @return One of SUCCESS, ID_NOT_PRESENT, or ID_ALREADY_PROCESSED.
          */
-        public IdStatus getIdStatusInMetadataTable(int id){
+        public IdStatus getAnnotationStatus(int annotationId){
             try{
                 PreparedStatement statement = dbh.prepareStatement(
-                    "select processed from "+ TEXT_METADATA_TABLE +
-                    " where id = ?");
-
-                statement.setInt(1, id);
+                    "select automated_method_in_progress, "+
+                        "automated_method_error " +
+                        "from annotations where id = ?");
+                statement.setInt(1, annotationId);
 
                 ResultSet result = statement.executeQuery();
                 if(!result.next())
                     return IdStatus.ID_NOT_PRESENT;
 
-                if(result.getInt("processed") != 0)
+                if(result.getInt("automated_method_in_progress") ==  0 &&
+                    result.getInt("automated_method_error") == 0)
                     return IdStatus.ID_ALREADY_PROCESSED;
             } catch (SQLException e) {
+                log(e.toString());
                 return IdStatus.ERROR_QUERYING_DB;
             }
 
@@ -794,6 +789,7 @@ public class BookNLPServer {
             return statement.executeUpdate() == 1;
         }
 
+
         /**
          * Adds the annotation (in JSON format) to the annotations table of the
          * database.
@@ -806,22 +802,20 @@ public class BookNLPServer {
          * @param annotation The annotation (JSON string).
          * @return True if the post was successful.
          */
-        public boolean postAnnotationToDB(int textId, int parentAnnotationId,
-            int creatorId, String method, String annotation) 
+        public boolean postAnnotationToDB(int annotationId, String annotation) 
             throws SQLException {
 
             String curTime = new Timestamp(new Date().getTime()).toString();
             PreparedStatement statement = dbh.prepareStatement(
-                "insert into annotations (text_id,created_by,annotation,"+
-                "parent_annotation_id,method,created_at,updated_at) values "+
-                "(?,?,?,?,?,?,?)");
-            statement.setInt(1, textId);
-            statement.setInt(2, creatorId);
-            statement.setString(3, annotation);
-            statement.setInt(4, parentAnnotationId);
-            statement.setString(5, method);
-            statement.setString(6, curTime);
-            statement.setString(7, curTime);
+                "update annotations set "+
+                "updated_at = ?, "+
+                "automated_method_in_progress = FALSE, "+
+                "automated_method_error = FALSE, "+
+                "annotation = ? "+
+                "where id = ?");
+            statement.setString(1, curTime);
+            statement.setString(2, annotation);
+            statement.setInt(3, annotationId);
 
             return statement.executeUpdate() == 1;
         }
