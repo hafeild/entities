@@ -173,7 +173,7 @@ public static function postText($path, $matches, $params, $format){
         "groups"        => new stdClass(),
         "locations"     => new stdClass(),
         "interactions"  => new stdClass()
-    ], "blank slate");
+    ], "unannotated", "blank slate");
 
     // Kick off the processing.
     $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
@@ -244,7 +244,7 @@ public static function processText($textId, $md5sum, $parentAnnotationId,
 
     // Create an annotation entry.
     $annotationId = addAnnotation($user["id"], $textId, $parentAnnotationId, 
-        null, "BookNLP", true);
+        null, "automatic", "BookNLP", true);
 
     // Message to send to the automatic annotation service.
     $message = join("\t", [
@@ -292,7 +292,8 @@ public static function processText($textId, $md5sum, $parentAnnotationId,
  * @param path Ignored.
  * @param matches First match should be the text id, second should be the
  *                annotation id to fork.
- * @param params The request parameters. Ignored.
+ * @param params The request parameters. May include these parameters:
+ *   - label (a description of the annotation)
  * @param format The format of the response, 'json' or 'html' (unsupported). 
  * @return If format is 'json', returns an associative array with the fields
  *         outlines above; otherwise, returns nothing.
@@ -317,8 +318,10 @@ public static function postAnnotation($path, $matches, $params, $format){
     // permissions for it.
     // TODO
 
+    $label = array_key_exists("label", $params) ? $params["label"] : "";
+
     $newAnnotationId = addAnnotation($user["user_id"], $textId, 
-        $parentAnnotationId, $textData["annotation"], "manual");
+        $parentAnnotationId, $textData["annotation"], "manual", $label);
 
     if($format == "html"){
         // Reroute to new annotation.
@@ -343,9 +346,7 @@ public static function postAnnotation($path, $matches, $params, $format){
  *      * id
  *      * title
  *      * md5sum
- *      * processed (true/false; false means actively being processed)
  *      * uploaded_at
- *      * processed_at
  *      * uploaded_by
  *      * uploaded_by_username
  *     
@@ -355,10 +356,18 @@ public static function postAnnotation($path, $matches, $params, $format){
  *   - success (true)
  *   - annotations (list of objects, each with the following fields)
  *      * annotation_id
- *      * title
+ *      * parent_annotation_id
+ *      * text_title
  *      * text_id
  *      * username (owner)
  *      * user_id  (owner)
+ *      * method
+ *      * label
+ *      * created_at
+ *      * updated_at
+ *      * automated_method_in_progress
+ *      * automated_method_error
+ * 
  * 
  * @param path Ignored.
  * @param matches Either the first match is the id of the text to fetch 
@@ -409,10 +418,17 @@ public static function getAnnotations($path, $matches, $params, $format){
  *      - success (true)
  *      - annotation_data
  *          * annotation_id
- *          * title
+ *          * parent_annotation_id
+ *          * text_title
  *          * text_id
  *          * username (owner)
- *          * user id  (owner)
+ *          * user_id  (owner)
+ *          * method
+ *          * label
+ *          * created_at
+ *          * updated_at
+ *          * automated_method_in_progress
+ *          * automated_method_error
  *          * annotation
  *              - entities
  *              - groups
