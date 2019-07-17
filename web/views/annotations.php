@@ -1,17 +1,51 @@
 <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
 
+<?php 
+// Put the annotations in a tree structure based on parent_annotation_id. 
+$annotationNodeLookup = [];
+$annotationTreeRoot = null;
+foreach($data["annotations"] as $annotation){
+    if($annotationTreeRoot == null){
+        $annotationNodeLookup[$annotation["annotation_id"]] = ["data" => $annotation, "children" => []];
+        $annotationTreeRoot =& $annotationNodeLookup[$annotation["annotation_id"]];
+
+    // This case shouldn't happen...
+    } elseif(!array_key_exists($annotation["parent_annotation_id"], $annotationNodeLookup)){
+        // Yuck!!
+        print "Something terrible happened!";
+
+    } else {
+        $annotationNodeLookup[$annotation["annotation_id"]] = ["data" => $annotation, "children" => []];
+        $parent =& $annotationNodeLookup[$annotation["parent_annotation_id"]];
+        array_push($parent["children"], $annotationNodeLookup[$annotation["annotation_id"]]);
+    }
+}
+?>
+
 <div id="annotation-list">
     <ul>
-        <?php foreach($data["annotations"] as $annotation) {?>
-        <li>(<?= $annotation["annotation_id"] ?>) 
-            <?= $annotation["title"] ?> 
-            annotated by <?= $annotation["username"] ?>
-            <a class="btn btn-sm btn-default" role="button" 
-                href="/texts/<?= $data["text"]["id"]?>/annotations/<?= $annotation["annotation_id"] ?>">
-                load annotation
-            </a>
-        </li>
-        <?php } ?>
+        <?php 
+            function traverseInOrder($node){
+                $annotation = $node["data"];
+                print "<li>(". $annotation["annotation_id"] .") [". $annotation["method"] . "] \"". 
+                    ($annotation["label"] == "" ? ("annotation ". $annotation["id"]) : $annotation["label"]) . 
+                    "\"". 
+                    ($annotation["method"] == "manual" ? ("annotated by ". $annotation["username"]) : "") .
+                    " <a class=\"btn btn-sm btn-default\" role=\"button\"".
+                    " href=\"/texts/". $annotation["text_id"] ."/annotations/". $annotation["annotation_id"] ."\">load annotation</a>";
+                
+                if(count($node["children"]) > 0){
+                    print "<ul>";
+                    foreach($node["children"] as $childNode)
+                        traverseInOrder($childNode);
+                    print "</ul>";
+                }
+                print "</li>";
+            }
+
+            traverseInOrder($annotationTreeRoot);
+        ?>
+    </ul>
 
 </div>
 

@@ -120,7 +120,7 @@ function lookupAnnotations($textId = null){
                 "automated_method_in_progress, automated_method_error ". 
                 "from annotations ".
                 "join users join texts where text_id = texts.id and ".
-                "users.id = created_by $filter");
+                "users.id = created_by $filter order by annotation_id");
         $statement->execute([':text_id' => $textId]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
