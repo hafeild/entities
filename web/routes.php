@@ -16,6 +16,7 @@ if(isset($_SERVER['REQUEST_URI']))
 else
     $path = "";
 
+$pathNoArguments = preg_replace("#\?.*$#", "", $path);
 
 // Determine the method. If the request is POST, then there should be a
 // "_method" parameter which will hold the method to use (POST, PATCH, or 
@@ -97,9 +98,11 @@ $routes = [
 
 if($path == ""){
     $path = "texts";
-} elseif(file_exists($path)){
+} elseif(file_exists($pathNoArguments)){
     return false;
 }
+
+echo $pathNoArguments;
 
 // Check what response format is being requested.
 if(preg_match("#^/json/#", $_SERVER['REQUEST_URI']) === 1){
