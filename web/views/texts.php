@@ -70,8 +70,7 @@ function justUploadedClass($textId) {
             if($text["uploaded_by"] == $user["id"]){ 
                 $textsPrinted++; ?>
                 <li class="<?= justUploadedClass($text["id"]) ?>"><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" data-id="<?= $text["id"] ?>"
-                    ><?= $text["title"] ?></a> (processed: 
-                    <?= $text["processed"] ? "yes" : "no" ?>)
+                    ><?= $text["title"] ?></a> (<?= $text["annotation_count"] ?> annotations)
                 </li>
             <?php }
         } 
@@ -91,8 +90,7 @@ function justUploadedClass($textId) {
             $text = $texts[$i]; ?>
             <li class="<?=  justUploadedClass($text["id"]) ?>"><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" 
                 data-id="<?= $text["id"] ?>"
-                ><?= $text["title"] ?></a> (processed: 
-                <?= $text["processed"] ? "yes" : "no" ?>)
+                ><?= $text["title"] ?></a> (<?= $text["annotation_count"] ?> annotations)
             </li>
         <?php }
         if(count($texts) == 0){ ?>

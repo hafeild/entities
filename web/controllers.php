@@ -16,10 +16,9 @@ class Controllers {
  *      * id
  *      * title
  *      * md5sum
- *      * processed (true/false; false means actively being processed)
  *      * uploaded_at
- *      * processed_at
  *      * uploaded_by
+ *      * annotation_count
  * 
  * @param path Ignored.
  * @param matches Ignored.
@@ -62,12 +61,13 @@ public static function getTexts($path, $matches, $params, $format,
 
     if($endID >= 1){
         $statement = $dbh->prepare(
-            "select * from texts where id between :start_id and :end_id");
+            "select text.*, count(text_id) as annotation_count from texts join annotations where text.id between :start_id and :end_id and text_id = text.id group by text_id");
         $statement->execute(array(":start_id" => $startID, 
             ":end_id" => $endID));
     } else {
         $statement = $dbh->prepare(
-            "select * from texts where id >= :start_id");
+            // "select * from texts where id >= :start_id");
+            "select texts.*, count(text_id) as annotation_count from texts join annotations where texts.id >= :start_id and text_id = texts.id group by text_id");
         $statement->execute(array(":start_id" => $startID));
     }
     checkForStatementError($dbh,$statement,"Error getting texts.");
