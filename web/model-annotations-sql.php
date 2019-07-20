@@ -54,11 +54,11 @@ function connectToAnnotationDB(){
  * @param method A description of the method used for this, e.g.,
  *               "manual", "automatic", "unannotated".
  * @param label A descriptive name for the annotation, e.g. "BookNLP".
- * @param automatedMethodInProgress Optional (default is false).
+ * @param automatedMethodInProgress Optional (default is 0).
  * @return The id of the newly added annotation.
  */
 function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
-    $method, $label, $automatedMethodInProgress=false){
+    $method, $label, $automatedMethodInProgress=0){
 
     $dbh = connectToAnnotationDB();
 
@@ -197,28 +197,37 @@ function lookupAnnotationsByText($textId){
  * 
  * @param id The id of the annotation.
  * @return An array of annotation metadata. Each element has the fields:
- *          - annotation_id
- *          - title
- *          - text_id
- *          - username (owner)
- *          - user_id  (owner)
- *          - parent_annotation_id
- *          - annotation
- *              * entities
- *              * groups
- *              * interactions
- *              * locations
+ *      * annotation_id
+ *      * parent_annotation_id
+ *      * text_title
+ *      * text_id
+ *      * username (owner)
+ *      * user_id  (owner)
+ *      * method
+ *      * label
+ *      * created_at
+ *      * updated_at
+ *      * automated_method_in_progress
+ *      * automated_method_error
+ *      * annotation
+ *           - entities
+ *           - groups
+ *           - interactions
+ *           - locations
  */
 function lookupAnnotation($id){
     $dbh = connectToAnnotationDB();
 
     try{
         $statement = $dbh->prepare(
-            "select annotations.id as annotation_id, title, text_id, username, ".
-                "users.id as user_id, parent_annotation_id, annotation ".
-                "from annotations ".
-                "join users join texts where text_id = texts.id and ".
-                "users.id = created_by and annotations.id = :id");
+            "select annotations.id as annotation_id, title as text_title, ".
+            "text_id, username, users.id as user_id, ". 
+            "parent_annotation_id, method, label, annotations.created_at, ". 
+            "updated_at, ". 
+            "automated_method_in_progress, automated_method_error, annotation ". 
+            "from annotations ".
+            "join users join texts where text_id = texts.id and ".
+            "users.id = created_by and annotations.id = :id");
         $statement->execute([
             ":id" => $id,
         ]);

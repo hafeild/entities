@@ -1,5 +1,6 @@
 <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
 
+
 <?php 
 // Put the annotations in a tree structure based on parent_annotation_id. 
 $annotationNodeLookup = [];
@@ -16,8 +17,12 @@ foreach($data["annotations"] as $annotation){
 
     } else {
         $annotationNodeLookup[$annotation["annotation_id"]] = ["data" => $annotation, "children" => []];
-        $parent =& $annotationNodeLookup[$annotation["parent_annotation_id"]];
-        array_push($parent["children"], $annotationNodeLookup[$annotation["annotation_id"]]);
+        // $parent =& $annotationNodeLookup[$annotation["parent_annotation_id"]];
+        // array_push($parent["children"], $annotationNodeLookup[$annotation["annotation_id"]]);
+
+        $annotationNodeLookup[$annotation["parent_annotation_id"]]["children"][]
+            =& $annotationNodeLookup[$annotation["annotation_id"]];
+
     }
 }
 ?>
@@ -27,12 +32,13 @@ foreach($data["annotations"] as $annotation){
         <?php 
             function traverseInOrder($node){
                 $annotation = $node["data"];
-                print "<li>(". $annotation["annotation_id"] .") [". $annotation["method"] . "] \"". 
-                    ($annotation["label"] == "" ? ("annotation ". $annotation["id"]) : $annotation["label"]) . 
-                    "\"". 
-                    ($annotation["method"] == "manual" ? ("annotated by ". $annotation["username"]) : "") .
-                    " <a class=\"btn btn-sm btn-default\" role=\"button\"".
-                    " href=\"/texts/". $annotation["text_id"] ."/annotations/". $annotation["annotation_id"] ."\">load annotation</a>";
+                print "<li>(". $annotation["annotation_id"] .") [". $annotation["method"] . "] <a href=\"/texts/". $annotation["text_id"] ."/annotations/". $annotation["annotation_id"] ."\">\"". 
+                    ($annotation["label"] == "" ? ("annotation ". $annotation["annotation_id"]) : $annotation["label"]) . 
+                    "\"</a>". 
+                    ($annotation["method"] == "manual" ? (" annotated by ". $annotation["username"]) : "");
+                    //  .
+                    // " <a class=\"btn btn-sm btn-default\" role=\"button\"".
+                    // " href=\"/texts/". $annotation["text_id"] ."/annotations/". $annotation["annotation_id"] ."\">load annotation</a>";
                 
                 if(count($node["children"]) > 0){
                     print "<ul>";

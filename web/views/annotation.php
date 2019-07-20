@@ -1,9 +1,10 @@
 <h2>
     <a href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= $data["text"]["title"] ?>"</em> Annotations</a> : 
-    Annotation <?= $data["annotation"]["annotation_id"] ?>: <?= $data["annotation"]["title"] ?>
+     <?= $data["annotation"]["label"] == "" ? ("Annotation ". $data["annotation"]["annotation_id"]) : $data["annotation"]["label"] ?>
 </h2>
 Annotation by <?= $data["annotation"]["username"] ?> <br/>
-<a href="#" class="btn btn-sm btn-default" role="button">Fork</a>
+
+<form action="/texts/<?= $data["text"]["id"] ?>/annotations/<?= $data["annotation"]["annotation_id"] ?>" method="POST"><button class="btn btn-sm btn-default">Fork</button></form>
 
 
 <div id="annotation-panels">

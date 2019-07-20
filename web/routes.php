@@ -11,11 +11,12 @@ require_once("controllers.php");
 
 // Extracts the requested path. Assumes the URI is in the format: 
 // .../api.php/<path>, where <path> is what is extracted.
-if(isset($_SERVER['REQUEST_URI']))
+if(isset($_SERVER['REQUEST_URI'])){
     $path = preg_replace("#^(/json)?/#", "", $_SERVER['REQUEST_URI']);
-else
+    $path = preg_replace("#\?.*$#", "", $path);
+} else {
     $path = "";
-
+}
 $pathNoArguments = preg_replace("#\?.*$#", "", $path);
 
 // Determine the method. If the request is POST, then there should be a

@@ -320,13 +320,13 @@ public static function postAnnotation($path, $matches, $params, $format){
 
     $label = array_key_exists("label", $params) ? $params["label"] : "";
 
-    $newAnnotationId = addAnnotation($user["user_id"], $textId, 
+    $newAnnotationId = addAnnotation($user["id"], $textId, 
         $parentAnnotationId, $textData["annotation"], "manual", $label);
 
     if($format == "html"){
-        // Reroute to new annotation.
-        // TODO May want to embed a "success" message.
-        Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId");
+        // Reroute to the new annotation.
+        Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId",
+            null, "Annotation successfully forked!");
     } else {
         return [
             "success" => true,
@@ -591,8 +591,24 @@ public static function render($title_, $view_, $data_, $errors_=[], $messages_=[
  * respond to the Location header.
  * 
  * @param url The URL to redirect to.
+ * @param error An optional error to include embedded in the URL under the
+ *              GET parameter 'error'.
+ * @param message An optional message to include embedded in the URL under the
+ *                GET parameter 'message'.
  */
-public static function redirectTo($url){
+public static function redirectTo($url, $error=null, $message=null){
+    if($error != null || $message != null){
+        if(preg_match("\?", $url) !== 1){
+            $url .= "?";
+        }
+        if($error != null){
+            $url .= "&error=". urlencode($error);
+        }
+
+        if($message != null){
+            $url .= "&message=". urlencode($message);
+        }
+    }
     header('Location: '.$url);
     die('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url='. $url .'"></head></html>');
 }
