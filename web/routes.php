@@ -102,8 +102,6 @@ if($path == ""){
     return false;
 }
 
-echo $pathNoArguments;
-
 // Check what response format is being requested.
 if(preg_match("#^/json/#", $_SERVER['REQUEST_URI']) === 1){
     header('Content-type: application/json; charset=utf-8');
