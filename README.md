@@ -41,7 +41,7 @@ Download remaining dependencies and compile the Java side of things by running:
 To start up a development server, use the built in PHP server. From the
 `web/` directory, enter:
 
-    php -S localhost:3535
+    php -S localhost:3535 routes.php
 
 Then open a browser and go to: http://localhost:3535. You can change the port
 number to something other than 3535 if you wish.
