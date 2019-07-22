@@ -652,7 +652,7 @@ public class BookNLPServer {
                 String[] cols = line.split("\\t");
 
                 int characterId = 
-                    new Integer(cols[CHARACTER_ID_COLUMN]).intValue();
+                    Integer.parseInt(cols[CHARACTER_ID_COLUMN]);
                 char supersenseStart = cols[SUPERSENSE_COLUMN].charAt(0);
 
                 // See if we're in a entity (col 15 > -1, col 16)
@@ -661,7 +661,7 @@ public class BookNLPServer {
                     // log("Found continuation of character.");
                     curCharacterText += " "+ cols[ORIGINAL_WORD_COLUMN];
                     curCharacterEndOffset = 
-                        new Integer(cols[TOKEN_ID_COLUMN]).intValue();
+                        Integer.parseInt(cols[TOKEN_ID_COLUMN]);
             
                 } else {
                     // Were we in one before? -- emit it.
@@ -725,9 +725,9 @@ public class BookNLPServer {
                         curCharacterText = cols[ORIGINAL_WORD_COLUMN];
                         curCharacterGroupId = cols[CHARACTER_ID_COLUMN];
                         curCharacterStartOffset = 
-                            new Integer(cols[TOKEN_ID_COLUMN]).intValue();
+                            Integer.parseInt(cols[TOKEN_ID_COLUMN]);
                         curCharacterEndOffset = 
-                            new Integer(cols[TOKEN_ID_COLUMN]).intValue();
+                            Integer.parseInt(cols[TOKEN_ID_COLUMN]);
                         curCharacterPOS = cols[POS_COLUMN];
 
                     // Otherwise, mark that we're no longer processing an
