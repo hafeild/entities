@@ -354,9 +354,9 @@ public class BookNLPServer {
             } catch (Exception e) {
                 log("Caught Exception: "+ e);
                 e.printStackTrace();
-                if(textId != -1)
+                if(annotationId != -1)
                     try{
-                        if(markTextAsErrorInDB(textId))
+                        if(markAnnotationAsErrorInDB(annotationId))
                             log("Error writing error to database.");
                     } catch(SQLException sqlE){
                         log("Error writing error to database: "+ sqlE);
@@ -809,8 +809,8 @@ public class BookNLPServer {
             PreparedStatement statement = dbh.prepareStatement(
                 "update annotations set "+
                 "updated_at = ?, "+
-                "automated_method_in_progress = FALSE, "+
-                "automated_method_error = FALSE, "+
+                "automated_method_in_progress = 0, "+
+                "automated_method_error = 0, "+
                 "annotation = ? "+
                 "where id = ?");
             statement.setString(1, curTime);
@@ -822,18 +822,18 @@ public class BookNLPServer {
 
         /**
          * Updates the database entry for the text with the given id indicating
-         * an error was encountered. Assumes there's a table named `texts` with 
+         * an error was encountered. Assumes there's a table named `annotations` with 
          * the following fields:
          * 
          *  - id
-         *  - error (1 or 0)
+         *  - automated_method_error (1 or 0)
          * 
-         * @param id The id of the text to mark as errored.
+         * @param id The id of the annotation to mark as errored.
          * @return True if the update was successful.
          */
-        public boolean markTextAsErrorInDB(int id) throws SQLException {
+        public boolean markAnnotationAsErrorInDB(int id) throws SQLException {
             PreparedStatement statement = dbh.prepareStatement(
-                "update texts set error = 1 where id = ?");
+                "update annotations set automated_method_error = 1 where id = ?");
             statement.setInt(1, id);
 
             return statement.executeUpdate() == 1;
