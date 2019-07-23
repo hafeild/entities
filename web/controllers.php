@@ -160,6 +160,8 @@ public static function postText($path, $matches, $params, $format){
     $tmpFile = $_FILES["file"]["tmp_name"];
     if($tmpFile === "")
         error("No name given to temporary file.", $_FILES["file"]);
+    if(!file_exists($tmpFile))
+        error("Tmporary file doesn't exist :(");
     $md5sum = md5_file($tmpFile);
 
     // Create a metadata entry for this text.

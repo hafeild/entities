@@ -3,6 +3,7 @@
 // Author:  Hank Feild
 // Date:    10-Oct-2018
 // Purpose: Handles model operations for the text annotation API. 
+require_once("model-annotations-sql.php");
 
 $dbh = null;
 
@@ -84,6 +85,9 @@ function createTables($dbh){
         ")"
     );
     checkForStatementError($dbh, $status, "Error creating texts table.");
+
+    connectToAnnotationDB();
+
 
     // // Create annotations table.
     // $status = $dbh->exec("create table if not exists annotations(".
@@ -335,7 +339,7 @@ function addText($md5sum, $file, $title, $user_id){
             "Error adding upload information to db.");
         $id = $dbh->lastInsertId();
 
-        if(!rename($file, $CONFIG->text_storage ."/$md5sum.txt")){
+        if(!move_uploaded_file($file, $CONFIG->text_storage ."/$md5sum.txt")){
             $dbh->rollBack();
             error("Could not move the uploaded file on the server.");
         } else {

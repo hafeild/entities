@@ -101,3 +101,11 @@ li.just-uploaded {
     background-color: lightgreen;
     border-radius: 3px;
 }
+
+.error {
+    color: red;
+}
+
+.note {
+    color: #b3a400;
+}

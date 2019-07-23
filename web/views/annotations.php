@@ -32,14 +32,19 @@ foreach($data["annotations"] as $annotation){
         <?php 
             function traverseInOrder($node){
                 $annotation = $node["data"];
-                print "<li>(". $annotation["annotation_id"] .") [". $annotation["method"] . "] <a href=\"/texts/". $annotation["text_id"] ."/annotations/". $annotation["annotation_id"] ."\">\"". 
-                    ($annotation["label"] == "" ? ("annotation ". $annotation["annotation_id"]) : $annotation["label"]) . 
-                    "\"</a>". 
-                    ($annotation["method"] == "manual" ? (" annotated by ". $annotation["username"]) : "");
-                    //  .
-                    // " <a class=\"btn btn-sm btn-default\" role=\"button\"".
-                    // " href=\"/texts/". $annotation["text_id"] ."/annotations/". $annotation["annotation_id"] ."\">load annotation</a>";
+                ?>
+                <li>(<?= $annotation["annotation_id"] ?>) 
+                    [<?= $annotation["method"] ?>] 
+                    <a href="/texts/<?= $annotation["text_id"] ?>/annotations/<?= $annotation["annotation_id"] ?>"
+                    >"<?= ($annotation["label"] == "" ? ("annotation ". $annotation["annotation_id"]) : $annotation["label"]) ?>"</a> 
+                    <?= ($annotation["method"] == "manual" ? (" annotated by ". $annotation["username"]) : "") ?>
+                <?php
+                if($annoation["automated_method_error"] === "1")
+                    print " <span class=\"error\">(error processing)</span>";
+                elseif($annotation["automated_method_in_progress"] === "1")
+                    print " <span class=\"note\">(processing...)</span>";
                 
+
                 if(count($node["children"]) > 0){
                     print "<ul>";
                     foreach($node["children"] as $childNode)
