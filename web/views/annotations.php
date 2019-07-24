@@ -39,7 +39,7 @@ foreach($data["annotations"] as $annotation){
                     >"<?= ($annotation["label"] == "" ? ("annotation ". $annotation["annotation_id"]) : $annotation["label"]) ?>"</a> 
                     <?= ($annotation["method"] == "manual" ? (" annotated by ". $annotation["username"]) : "") ?>
                 <?php
-                if($annoation["automated_method_error"] === "1")
+                if($annotation["automated_method_error"] === "1")
                     print " <span class=\"error\">(error processing)</span>";
                 elseif($annotation["automated_method_in_progress"] === "1")
                     print " <span class=\"note\">(processing...)</span>";

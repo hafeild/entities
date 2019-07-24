@@ -458,11 +458,13 @@ public static function getAnnotation($path, $matches, $params, $format){
         ];
     } else {
         $text = getTextMetadata($annotation["text_id"]);
+        $text["content_file"] = getTextContentFilename($annotation["text_id"]);
         Controllers::render("Annotations", "views/annotation.php", 
             [
                 "annotation" => $annotation,
                 "text" => $text
-            ]
+            ],
+            [], [], "annotation-page"
         );
     }
 }
@@ -575,16 +577,22 @@ public static function generateRoute($method, $pattern, $call){
  * @param messages_ An array of non-error messages; Optional, defaults to []. 
  *              the master page wrapper has code to handle displaying these. 
  *              Globalized as $messages.
+ * @param contentClasses_ A string with classes to append to the container
+ *                          wrapper in views/master.php.
  */
-public static function render($title_, $view_, $data_, $errors_=[], $messages_=[]){
+public static function render($title_, $view_, $data_, $errors_=[], 
+    $messages_=[], $contentClasses_=""){
+
     global $title, $view, $data, $errors, $messages;
     $title = $title_;
     $view = $view_;
     $data = $data_;
     $errors = $errors_;
     $messages = $messages_;
+    $contentClasses = $contentClasses_;
 
     require("views/master.php");
+
 }
 
 /**

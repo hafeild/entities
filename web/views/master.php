@@ -58,7 +58,7 @@ global $user;
         </div>
     </nav>
       
-    <div class="container">
+    <div id="content" class="container <?= $contentClasses ?>">
         <div id="errors" class="alert alert-danger errors" role="alert" 
             <?= count($errors) > 0 ? "" : 'style="display: none"' ?>>
             <?php foreach($errors as $error) { ?>
@@ -74,6 +74,7 @@ global $user;
         </div>
 
         <?php require($view) ?>
+
     </div>
 
 </body>

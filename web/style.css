@@ -109,3 +109,101 @@ li.just-uploaded {
 .note {
     color: #b3a400;
 }
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+#content {
+    /* flex-grow: 1; */
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+#content.annotation-page {
+    margin: 0;
+    padding: 0, 1em, 0, 1em;
+    width: 100%;
+}
+
+#annotation-panels-wrapper {
+    /* flex-grow: 1; */
+    flex: 1;
+    position: relative;
+    box-sizing: border-box;
+    margin: 2em 0 0 -1em;
+    padding: 0;
+    /* display: table; */
+}
+
+#annotation-panels {
+    /* position: absolute; */
+    display: table;
+    height: 100%;
+    /* top: 0;  */
+    /* bottom: 0; */
+    /* left: 0; */
+    /* right: -1em; */
+    /* max-height: 100%; */
+    width: calc(100% + 1em);
+    /* overflow: hidden; */
+}
+
+#annotation-panels > * {
+    border: 1px solid gray;
+    margin: 0 0 1em 0;
+    padding: 1em 2em 1em 2em;
+    box-sizing: border-box;
+}
+
+#text-panel-wrapper {
+    display: table-cell;
+    position: relative;
+}
+
+#text-panel {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    white-space: pre-wrap;
+    font-size: 14pt;
+    overflow-y: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+
+    /* height: 200px; */
+    /* max-height: 200px; */
+    /* width: 40vw;
+    position: absolute;
+    left: 30vw;
+    bottom: 0px;
+    top: 0px; */
+}
+
+#entity-panel{
+    width: 30vw;
+    display: table-cell;
+    /* position: absolute;
+    left: 0vw;
+    bottom: 0px;
+    top: 0px; */
+}
+
+#relationship-panel {
+    width: 30vw;
+    display: table-cell;
+    /* position: absolute;
+    left: 70vw;
+    bottom: 0px;
+    top: 0px; */
+}

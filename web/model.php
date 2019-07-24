@@ -348,3 +348,22 @@ function addText($md5sum, $file, $title, $user_id){
         }
     }
 }
+
+/**
+ * Returns the content of the text with the given id as a string.
+ * 
+ * @param id The id of the text.
+ * @return The content of the text as a string.
+ */
+function getTextContentFilename($id) {
+    global $CONFIG;
+    $dbh = connectToDB();
+
+    try {
+        $textInfo = getTextMetadata($id);
+        $md5sum = $textInfo["md5sum"];
+        return $CONFIG->text_storage ."/$md5sum.txt";
+    } catch(PDOException $e){
+        die("There was an error reading from the database: ". $e->getMessage());
+    }
+}
