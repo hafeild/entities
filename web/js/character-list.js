@@ -238,10 +238,10 @@ var groupSelected = function(){
     }
 
     console.log(annotation_data);
-    console.log(`To: json/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
+    console.log(`To: /json/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
     // Upload changes to the server.
     $.post({
-        url: `json/annotations/${annotation_data.annotation_id}`,
+        url: `/json/annotations/${annotation_data.annotation_id}`,
         data: {_method: 'PATCH', data: JSON.stringify(changes)},
         success: function(data){
             $('#response').html(`Updating modifications `+

@@ -608,7 +608,7 @@ public static function render($title_, $view_, $data_, $errors_=[],
  */
 public static function redirectTo($url, $error=null, $message=null){
     if($error != null || $message != null){
-        if(preg_match("\?", $url) !== 1){
+        if(preg_match("/\?/", $url) !== 1){
             $url .= "?";
         }
         if($error != null){
