@@ -57,9 +57,10 @@ var upload = function(event){
 
 var displayAnnotation = function(data){
     // Clear the annotation list.
-    $('#annotation-list').html('');
+    // $('#annotation-list').html('');
+    console.log("In displayAnnotation");
 
-    var charListOuterElm = $('#character-list');
+    var charListOuterElm = $('#entity-list');
     var charListElm = $('<ul class="groups">');
     charListOuterElm.html(
         '<button id="group-selected">Group selected</button> ');

@@ -179,6 +179,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
+    padding: 1em;
 
 
     /* height: 200px; */
@@ -190,13 +191,24 @@ body {
     top: 0px; */
 }
 
-#entity-panel{
+#entity-panel-wrapper{
     width: 30vw;
     display: table-cell;
+    position: relative;
     /* position: absolute;
     left: 0vw;
     bottom: 0px;
     top: 0px; */
+}
+
+#entity-panel {
+    padding: 1em;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
 }
 
 #relationship-panel {

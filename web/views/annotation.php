@@ -10,8 +10,16 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
 
 <div id="annotation-panels-wrapper">
     <div id="annotation-panels">
-        <div id="entity-panel">
-            Entities go here...
+        <div id="entity-panel-wrapper">
+            <div id="entity-panel">
+                Entities go here...
+                <div id="entity-list">
+                </div>
+                <script>
+                    var d = <?= json_encode($data["annotation"]) ?>;
+                    displayAnnotation(d);
+                </script>
+            </div>
         </div>
         <div id="text-panel-wrapper">
             <!-- Text goes here... -->
