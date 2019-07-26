@@ -1,3 +1,5 @@
+<script src="/js/annotations.js"></script>
+
 <div class="header">
 <h2>
     <a href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= $data["text"]["title"] ?>"</em> Annotations</a> : 

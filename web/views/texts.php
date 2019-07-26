@@ -19,7 +19,7 @@ function justUploadedClass($textId) {
 
     <!-- File upload. -->
     <!-- Button trigger modal -->
-    <button type="button" class="btn btn-primary btn-md" 
+    <button type="button" class="btn btn-primary btn-md text-upload-button" 
         data-toggle="modal" data-target="#text-upload-modal">
     Upload a text
     </button>

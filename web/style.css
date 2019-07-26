@@ -18,6 +18,15 @@ body.main-app {
     padding-top: 70px;
 }
 
+ul {
+    margin-left: 0;
+    padding-left: 1em;
+}
+
+#user-text-list {
+    margin-top: 1em;
+}
+
 .center {
     width: 100%;
     max-width: 330px;
@@ -80,7 +89,7 @@ input.bottom {
 }
 
 .page {
-    display: none;
+    /* display: none; */
 }
 
 .errors h3, .messages h3 {
