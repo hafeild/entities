@@ -109,7 +109,7 @@ public static function getTexts($path, $matches, $params, $format,
  *  - annotation
  *      * entities
  *      * groups
- *      * interactions
+ *      * ties
  *      * locations
  * 
  * @param path Ignored.
@@ -174,7 +174,7 @@ public static function postText($path, $matches, $params, $format){
         "entities"      => new stdClass(), 
         "groups"        => new stdClass(),
         "locations"     => new stdClass(),
-        "interactions"  => new stdClass()
+        "ties"  => new stdClass()
     ], "unannotated", "blank slate");
 
     // Kick off the processing.
@@ -434,7 +434,7 @@ public static function getAnnotations($path, $matches, $params, $format){
  *          * annotation
  *              - entities
  *              - groups
- *              - interactions
+ *              - ties
  *              - locations
  * 
  * @param path Ignored.
@@ -487,8 +487,11 @@ public static function getAnnotation($path, $matches, $params, $format){
  *          <groupId>: {name}
  *       - locations
  *          <locationId>: {start, end, entity_id}
- *       - interactions
- *          <interactionId>: {locations, label}
+ *       - ties
+ *          <tieId>: {start, end, 
+ *                    source_entity: {location_id: "" | entity_id: ""}, 
+ *                    target_entity: {location_id: "" | entity_id: ""}, 
+ *                    label, weight, directed}
  */
 public static function editAnnotation($path, $matches, $params, $format){
     global $user;
@@ -505,7 +508,8 @@ public static function editAnnotation($path, $matches, $params, $format){
         "entities" => ["name"=>1, "group_id"=>1],
         "groups" => ["name"=>1],
         "locations" => ["start"=>1, "end"=>1, "entity_id"=>1],
-        "interactions" => ["locations"=>1, "label"=>1]
+        "ties" => ["start"=>1, "end"=>1, "source_entity"=>1, 
+            "target_entity"=>1, "label"=>1, "weight"=>1, "directed"=>1]
     ];
 
     $data = json_decode($params["data"], true);

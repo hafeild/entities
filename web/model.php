@@ -179,7 +179,7 @@ function getTextMetadata($id){
  *      * annotation
  *          - entities
  *          - groups
- *          - interactions
+ *          - ties
  *          - locations
  */
 function getOriginalAnnotation($id){

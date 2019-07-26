@@ -49,8 +49,11 @@ function connectToAnnotationDB(){
  *          <groupId>: {name}
  *       - locations
  *          <locationId>: {start, end, entity_id}
- *       - interactions
- *          <interactionId>: {locations, label}
+ *       - ties
+ *          <tieId>: {start, end, 
+ *                    source_entity: {location_id: "" | entity_id: ""}, 
+ *                    target_entity: {location_id: "" | entity_id: ""}, 
+ *                    label, weight, directed}
  * @param method A description of the method used for this, e.g.,
  *               "manual", "automatic", "unannotated".
  * @param label A descriptive name for the annotation, e.g. "BookNLP".
@@ -232,7 +235,7 @@ function lookupAnnotationsByText($textId){
  *      * annotation
  *           - entities
  *           - groups
- *           - interactions
+ *           - ties
  *           - locations
  */
 function lookupAnnotation($id){

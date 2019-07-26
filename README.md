@@ -1,6 +1,6 @@
 # When Entities Interact
 
-Eventually, this will be a web application for annotating interactions between
+Eventually, this will be a web application for annotating relationships between
 entities in text in a semi-automated way. For example, you can use it to
 extract a social network from a novel in which characters are nodes and edges
 indicate how often two characters speak to each other throughout the novel.

@@ -618,7 +618,7 @@ public class BookNLPServer {
 
             JSONObject entities = new JSONObject();
             JSONObject locations = new JSONObject();
-            JSONObject interactions = new JSONObject();
+            JSONObject ties = new JSONObject();
             JSONObject groups = new JSONObject();
             JSONObject entityInfo = new JSONObject();
             JSONArray tokens = new JSONArray();
@@ -750,7 +750,7 @@ public class BookNLPServer {
             entityInfo.put("entities", entities);
             entityInfo.put("groups", groups);
             entityInfo.put("locations", locations);
-            entityInfo.put("interactions", interactions);
+            entityInfo.put("ties", ties);
 
             // Write out character info.
             FileWriter entityJSONFile = new FileWriter(
