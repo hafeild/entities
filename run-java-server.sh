@@ -14,4 +14,4 @@ if [ -d "/c/" ] || [ -d "C:" ]; then
 fi
 
 CLASSPATH="" java -cp "bin/${sep}lib/*${sep}book-nlp/book-nlp.jar${sep}book-nlp/lib/*" \
-    edu/endicott/cs/wei/BookNLPServer $defaultConfig $@
+    edu/endicott/cs/entities/EntiTiesDispatcher $defaultConfig $@
