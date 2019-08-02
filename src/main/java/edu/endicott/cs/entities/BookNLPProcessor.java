@@ -67,7 +67,6 @@ public class BookNLPProcessor extends Processor {
     private static final String maleFile = "files/stanford/male.unigrams.txt";
     private static final String corefWeights = "files/coref.weights";
 
-    private static final int DEFAULT_PORT = 3636;
 
     private static final int TOKEN_ID_COLUMN = 2;
     private static final int ORIGINAL_WORD_COLUMN = 7;

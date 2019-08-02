@@ -208,10 +208,9 @@ public static function postText($path, $matches, $params, $format){
 }
 
 /**
- * Sends a request to the text processing server to process the given text.
- * This assumes the server is listening on localhost at the port described by
- * text_processing_port in the configuration file.
  * 
+ * @param annotator The annotation processor to use. Current options are:
+ *                      * booknlp -- an automatic, entity-only annotator
  * @param textId The id of the text in the metadata table.
  * @param md5sum The md5sum of the text (used as the base of the filename).
  * @param parentAnnotationId The id of the parent annotation.
@@ -221,8 +220,47 @@ public static function postText($path, $matches, $params, $format){
  *                 false otherwise.
  *      error --  an error message (only if success == false)
  */
-public static function processText($textId, $md5sum, $parentAnnotationId, 
-    $creatorId) {
+public static function runAutomaticAnnotation($annotator, $textId, $md5sum, 
+    $parentAnnotationId, $creatorId) {
+
+    // Create an annotation entry.
+    $annotationId = addAnnotation($user["id"], $textId, $parentAnnotationId, 
+        null, "automatic", "BookNLP", true);
+
+    $args = join("\t", [
+        $textId,                // Id of the text.
+        $CONFIG->text_storage,  // Storage location.
+        $md5sum,                // Text name.
+        $annotationId,          // Annotation entry id.
+        "\n"
+    ]);
+
+    $response = processText($textId, $md5sum, $annotator, $args);
+
+    if($response["success"] === false){
+        setAnnotationFlags($annotationId, false, true);
+    }
+
+    return $response;
+}
+
+/**
+ * Sends a request to the text processing server to process the given text.
+ * This assumes the server is listening on localhost at the port described by
+ * text_processing_port in the configuration file.
+ * 
+ * @param textId The id of the text in the metadata table.
+ * @param md5sum The md5sum of the text (used as the base of the filename).
+ * @param processor The processor to call; can be one of:
+ *                   * token -- basic tokenization
+ *                   * booknlp -- an automatic entity-only annotation
+ * @param args Agruments to the processor. These are specific to each processor.
+ * @return An associative array with the following keys:
+ *      success -- true if the request was received and initial checks cleared,
+ *                 false otherwise.
+ *      error --  an error message (only if success == false)
+ */
+public static function processText($textId, $md5sum, $processor, $args) {
 
     global $CONFIG, $user;
 
@@ -244,12 +282,11 @@ public static function processText($textId, $md5sum, $parentAnnotationId,
             "error" => "Could not connect: [$errorCode] $errorMessage.");
     }
 
-    // Create an annotation entry.
-    $annotationId = addAnnotation($user["id"], $textId, $parentAnnotationId, 
-        null, "automatic", "BookNLP", true);
+
 
     // Message to send to the automatic annotation service.
     $message = join("\t", [
+        "booknlp",              // The processor.
         $textId,                // Id of the text.
         $CONFIG->text_storage,  // Storage location.
         $md5sum,                // Text name.
