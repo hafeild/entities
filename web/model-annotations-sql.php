@@ -304,6 +304,14 @@ function updateAnnotation($annotationId, $userId, $updater){
     }
 }
 
+/**
+ * Sets the automatic annotation progress and error flags for an annotation.
+ * 
+ * @param annotationId The id of the annotation to update.
+ * @param inProressFlag The value to set the `automated_method_in_progress`
+ *                      column to.
+ * @param errorFlag The value to set the `automated_method_error` column to.
+ */
 function setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag) {
     $dbh = connectToAnnotationDB();
     try{

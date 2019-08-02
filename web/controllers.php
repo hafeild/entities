@@ -178,8 +178,9 @@ public static function postText($path, $matches, $params, $format){
     ], "unannotated", "blank slate");
 
     // Kick off the processing.
-    $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
-        $user["id"]);
+    // $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
+    //     $user["id"]);
+    $result = Controllers::tokenizeText($text["id"], $md5sum);
 
     if($result["success"] === true){
         $successMessages = ["The file has been uploaded and is being processed."];
@@ -208,6 +209,37 @@ public static function postText($path, $matches, $params, $format){
 }
 
 /**
+ * Tokenizes a given text.
+ * 
+ * @param textId The id of the text in the metadata table.
+ * @param md5sum The md5sum of the text (used as the base of the filename).
+ * @return An associative array with the following keys:
+ *      success -- true if the request was received and initial checks cleared,
+ *                 false otherwise.
+ *      error --  an error message (only if success == false)
+ */
+public static function tokenizeText($textId, $md5sum) {
+
+    setTokenizationFlags($annotationId, true, false);
+
+    $args = join("\t", [
+        $textId,                // Id of the text.
+        $CONFIG->text_storage,  // Storage location.
+        $md5sum                 // Text name.
+    ]);
+
+    $response = processText($textId, $md5sum, "token", $args);
+
+    if($response["success"] === false){
+        // Unsets the progress flag and sets the error flag.
+        setTokenizationFlags($annotationId, false, true);
+    }
+
+    return $response;
+}
+
+/**
+ * Runs an annotation processor to annotate the given text.
  * 
  * @param annotator The annotation processor to use. Current options are:
  *                      * booknlp -- an automatic, entity-only annotator
@@ -231,13 +263,13 @@ public static function runAutomaticAnnotation($annotator, $textId, $md5sum,
         $textId,                // Id of the text.
         $CONFIG->text_storage,  // Storage location.
         $md5sum,                // Text name.
-        $annotationId,          // Annotation entry id.
-        "\n"
+        $annotationId          // Annotation entry id.
     ]);
 
     $response = processText($textId, $md5sum, $annotator, $args);
 
     if($response["success"] === false){
+        // Unsets the progress flag and sets the error flag.
         setAnnotationFlags($annotationId, false, true);
     }
 
@@ -262,7 +294,12 @@ public static function runAutomaticAnnotation($annotator, $textId, $md5sum,
  */
 public static function processText($textId, $md5sum, $processor, $args) {
 
-    global $CONFIG, $user;
+    global $CONFIG, $user, $validProcessors;
+
+    // Check that this is a valid processor.
+    if(!array_key_exists($processor, $validProcessors))
+        return array("success" => false,
+            "error" => "Unrecognized processor: $processor.");
 
     // Open the socket.
     if(!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
@@ -282,15 +319,10 @@ public static function processText($textId, $md5sum, $processor, $args) {
             "error" => "Could not connect: [$errorCode] $errorMessage.");
     }
 
-
-
     // Message to send to the automatic annotation service.
     $message = join("\t", [
-        "booknlp",              // The processor.
-        $textId,                // Id of the text.
-        $CONFIG->text_storage,  // Storage location.
-        $md5sum,                // Text name.
-        $annotationId,          // Annotation entry id.
+        $processor, 
+        $args,
         "\n"
     ]);
  

@@ -81,6 +81,8 @@ function createTables($dbh){
             "md5sum char(16) unique,".
             "uploaded_at datetime,".
             "uploaded_by integer, ".
+            "tokenization_in_progress boolean default FALSE, ".
+            "tokenization_error boolean default FALSE, ".
             "foreign key(uploaded_by) references users(id)".
         ")"
     );
@@ -365,5 +367,35 @@ function getTextContentFilename($id) {
         return $CONFIG->text_storage ."/$md5sum.txt";
     } catch(PDOException $e){
         die("There was an error reading from the database: ". $e->getMessage());
+    }
+}
+
+
+/**
+ * Sets the tokenization progress and error flags for a text.
+ * 
+ * @param textId The id of the text to update.
+ * @param inProressFlag The value to set the `tokenization_in_progress`
+ *                      column to.
+ * @param errorFlag The value to set the `tokenization_error` column to.
+ */
+function setTokenizationFlags($textId, $inProgressFlag, $errorFlag) {
+    $dbh = connectToDB();
+    try{
+        $statement = $dbh->prepare(
+            "update texts set ".
+                "tokenization_in_progress = :in_progress, ".
+                "tokenization_error = :error, ".
+                "where id = :id");
+        $statement->execute([
+            ":id"           => $textId,
+            ":in_progress"  => $inProgressFlag,
+            ":error"        => $errorFlag
+        ]);
+        $dbh->commit();
+
+    } catch(Exception $e){
+        $dbh->rollback();
+        error("Error updating annotation: ". $e->getMessage());
     }
 }
