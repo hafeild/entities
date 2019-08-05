@@ -149,7 +149,7 @@ public static function getText($path, $matches, $params, $format){
  *         outlines above; otherwise, returns nothing.
  */
 public static function postText($path, $matches, $params, $format){
-    global $CONFIG, $user;
+    global $CONFIG, $user, $validMethods;
 
     if(!key_exists("title", $params) or !key_exists("file", $_FILES)){
         error("Missing title and/or file parameters.");
@@ -175,7 +175,7 @@ public static function postText($path, $matches, $params, $format){
         "groups"        => new stdClass(),
         "locations"     => new stdClass(),
         "ties"  => new stdClass()
-    ], "unannotated", "blank slate");
+    ], "unannotated", $validMethods["unannotated"]);
 
     // Kick off the processing.
     // $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
@@ -238,6 +238,7 @@ public static function tokenizeText($textId, $md5sum) {
     return $response;
 }
 
+
 /**
  * Runs an annotation processor to annotate the given text.
  * 
@@ -245,19 +246,14 @@ public static function tokenizeText($textId, $md5sum) {
  *                      * booknlp -- an automatic, entity-only annotator
  * @param textId The id of the text in the metadata table.
  * @param md5sum The md5sum of the text (used as the base of the filename).
- * @param parentAnnotationId The id of the parent annotation.
- * @param creatorId The id of the user who created this annotation.
+ * @param annotationId The id of the annotation.
  * @return An associative array with the following keys:
  *      success -- true if the request was received and initial checks cleared,
  *                 false otherwise.
  *      error --  an error message (only if success == false)
  */
 public static function runAutomaticAnnotation($annotator, $textId, $md5sum, 
-    $parentAnnotationId, $creatorId) {
-
-    // Create an annotation entry.
-    $annotationId = addAnnotation($user["id"], $textId, $parentAnnotationId, 
-        null, "automatic", "BookNLP", true);
+    $annotationId) {
 
     $args = join("\t", [
         $textId,                // Id of the text.
@@ -364,13 +360,19 @@ public static function processText($textId, $md5sum, $processor, $args) {
  * @param matches First match should be the text id, second should be the
  *                annotation id to fork.
  * @param params The request parameters. May include these parameters:
- *   - label (a description of the annotation)
+ *   - label -- a description of the annotation
+ *   - method -- the annotation type, one of: 
+ *      * manual (default)
+ *      * booknlp -- BookNLP annotation (entities only); can only be forked from
+ *                   root
  * @param format The format of the response, 'json' or 'html' (unsupported). 
  * @return If format is 'json', returns an associative array with the fields
  *         outlines above; otherwise, returns nothing.
  */
 public static function postAnnotation($path, $matches, $params, $format){
     global $user;
+    global $validMethods;
+
 
     if(count($matches) < 3){
         error("Must include the ids of the text and annotation in URI.");
@@ -389,20 +391,94 @@ public static function postAnnotation($path, $matches, $params, $format){
     // permissions for it.
     // TODO
 
-    $label = array_key_exists("label", $params) ? $params["label"] : "";
+    $label = htmlentities($params["label"] ?? "");
+    $method = htmlentities($params["method"] ?? "manual");
 
-    $newAnnotationId = addAnnotation($user["id"], $textId, 
-        $parentAnnotationId, $textData["annotation"], "manual", $label);
+    // Stop if this ia an automatic run and it's being forked from a non-root
+    // annotation.
+    if($method != "manual" && !($textData["parent_annotation_id"] == "" || 
+            $textData["parent_annotation_id"] == null)){
 
-    if($format == "html"){
-        // Reroute to the new annotation.
-        Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId",
-            null, "Annotation successfully forked!");
-    } else {
-        return [
-            "success" => true,
-            "id" => $newAnnotationId
-        ];
+        $error =  "Automatic annotations must be run from scratch.";
+        if($format == "html"){
+            // Reroute to the new annotation.
+            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
+                $error, null);
+        } else {
+            return [
+                "success" => false,
+                "message" => $error
+            ];
+        }
+    }
+
+    // Stop if the specified method is invalid.
+    if(!array_key_exists($method, $validMethods)){
+
+        $error = "The annotation method '$method' is not supported.";
+        if($format == "html"){
+            // Reroute to the new annotation.
+            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
+                $error, null);
+        } else {
+            return [
+                "success" => false,
+                "message" => $error
+            ];
+        }
+    }
+
+    if($method != "manual"){
+        // Create the new annotation.
+        $newAnnotationId = addAnnotation($user["id"], $textId, 
+            $parentAnnotationId, $textData["annotation"], $method, $label);
+
+        if($format == "html"){
+            // Reroute to the new annotation.
+            Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId",
+                null, "Annotation successfully forked!");
+        } else {
+            return [
+                "success" => true,
+                "id" => $newAnnotationId
+            ];
+        }
+    } else if($method == "booknlp") {
+
+        // Create the new annotation.
+        $newAnnotationId = addAnnotation($user["id"], $textId, 
+            $parentAnnotationId, null, $method, $label);
+
+        Controllers::runAutomaticAnnotation($method, $textId, 
+            $textData["text_md5sum"], $newAnnotationId);
+
+        if($result["success"] === true){
+            $successMessages = ["The file has been uploaded and is being processed."];
+            $errorMessages = [];
+        } else {
+            $successMessages = [];
+            $errorMessages = ["File stored, but not processed.", $result["error"]];
+        }
+    
+        // $data = [
+        //     "id"=>$text["id"], 
+        //     "md5sum"=>$md5sum
+        // ];
+    
+        if($format == "html"){
+            // Controllers::getTexts($path, [], [], "html", ["uploaded_text" => $data],
+            //     $errorMessages, $successMessages);
+
+            // TODO add id of new annotation so it can be highlighted.
+            Controllers::redirectTo("/texts/$textId/annotations",
+                $errorMessages, $successMessages);
+        } else {
+            if($result["success"] === true){
+                success($successMessages[0], $successMessages[1]);
+            } else {
+                error($errorMessages[0], $errorMessages[1]);
+            }
+        }
     }
 }
 

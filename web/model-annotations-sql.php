@@ -98,6 +98,7 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
  *      * parent_annotation_id
  *      * text_title
  *      * text_id
+ *      * text_md5sum
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
@@ -117,7 +118,7 @@ function lookupAnnotations($textId = null){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
-                "text_id, username, users.id as user_id, ". 
+                "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
                 "parent_annotation_id, method, label, annotations.created_at, ". 
                 "updated_at, ". 
                 "automated_method_in_progress, automated_method_error ". 
@@ -142,6 +143,7 @@ function lookupAnnotations($textId = null){
  *      * parent_annotation_id
  *      * text_title
  *      * text_id
+ *      * text_md5sum
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
@@ -157,7 +159,7 @@ function lookupAnnotationsByUser($userId){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
-            "text_id, username, users.id as user_id, ". 
+            "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, label, annotations.created_at, ". 
             "updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
@@ -183,6 +185,7 @@ function lookupAnnotationsByUser($userId){
  *      * parent_annotation_id
  *      * text_title
  *      * text_id
+ *      * text_md5sum
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
@@ -198,7 +201,7 @@ function lookupAnnotationsByText($textId){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
-            "text_id, username, users.id as user_id, ". 
+            "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, label, annotations.created_at, ". 
             "updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
@@ -224,6 +227,7 @@ function lookupAnnotationsByText($textId){
  *      * parent_annotation_id
  *      * text_title
  *      * text_id
+ *      * text_md5sum
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
@@ -244,7 +248,7 @@ function lookupAnnotation($id){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
-            "text_id, username, users.id as user_id, ". 
+            "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, label, annotations.created_at, ". 
             "updated_at, ". 
             "automated_method_in_progress, automated_method_error, annotation ". 

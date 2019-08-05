@@ -15,6 +15,20 @@ fclose($configFD);
 
 require_once("model.php");
 
+// Annotation methods and their associated labels.
+$validMethods = [
+    "manual"        => "", 
+    "booknlp"       => "BookNLP v1",
+    "unannotated"   => "Blank slate"
+];
+
+// Supported text/annotation processors.
+$validProcessors = [
+    "booknlp" => 1,
+    "token"   => 1
+];
+
+
 $user = null;
 
 // Get user credentials (if currently logged in).
