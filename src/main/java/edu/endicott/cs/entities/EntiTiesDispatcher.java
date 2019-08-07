@@ -1,16 +1,17 @@
+// Author:  Henry Feild
+// Files:   EntiTiesDispatcher.java
+// Date:    31-July-2019
+
 package edu.endicott.cs.entities;
-
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.FileReader;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.PrintWriter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import java.util.HashMap;
 
@@ -27,13 +28,15 @@ import org.json.simple.parser.ParseException;
 /**
  * Services requests for various EntiTies services, such as tokenization and
  * automatic annotation of texts.
+ * 
+ * @author Henry Feild
  */
 public class EntiTiesDispatcher extends Thread {
     private static final int DEFAULT_PORT = 3636;
 
     private static EntiTiesLogger logger;
 
-    private Socket socket;
+    private EntiTiesSocket socket;
     private int clientNumber;
     private HashMap<String, String> dbSettings;
 
@@ -44,10 +47,10 @@ public class EntiTiesDispatcher extends Thread {
      * @param socket The socket number.
      * @param clientNumber The id of the client making the request.
      */
-    public EntiTiesDispatcher(Socket socket, int clientNumber,
+    public EntiTiesDispatcher(Socket rawSocket, int clientNumber,
         HashMap<String, String> dbSettings) {
 
-        this.socket = socket;
+        this.socket = new EntiTiesSocket(rawSocket);
         this.clientNumber = clientNumber;
         this.dbSettings = dbSettings;
         logger.log("New connection");
@@ -69,19 +72,14 @@ public class EntiTiesDispatcher extends Thread {
      * to handle interacting with the client, including parsing arguments.
      */
     public void run() {
+        PrintWriter out = null;
         try {
             EntiTiesLogger.RequestLogger requestLogger;
             EntiTiesDatabase database;
-
-            // To read characters from the stream.
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(socket.getInputStream()));
-
-            // To write characters to the stream.
-            PrintWriter out= new PrintWriter(socket.getOutputStream(),true);
+            socket.initialize();
 
             // Reads the incoming request.
-            String request = in.readLine();
+            String request = socket.readLine();
             int firstDelimiterIndex = request.indexOf('\t');
             String processorName = request.substring(0, firstDelimiterIndex);
             String processorArgs = request.substring(firstDelimiterIndex+1);
@@ -90,6 +88,8 @@ public class EntiTiesDispatcher extends Thread {
             requestLogger =  logger.createRequestLogger(
                 "client "+ clientNumber +"\t"+ processorName +"\t");
             database = new EntiTiesDatabase(dbSettings, requestLogger);
+
+            requestLogger.log("This is a test from EntTiesDispatcher...");
 
             // BookNLP processing.
             if(processorName.equals("booknlp")) {
@@ -102,12 +102,14 @@ public class EntiTiesDispatcher extends Thread {
                     socket, processorArgs, requestLogger, database);
 
             } else {
-                error(out, "Error: Unrecognized processor '"+ processorName +
+                error(socket.out, "Error: Unrecognized processor '"+ processorName +
                     "'. Valid processors: booknlp, token.");
                 return;
             }
 
         } catch (Exception e) {
+            if(!socket.socket.isOutputShutdown() && socket.out != null)
+                socket.println("Exception caught.");
             logger.log("Caught Exception: "+ e);
             e.printStackTrace();
             

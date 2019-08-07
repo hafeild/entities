@@ -27,7 +27,7 @@ import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 
 public class TokenProcessor extends Processor {
 
-    public void processRequest(Socket socket, String args, 
+    public void processRequest(EntiTiesSocket socket, String argsString, 
         EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database) {
 
 

@@ -1,13 +1,6 @@
-/**
- * A server interface to the BookNLP package. This is a substitute for 
- * the BookNLP command line interface. The code below is largely taken from
- * BookNLP.java (see https://github.com/dbamman/book-nlp). The socket code is
- * based largely off of the examples from here: 
- * http://cs.lmu.edu/~ray/notes/javanetexamples/
- *
- * Date: 29-Aug-2018
- * @author Henry Feild
- */
+// Author:  Henry Feild
+// Files:   BookNLPProcessor.java
+// Date:    29-Aug-2018
 
 package edu.endicott.cs.entities;    
 
@@ -16,8 +9,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -59,6 +50,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 
+/**
+ * A server interface to the BookNLP package. This is a substitute for 
+ * the BookNLP command line interface. The code below is largely taken from
+ * BookNLP.java (see https://github.com/dbamman/book-nlp). The socket code is
+ * based largely off of the examples from here: 
+ * http://cs.lmu.edu/~ray/notes/javanetexamples/
+ *
+ * @author Henry Feild
+ */
 public class BookNLPProcessor extends Processor {
 
     private static final String animacyFile = "files/stanford/animate.unigrams.txt";
@@ -102,41 +102,34 @@ public class BookNLPProcessor extends Processor {
      * When finished, updates the metadata table in the database for the
      * entry with id = <book id> such that the processed field is 1.
      */
-    public void processRequest(Socket socket, String args, 
+    public void processRequest(EntiTiesSocket socket, String argsString, 
             EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database){
 
         String directoryPath, name, annotation;
         int textId = -1, annotationId = -1;
         File directory, bookFile;
+        this.logger = logger;
 
         try {
-            // To read characters from the stream.
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(socket.getInputStream()));
-
-            // To write characters to the stream.
-            PrintWriter out= new PrintWriter(socket.getOutputStream(),true);
-
             // Reads the incoming parameters.
-            String paramString = in.readLine();
-            String[] params = paramString.split("\t");
+            String[] args = argsString.split("\t");
 
             logger.log("Message received:");
-            logger.log(paramString);
+            logger.log(argsString);
 
             // Check that there are exactly three parameters.
-            if(params.length != 4){
-                error(out, "Error: there should be 5 tab"+
+            if(args.length != 4){
+                error(socket.out, "Error: there should be 5 tab"+
                     "-delimited parameters (text id, directory, book "+
                     "name, annotation id), not "+ 
-                    (params.length));
+                    (args.length));
                 return;
             }
 
-            textId = Integer.parseInt(params[0]);
-            directoryPath = params[1];
-            name = params[2];
-            annotationId = Integer.parseInt(params[3]);
+            textId = Integer.parseInt(args[0]);
+            directoryPath = args[1];
+            name = args[2];
+            annotationId = Integer.parseInt(args[3]);
 
             // Check that the directory and book exist.
             directory = new File(directoryPath);
@@ -148,13 +141,13 @@ public class BookNLPProcessor extends Processor {
                     errorMessage = "Error: File doesn't exist: "+ 
                         bookFile.getPath() +".";
                 }
-                error(out, errorMessage);
+                error(socket.out, errorMessage);
                 return;
             }
 
             // Check that we can open the database.
             if(!database.openConnection()){
-                error(out, "Error: could not establish a database "+
+                error(socket.out, "Error: could not establish a database "+
                             "connection.");
                 return;
             }
@@ -163,17 +156,19 @@ public class BookNLPProcessor extends Processor {
             // and it's not already processed.
             switch(database.getAnnotationStatus(annotationId)){
                 case ID_ALREADY_PROCESSED:
-                    error(out, "Error: this text has already been "+
-                                "processed.");
+                    error(socket.out, 
+                        "Error: this annotation has already been processed.");
                     database.close();
                     return;
                 case ID_NOT_PRESENT:
-                    error(out, "Error: no text with this id exists in "+
-                                "the database.");
+                    error(socket.out, 
+                        "Error: no annotation with this id exists in "+
+                        "the database.");
                     database.close();
                     return;
                 case ERROR_QUERYING_DB:
-                    error(out, "Error: couldn't query the metadata table.");
+                    error(socket.out, 
+                        "Error: couldn't query the metadata table.");
                     database.close();
                     return;
                 default:
@@ -182,7 +177,7 @@ public class BookNLPProcessor extends Processor {
 
             // Let the client know that the request was received 
             // successfully.
-            out.println("success");
+            socket.println("success");
             logger.log("Successfully parsed parameters.");
             socket.close();
 
@@ -566,8 +561,7 @@ public class BookNLPProcessor extends Processor {
 
     
     /**
-     * Sends an error to the given socket stream, logs it, then closes the
-     * socket.
+     * Sends an error to the given output stream and logs it.
      * 
      * @param out The stream to write to.
      * @param error The error message to print.
