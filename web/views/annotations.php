@@ -1,7 +1,36 @@
 <div id="annotations" class="page">
     <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
 
-    <?php if($user != null){ // Begin logged-in user only section. ?>
+
+<?php
+// Put the annotations in a tree structure based on parent_annotation_id. 
+$annotationNodeLookup = [];
+$annotationTreeRoot = null;
+foreach($data["annotations"] as $annotation){
+    if($annotationTreeRoot == null){
+        $annotationNodeLookup[$annotation["annotation_id"]] = ["data" => $annotation, "children" => []];
+        $annotationTreeRoot =& $annotationNodeLookup[$annotation["annotation_id"]];
+
+    // This case shouldn't happen...
+    } elseif(!array_key_exists($annotation["parent_annotation_id"], $annotationNodeLookup)){
+        // Yuck!!
+        print "Something terrible happened!";
+
+    } else {
+        $annotationNodeLookup[$annotation["annotation_id"]] = ["data" => $annotation, "children" => []];
+        // $parent =& $annotationNodeLookup[$annotation["parent_annotation_id"]];
+        // array_push($parent["children"], $annotationNodeLookup[$annotation["annotation_id"]]);
+
+        $annotationNodeLookup[$annotation["parent_annotation_id"]]["children"][]
+            =& $annotationNodeLookup[$annotation["annotation_id"]];
+
+    }
+}
+?>
+
+
+
+<?php if($user != null){ // Begin logged-in user only section. ?>
 
     <h3>Creating a new annotation</h3>
     <p>
@@ -32,7 +61,7 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <form method="POST" 
-                    action="/texts/<?= $annotation["text_id"] ?>/annotations/<?= $annotation["annotation_id"] ?>">
+                    action="/texts/<?= $annotationTreeRoot["data"]["text_id"] ?>/annotations/<?= $annotationTreeRoot["data"]["annotation_id"] ?>">
                     <div class="modal-header">
                         <button type="button" class="close" data-dismiss="modal"
                             aria-label="Close"
@@ -65,33 +94,8 @@
     </div><!-- /.modal -->
 
 
-    <?php } // End logged-in user only section ?>
+<?php } // End logged-in user only section ?>
 
-<?php
-// Put the annotations in a tree structure based on parent_annotation_id. 
-$annotationNodeLookup = [];
-$annotationTreeRoot = null;
-foreach($data["annotations"] as $annotation){
-    if($annotationTreeRoot == null){
-        $annotationNodeLookup[$annotation["annotation_id"]] = ["data" => $annotation, "children" => []];
-        $annotationTreeRoot =& $annotationNodeLookup[$annotation["annotation_id"]];
-
-    // This case shouldn't happen...
-    } elseif(!array_key_exists($annotation["parent_annotation_id"], $annotationNodeLookup)){
-        // Yuck!!
-        print "Something terrible happened!";
-
-    } else {
-        $annotationNodeLookup[$annotation["annotation_id"]] = ["data" => $annotation, "children" => []];
-        // $parent =& $annotationNodeLookup[$annotation["parent_annotation_id"]];
-        // array_push($parent["children"], $annotationNodeLookup[$annotation["annotation_id"]]);
-
-        $annotationNodeLookup[$annotation["parent_annotation_id"]]["children"][]
-            =& $annotationNodeLookup[$annotation["annotation_id"]];
-
-    }
-}
-?>
 
     <div id="annotation-list">
         <h3>Annotation List</h3>

@@ -322,17 +322,15 @@ function setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag) {
         $statement = $dbh->prepare(
             "update annotations set ".
                 "automated_method_in_progress = :in_progress, ".
-                "automated_method_error = :error, ".
+                "automated_method_error = :error ".
                 "where id = :id");
         $statement->execute([
             ":id"           => $annotationId,
             ":in_progress"  => $inProgressFlag,
             ":error"        => $errorFlag
         ]);
-        $dbh->commit();
 
     } catch(Exception $e){
-        $dbh->rollback();
         error("Error updating annotation: ". $e->getMessage());
     }
 }

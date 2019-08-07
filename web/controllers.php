@@ -254,6 +254,8 @@ public static function tokenizeText($textId, $md5sum) {
  */
 public static function runAutomaticAnnotation($annotator, $textId, $md5sum, 
     $annotationId) {
+    
+    global $CONFIG;
 
     $args = join("\t", [
         $textId,                // Id of the text.
@@ -262,7 +264,9 @@ public static function runAutomaticAnnotation($annotator, $textId, $md5sum,
         $annotationId          // Annotation entry id.
     ]);
 
-    $response = processText($textId, $md5sum, $annotator, $args);
+    error_log("processig text");
+    $response = Controllers::processText($textId, $md5sum, $annotator, $args);
+    error_log("heard back: ". json_encode($response));
 
     if($response["success"] === false){
         // Unsets the progress flag and sets the error flag.
@@ -428,7 +432,8 @@ public static function postAnnotation($path, $matches, $params, $format){
         }
     }
 
-    if($method != "manual"){
+    // Create a manual annotation.
+    if($method == "manual"){
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
             $parentAnnotationId, $textData["annotation"], $method, $label);
@@ -443,13 +448,15 @@ public static function postAnnotation($path, $matches, $params, $format){
                 "id" => $newAnnotationId
             ];
         }
+
+    // Create an automatic annotation.
     } else if($method == "booknlp") {
 
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
-            $parentAnnotationId, null, $method, $label);
+            $parentAnnotationId, null, $method, $validMethods[$method], 1);
 
-        Controllers::runAutomaticAnnotation($method, $textId, 
+        $result = Controllers::runAutomaticAnnotation($method, $textId, 
             $textData["text_md5sum"], $newAnnotationId);
 
         if($result["success"] === true){
@@ -471,7 +478,7 @@ public static function postAnnotation($path, $matches, $params, $format){
 
             // TODO add id of new annotation so it can be highlighted.
             Controllers::redirectTo("/texts/$textId/annotations",
-                $errorMessages, $successMessages);
+                join("<br/>", $errorMessages), join("<br/>", $successMessages));
         } else {
             if($result["success"] === true){
                 success($successMessages[0], $successMessages[1]);
