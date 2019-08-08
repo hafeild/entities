@@ -73,6 +73,13 @@ public class BookNLPProcessor extends Processor {
     private static final int POS_COLUMN = 10;
     private static final int CHARACTER_ID_COLUMN = 14;
     private static final int SUPERSENSE_COLUMN = 15;
+
+    private static final String TOKENS_TSV_FILE_NAME = "tokens.tsv";
+    private static final String TOKENS_JSON_FILE_NAME = "tokens.json";
+    private static final String ANNOTATION_JSON_FILE_NAME = "annotation.json";
+    private static final String IDS_HTML_FILE_NAME = "ids.html";
+    private static final String IDS_JSON_FILE_NAME = "ids.json";
+
     private static final HashSet<String> NOUN_TYPES = new HashSet<String>();
     static {
         NOUN_TYPES.add("NNP");
@@ -84,30 +91,34 @@ public class BookNLPProcessor extends Processor {
      * Handles a new request. A request should consist of a single line
      * (ended with a new line) with the following tab-delimited columns:
      * 
-     *  - book id
+     *  - text id
      * 	- directory
-     *  - book name
+     *  - text name
+     *  - annotation id
      * 
      * Upon successful receipt, the workd "success" is returned on a line.
      * If there's a problem with the parameters, a failure message is 
      * returned.
      * 
      * This process with look for the content of the book in 
-     * <directory>/<book name>.txt. It will create three new files named:
+     * <directory>/<text id>/original.txt. It will create three new files named:
      * 
-     * 	<directory>/<book name>.tokens   -- token information
-     *  <directory>/<book name>.ids.json -- the book text with markup (json)
-     *  <directory>/<book name>.ids.html -- the book text with markup (html)
+     * <directory>/<text id>/<annotation id>/tokens   -- token information
+     * <directory>/<text id>/<annotation id>/ids.json -- marked up tokens (json)
+     * <directory>/<text id>/<annotation id>/ids.html -- marked up tokens (html)
      * 
-     * When finished, updates the metadata table in the database for the
-     * entry with id = <book id> such that the processed field is 1.
+     * When finished, updates the annotations table in the database for the
+     * entry with id = <annotation id> such that the 
+     * automated_method_in_progress and automated_method_error fields are set to
+     * 1.
      */
     public void processRequest(EntiTiesSocket socket, String argsString, 
             EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database){
 
+        EntiTiesFileManager fileManager;
         String directoryPath, name, annotation;
         int textId = -1, annotationId = -1;
-        File directory, bookFile;
+        File annotationDirectory, bookFile;
         this.logger = logger;
 
         try {
@@ -132,18 +143,25 @@ public class BookNLPProcessor extends Processor {
             annotationId = Integer.parseInt(args[3]);
 
             // Check that the directory and book exist.
-            directory = new File(directoryPath);
-            bookFile = new File(directory, name + ".txt");
-            if(!directory.exists() || !bookFile.exists()){
+            fileManager = new EntiTiesFileManager(
+                directoryPath, textId, annotationId);
+            bookFile = fileManager.getTextFile("original.txt");
+            annotationDirectory = fileManager.getAnnotationDirectory();
+
+            if(!fileManager.getTextDirectory().exists() || !bookFile.exists()){
                 String errorMessage = "Error: Directory doesn't exist: "+ 
-                    directoryPath +".";
-                if(directory.exists()){
+                    annotationDirectory.getPath() +".";
+                if(!bookFile.exists()){
                     errorMessage = "Error: File doesn't exist: "+ 
                         bookFile.getPath() +".";
                 }
                 error(socket.out, errorMessage);
                 return;
             }
+
+            // Make the annotation directory if it doesn't already exist.
+            if(!annotationDirectory.exists())
+                annotationDirectory.mkdir();
 
             // Check that we can open the database.
             if(!database.openConnection()){
@@ -182,11 +200,11 @@ public class BookNLPProcessor extends Processor {
             socket.close();
 
             // Process the book.
-            process(directory, bookFile, name);
+            process(annotationDirectory, bookFile);
             
             // Output the entity info.
             logger.log("Processing token file to generate json files.");
-            annotation = processTokenFile(directory, name);
+            annotation = processTokensFile(annotationDirectory);
             if(!database.postAnnotation(annotationId, annotation))
                 logger.log("Error: unable to post annotation to database.");
 
@@ -281,69 +299,19 @@ public class BookNLPProcessor extends Processor {
      * Processes the given text and generates several files. See the
      * run method for details.
      * 
-     * @param directory The directory where output files will be written.
+     * @param outputDirectory The directory where output files will be written.
      * @param bookFile The input text file to process.
-     * @param basename The name of the file (without extensions).
      */
-    public void process(File directory, File bookFile,  String basename) 
+    public void process(File outputDirectory, File bookFile) 
     throws Exception {
-
-        // Options options = new Options();
-        // options.addOption("f", false, "force processing of text file");
-        // options.addOption("printHTML", false, "print HTML file for inspection");
-        // options.addOption("w", true, "coreference weight file");
-        // options.addOption("doc", true, "text document to process");
-        // options.addOption("tok", true, "processed text document");
-        // options.addOption("docId", true, "text document ID to process");
-        // options.addOption("p", true, "output directory");
-        // options.addOption("id", true, "book ID");
-        // options.addOption("d", false, "dump pronoun and quotes for annotation");
-
-        // CommandLine cmd = null;
-        // try {
-        //     CommandLineParser parser = new BasicParser();
-        //     cmd = parser.parse(options, args);
-        // } catch (Exception e) {
-        //     e.printStackTrace();
-        // }
-
-        // String outputDirectory = null;
-        // String prefix = "book.id";
-        
-        // if (!cmd.hasOption("p")) {
-        //     System.err.println("Specify output directory with -p <directory>");
-        //     System.exit(1);
-        // } else {
-        //     outputDirectory = cmd.getOptionValue("p");
-        // }
-
-        // if (cmd.hasOption("id")) {
-        //     prefix = cmd.getOptionValue("id");
-        // }
-
-        // File directory = new File(outputDirectory);
-        // directory.mkdirs();
-
-        // String tokenFileString = null;
-        // if (cmd.hasOption("tok")) {
-        //     tokenFileString = cmd.getOptionValue("tok");
-        //     File tokenDirectory = new File(tokenFileString).getParentFile();
-        //     tokenDirectory.mkdirs();
-        // } else {
-        //     System.err.println("Specify token file with -tok <filename>");
-        //     System.exit(1);
-        // }
-
-        // options.addOption("printHtml", false,
-        //         "write HTML file with coreference links and speaker ID for inspection");
 
         BookNLP bookNLP = new BookNLP();
 
         // Generate or read tokens
         ArrayList<Token> tokens = null;
-        File tokenFile = new File(directory, basename +".token");
+        File tokensFile = new File(outputDirectory, TOKENS_TSV_FILE_NAME);
 
-        if (!tokenFile.exists()) {
+        if (!tokensFile.exists()) {
             String text = Util.readText(bookFile.getPath());
             text = Util.filterGutenberg(text);
             SyntaxAnnotator syntaxAnnotator = new SyntaxAnnotator();
@@ -355,39 +323,27 @@ public class BookNLPProcessor extends Processor {
             supersenseAnnotator.process(tokens);
             
         } else {
-            if (tokenFile.exists()) {
+            if (tokensFile.exists()) {
                 logger.log(String.format("%s exists...",
-                    tokenFile.getPath()));
+                    tokensFile.getPath()));
             }
-            tokens = SyntaxAnnotator.readDoc(tokenFile.getPath());
+            tokens = SyntaxAnnotator.readDoc(tokensFile.getPath());
             logger.log("Using preprocessed tokens");
         }
 
         Book book = new Book(tokens);
+        bookNLP.weights = BookNLPProcessor.corefWeights;
+        logger.log("Using default coref weights");
 
-        // if (cmd.hasOption("w")) {
-        //     bookNLP.weights = cmd.getOptionValue("w");
-        //     System.out.println(String.format("Using coref weights: ",
-        //             bookNLP.weights));
-        // } else {
-            bookNLP.weights = BookNLPProcessor.corefWeights;
-            logger.log("Using default coref weights");
-        // }
-
-        book.id = basename +".ids.json";
-        bookNLP.process(book, directory, book.id);
+        book.id = IDS_JSON_FILE_NAME;
+        bookNLP.process(book, outputDirectory, book.id);
 
         
-        File htmlOutfile = new File(directory, basename +".ids.html");
+        File htmlOutfile = new File(outputDirectory, IDS_HTML_FILE_NAME);
         PrintUtil.printWithLinksAndCorefAndQuotes(htmlOutfile, book);
 
-        // if (cmd.hasOption("d")) {
-        //     System.out.println("Dumping for annotation");
-        //     bookNLP.dumpForAnnotation(book, directory, prefix);
-        // }
-
         // Print out tokens
-        PrintUtil.printTokens(book, tokenFile.getPath());
+        PrintUtil.printTokens(book, tokensFile.getPath());
     }
 
     /**
@@ -395,15 +351,14 @@ public class BookNLPProcessor extends Processor {
      * encoded in a book-nlp token file (<basename>.tokens). These are saved
      * to two files:
      * 
-     *  - <basename>.annotation.json
-     *  - <basename>.tokens.json
+     *  - annotation.json
+     *  - tokens.json
      * 
-     * @param directory The directory where output files will be written.
-     * @param basename The name of the file (without extensions).
+     * @param outputDirectory The directory where output files will be written.
      * @return The annotation as a JSON string.
      * @throws IOException
      */
-    public String processTokenFile(File directory, String basename) throws Exception {
+    public String processTokensFile(File outputDirectory) throws Exception {
         HashMap<String, HashMap<String,String>> characterIdLookup = 
             new HashMap<String, HashMap<String,String>>();
 
@@ -422,13 +377,13 @@ public class BookNLPProcessor extends Processor {
 
         int prevCharacterId = -1; 
 
-        File tokenFile = new File(directory, basename +".token");
-        BufferedReader tokenFileBuffer = 
-            new BufferedReader(new FileReader(tokenFile)); 
-        String line = tokenFileBuffer.readLine();
+        File tokensFile = new File(outputDirectory, TOKENS_TSV_FILE_NAME);
+        BufferedReader tokensFileBuffer = 
+            new BufferedReader(new FileReader(tokensFile)); 
+        String line = tokensFileBuffer.readLine();
 
         // Skip the header.
-        line = tokenFileBuffer.readLine();
+        line = tokensFileBuffer.readLine();
 
         // Go through each line of the file.
         while(line != null){
@@ -532,10 +487,11 @@ public class BookNLPProcessor extends Processor {
             tokens.add(cols[ORIGINAL_WORD_COLUMN]);
 
             // Next line.
-            line = tokenFileBuffer.readLine();
+            line = tokensFileBuffer.readLine();
 
             prevCharacterId = characterId;
         }
+        tokensFileBuffer.close();
 
         // Assemble the entity info object.
         entityInfo.put("entities", entities);
@@ -545,13 +501,13 @@ public class BookNLPProcessor extends Processor {
 
         // Write out character info.
         FileWriter entityJSONFile = new FileWriter(
-            new File(directory, basename+".annotation.json"));
+            new File(outputDirectory, ANNOTATION_JSON_FILE_NAME));
         entityInfo.writeJSONString(entityJSONFile);
         entityJSONFile.close();
 
         // Write out token info.
         FileWriter tokensJSONFile = new FileWriter(
-            new File(directory, basename+".tokens.json"));
+            new File(outputDirectory, TOKENS_JSON_FILE_NAME));
         tokens.writeJSONString(tokensJSONFile);
         tokensJSONFile.close();
 
