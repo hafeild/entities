@@ -19,6 +19,8 @@ class Controllers {
  *      * uploaded_at
  *      * uploaded_by
  *      * annotation_count
+ *      * tokenization_in_progress
+ *      * tokenization_error
  * 
  * @param path Ignored.
  * @param matches Ignored.
@@ -61,13 +63,17 @@ public static function getTexts($path, $matches, $params, $format,
 
     if($endID >= 1){
         $statement = $dbh->prepare(
-            "select text.*, count(text_id) as annotation_count from texts join annotations where text.id between :start_id and :end_id and text_id = text.id group by text_id");
+            "select text.*, count(text_id) as annotation_count from texts ". 
+            "join annotations where text.id between :start_id and :end_id and ". 
+            "text_id = text.id group by text_id");
         $statement->execute(array(":start_id" => $startID, 
             ":end_id" => $endID));
     } else {
         $statement = $dbh->prepare(
             // "select * from texts where id >= :start_id");
-            "select texts.*, count(text_id) as annotation_count from texts join annotations where texts.id >= :start_id and text_id = texts.id group by text_id");
+            "select texts.*, count(text_id) as annotation_count from texts ". 
+            "join annotations where texts.id >= :start_id and ". 
+            "text_id = texts.id group by text_id");
         $statement->execute(array(":start_id" => $startID));
     }
     checkForStatementError($dbh,$statement,"Error getting texts.");
@@ -102,7 +108,8 @@ public static function getTexts($path, $matches, $params, $format,
  *      * id
  *      * title
  *      * md5sum
- *      * processed (true/false; false means actively being processed)
+ *      * tokenization_in_progress
+ *      * tokenization_error
  *      * uploaded_at
  *      * processed_at
  *      * uploaded_by
@@ -233,7 +240,7 @@ public static function tokenizeText($textId, $md5sum) {
 
     if($response["success"] === false){
         // Unsets the progress flag and sets the error flag.
-        setTokenizationFlags($annotationId, false, true);
+        setTokenizationFlags($textId, false, true);
     }
 
     return $response;

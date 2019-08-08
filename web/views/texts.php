@@ -1,13 +1,47 @@
 <?php
 /**
- * Returns the "just-uploaded" CSS class if the given text id matches the id of
- * the text just uploaded.
+ * Returns the appropriate CSS classes for the given text.
  */
-function justUploadedClass($textId) {
+function getTextClasses($text) {
     global $data;
-    if(array_key_exists("uploaded_text", $data) && $textId == $data["uploaded_text"]["id"])
-        return "just-uploaded";
-    return "";
+    $classList = "";
+    if(array_key_exists("uploaded_text", $data) && $text["id"] == $data["uploaded_text"]["id"])
+        $classList .= "just-uploaded ";
+
+    if($text["tokenization_in_progress"])
+        $classList .= "tokenization-in-progress ";
+
+    if($text["tokenization_error"])
+        $classList .= "tokenization-error ";
+        
+    return $classList;
+}
+
+/**
+ * Returns true if the text has not been tokenized (either tokenization is in
+ * progress, or there was an error).
+ */
+function untokenized($text){
+    return $text["tokenization_in_progress"] || $text["tokenization_error"];
+}
+
+function displayTextListItem($text){ ?>
+    <li class="<?=  getTextClasses($text) ?>">
+                <?php if(untokenized($text)) { ?>
+                    <?= $text["title"] ?> 
+                    <?php if($text["tokenization_error"]){ ?>
+                        (error while tokenizing)
+                    <?php } else { ?>
+                        (tokenization in progress)
+                    <?php } ?>
+                <?php } else { ?>
+                    <a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" 
+                        data-id="<?= $text["id"] ?>"
+                    ><?= $text["title"] ?></a> 
+                    (<?= $text["annotation_count"] ?> annotations)
+                <?php } ?>
+            </li>
+<?php
 }
 ?>
 
@@ -68,11 +102,9 @@ function justUploadedClass($textId) {
         for($i = 0; $i < count($texts); $i++){
             $text = $texts[$i];
             if($text["uploaded_by"] == $user["id"]){ 
-                $textsPrinted++; ?>
-                <li class="<?= justUploadedClass($text["id"]) ?>"><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" data-id="<?= $text["id"] ?>"
-                    ><?= $text["title"] ?></a> (<?= $text["annotation_count"] ?> annotations)
-                </li>
-            <?php }
+                $textsPrinted++;
+                displayTextListItem($text);
+            }
         } 
         if($textsPrinted == 0){ ?>
             <p>No texts found :( 
@@ -86,13 +118,11 @@ function justUploadedClass($textId) {
     <h2>All texts</h2>
     <div id="text-list">
         <ul>
-        <?php for($i = 0; $i < count($texts); $i++){
-            $text = $texts[$i]; ?>
-            <li class="<?=  justUploadedClass($text["id"]) ?>"><a href="/texts/<?= $text["id"] ?>/annotations" class="onpage" 
-                data-id="<?= $text["id"] ?>"
-                ><?= $text["title"] ?></a> (<?= $text["annotation_count"] ?> annotations)
-            </li>
-        <?php }
+        <?php 
+        for($i = 0; $i < count($texts); $i++){
+            $text = $texts[$i]; 
+            displayTextListItem($text);
+        }
         if(count($texts) == 0){ ?>
             <p>No texts found :(</p>
         <?php } ?>

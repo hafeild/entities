@@ -30,6 +30,7 @@ public class TokenProcessor extends Processor {
     public void processRequest(EntiTiesSocket socket, String argsString, 
         EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database) {
 
+        socket.println("Error: unimplemented");
 
     }
 

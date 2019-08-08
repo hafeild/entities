@@ -111,6 +111,31 @@ li.just-uploaded {
     border-radius: 3px;
 }
 
+li.tokenization-in-progress {
+    color: tan;
+}
+
+li.tokenization-error {
+    color: red;
+}
+
+li.just-uploaded.tokenization-in-progress {
+    padding: .5em;
+    background-color: yellow;
+    border-radius: 3px;
+    color: black;
+}
+
+li.just-uploaded.tokenization-error {
+    padding: .5em;
+    background-color: red;
+    border-radius: 3px;
+    color: white;
+}
+
+
+
+
 .error {
     color: red;
 }
@@ -228,3 +253,4 @@ body {
     bottom: 0px;
     top: 0px; */
 }
+
