@@ -152,7 +152,8 @@ function createTables($dbh){
  *      * id
  *      * title
  *      * md5sum
- *      * processed (true/false; false means actively being processed)
+ *      * tokenization_in_progress
+ *      * tokenization_error
  *      * uploaded_at
  *      * processed_at
  *      * uploaded_by
@@ -204,6 +205,100 @@ function getOriginalAnnotation($id){
     }
 
     return $results;
+}
+
+/**
+ * Adds a new text to the metadata table as well as to the file system in the
+ * text_storage location specified in the configuration file (see $CONFIG).
+ * 
+ * @param md5sum The MD5 sum of the text file.
+ * @param file The current (temporary) path to the text file on disk.
+ * @param title The title of the text.
+ * @param user_id The id of the user adding the text.
+ */
+function addText($md5sum, $file, $title, $user_id){
+    global $CONFIG;
+    $dbh = connectToDB();
+    $dbh->beginTransaction();
+
+    // Check if another file with this signature exists; if not, add the file.
+    $statement = $dbh->prepare(
+        "select * from texts where md5sum = :md5sum");
+    checkForStatementError($dbh, $statement, 
+        "Error preparing md5sum db statement.");
+    $statement->execute(array(":md5sum" => $md5sum));
+    checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
+    $row = $statement->fetch(\PDO::FETCH_ASSOC);
+    if($row){
+        $dbh->rollBack();
+        error("This text has already been uploaded.", $row);
+    } else {
+        $statement = $dbh->prepare("insert into texts".
+            "(title,md5sum,uploaded_at,uploaded_by) ".
+            "values(:title, :md5sum, :time, :user_id)");
+        checkForStatementError($dbh, $statement, 
+            "Error preparing upload db statement.");
+        $statement->execute(array(
+            ":md5sum"  => $md5sum, 
+            ":title"   => $title,
+            ":time"    => curDateTime(),
+            ":user_id" => $user_id
+        ));
+        checkForStatementError($dbh, $statement, 
+            "Error adding upload information to db.");
+        $id = $dbh->lastInsertId();
+
+        if(!mkdir($CONFIG->text_storage ."/$id")){
+            $dbh->rollBack();
+            error("Could not create a directory for the new text.");
+        } elseif(!move_uploaded_file($file, $CONFIG->text_storage ."/$id/original.txt")){
+            $dbh->rollBack();
+            error("Could not move the uploaded file on the server.");
+        } else {
+            $dbh->commit();
+            return getTextMetadata($id);
+        }
+    }
+}
+
+/**
+ * Returns the content of the text with the given id as a string.
+ * 
+ * @param id The id of the text.
+ * @return The content of the text as a string.
+ */
+function getTextContentFilename($id) {
+    global $CONFIG;
+    $dbh = connectToDB();
+    return $CONFIG->text_storage ."/$id/original.txt";
+}
+
+
+/**
+ * Sets the tokenization progress and error flags for a text.
+ * 
+ * @param textId The id of the text to update.
+ * @param inProressFlag The value to set the `tokenization_in_progress`
+ *                      column to.
+ * @param errorFlag The value to set the `tokenization_error` column to.
+ */
+function setTokenizationFlags($textId, $inProgressFlag, $errorFlag) {
+    $dbh = connectToDB();
+    try{
+        $statement = $dbh->prepare(
+            "update texts set ".
+                "tokenization_in_progress = :in_progress, ".
+                "tokenization_error = :error ".
+                "where id = :id");
+        $statement->execute([
+            ":id"           => $textId,
+            ":in_progress"  => $inProgressFlag,
+            ":error"        => $errorFlag
+        ]);
+
+    } catch(Exception $e){
+        error("Error updating annotation: ". $e->getMessage());
+    }
 }
 
 /////////////////////////////////
@@ -306,96 +401,5 @@ function setUserAuthToken($userId, $authToken){
             ":auth_token" => $authToken));
     } catch(PDOException $e){
         die("There was an error updating the database: ". $e->getMessage());
-    }
-}
-
-function addText($md5sum, $file, $title, $user_id){
-    global $CONFIG;
-    $dbh = connectToDB();
-    $dbh->beginTransaction();
-
-    // Check if another file with this signature exists; if not, add the file.
-    $statement = $dbh->prepare(
-        "select * from texts where md5sum = :md5sum");
-    checkForStatementError($dbh, $statement, 
-        "Error preparing md5sum db statement.");
-    $statement->execute(array(":md5sum" => $md5sum));
-    checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
-    $row = $statement->fetch(\PDO::FETCH_ASSOC);
-    if($row){
-        $dbh->rollBack();
-        error("This text has already been uploaded.", $row);
-    } else {
-        $statement = $dbh->prepare("insert into texts".
-            "(title,md5sum,uploaded_at,uploaded_by) ".
-            "values(:title, :md5sum, :time, :user_id)");
-        checkForStatementError($dbh, $statement, 
-            "Error preparing upload db statement.");
-        $statement->execute(array(
-            ":md5sum"  => $md5sum, 
-            ":title"   => $title,
-            ":time"    => curDateTime(),
-            ":user_id" => $user_id
-        ));
-        checkForStatementError($dbh, $statement, 
-            "Error adding upload information to db.");
-        $id = $dbh->lastInsertId();
-
-        if(!move_uploaded_file($file, $CONFIG->text_storage ."/$md5sum.txt")){
-            $dbh->rollBack();
-            error("Could not move the uploaded file on the server.");
-        } else {
-            $dbh->commit();
-            return getTextMetadata($id);
-        }
-    }
-}
-
-/**
- * Returns the content of the text with the given id as a string.
- * 
- * @param id The id of the text.
- * @return The content of the text as a string.
- */
-function getTextContentFilename($id) {
-    global $CONFIG;
-    $dbh = connectToDB();
-
-    try {
-        $textInfo = getTextMetadata($id);
-        $md5sum = $textInfo["md5sum"];
-        return $CONFIG->text_storage ."/$md5sum.txt";
-    } catch(PDOException $e){
-        die("There was an error reading from the database: ". $e->getMessage());
-    }
-}
-
-
-/**
- * Sets the tokenization progress and error flags for a text.
- * 
- * @param textId The id of the text to update.
- * @param inProressFlag The value to set the `tokenization_in_progress`
- *                      column to.
- * @param errorFlag The value to set the `tokenization_error` column to.
- */
-function setTokenizationFlags($textId, $inProgressFlag, $errorFlag) {
-    $dbh = connectToDB();
-    try{
-        $statement = $dbh->prepare(
-            "update texts set ".
-                "tokenization_in_progress = :in_progress, ".
-                "tokenization_error = :error, ".
-                "where id = :id");
-        $statement->execute([
-            ":id"           => $textId,
-            ":in_progress"  => $inProgressFlag,
-            ":error"        => $errorFlag
-        ]);
-        $dbh->commit();
-
-    } catch(Exception $e){
-        $dbh->rollback();
-        error("Error updating annotation: ". $e->getMessage());
     }
 }

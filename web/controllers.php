@@ -219,8 +219,9 @@ public static function postText($path, $matches, $params, $format){
  *      error --  an error message (only if success == false)
  */
 public static function tokenizeText($textId, $md5sum) {
+    global $CONFIG;
 
-    setTokenizationFlags($annotationId, true, false);
+    setTokenizationFlags($textId, true, false);
 
     $args = join("\t", [
         $textId,                // Id of the text.
@@ -228,7 +229,7 @@ public static function tokenizeText($textId, $md5sum) {
         $md5sum                 // Text name.
     ]);
 
-    $response = processText($textId, $md5sum, "token", $args);
+    $response = Controllers::processText($textId, $md5sum, "token", $args);
 
     if($response["success"] === false){
         // Unsets the progress flag and sets the error flag.
@@ -500,6 +501,8 @@ public static function postAnnotation($path, $matches, $params, $format){
  *      * id
  *      * title
  *      * md5sum
+ *      * tokenization_in_progress
+ *      * tokenization_error
  *      * uploaded_at
  *      * uploaded_by
  *      * uploaded_by_username

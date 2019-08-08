@@ -118,6 +118,12 @@ foreach($data["annotations"] as $annotation){
                     elseif($annotation["automated_method_in_progress"] === "1")
                         print " <span class=\"note\">(processing...)</span>";
                     
+                    // // Handle the case of the root not being ready yet.
+                    // if($node["data"]["annotationId"] == $annotationTreeRoot["data"]["annotationId"]){
+                    //     if($data["text"]["tokenization_error"]){
+
+                    //     }
+                    // }
 
                     if(count($node["children"]) > 0){
                         print "<ul>";
