@@ -190,7 +190,7 @@ public static function postText($path, $matches, $params, $format){
     $result = Controllers::tokenizeText($text["id"], $md5sum);
 
     if($result["success"] === true){
-        $successMessages = ["The file has been uploaded and is being processed."];
+        $successMessages = ["The file has been uploaded and processed."];
         $errorMessages = [];
     } else {
         $successMessages = [];
@@ -232,8 +232,7 @@ public static function tokenizeText($textId, $md5sum) {
 
     $args = join("\t", [
         $textId,                // Id of the text.
-        $CONFIG->text_storage,  // Storage location.
-        $md5sum                 // Text name.
+        $CONFIG->text_storage  // Storage location.
     ]);
 
     $response = Controllers::processText($textId, $md5sum, "token", $args);

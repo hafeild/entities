@@ -26,7 +26,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 /**
- * Services requests for various EntiTies services, such as tokenization and
+ * Services requests for various EntiTies processors, such as tokenization and
  * automatic annotation of texts.
  * 
  * @author Henry Feild
@@ -59,7 +59,7 @@ public class EntiTiesDispatcher extends Thread {
     /**
      * Handles incoming requests. Each request should be in the format:
      * 
-     *      PROCESSOR\tARGUMENTS
+     *      PROCESSOR\tARGUMENTS\n
      * 
      * where PROCESSOR is one of the following and ARGUMENTS are 0 or more
      * arguments to the processor in the format required by the processor.

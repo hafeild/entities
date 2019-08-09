@@ -78,29 +78,77 @@ public class EntiTiesDatabase {
     }
 
     /**
+     * Checks that the annotation entry with the given id is present and
+     * it's `processed` column is 0 in the annotation table of the database.
+     * 
+     * @param annotationId The id of the annotation to look up.
+     * @return One of SUCCESS or ID_NOT_PRESENT.
+     */
+    public IdStatus getTextStatus(int textId) {
+        try{
+            PreparedStatement statement = dbh.prepareStatement(
+                "select id from texts where id = ?");
+            statement.setInt(1, textId);
+
+            ResultSet result = statement.executeQuery();
+            if(!result.next())
+                return IdStatus.ID_NOT_PRESENT;
+
+        } catch (SQLException e) {
+            logger.log(e.toString());
+            return IdStatus.ERROR_QUERYING_DB;
+        }
+
+        return IdStatus.SUCCESS;
+    }
+
+    /**
      * Updates the database entry for the text with the given id. Assumes
      * there's a table named `texts` with the following fields:
      * 
      *  - id
-     *  - processed (1 or 0)
-     *  - processed_at (datetime)
+     *  - tokenization_in_progress (1 or 0)
+     *  - tokenization_error (1 or 0)
      * 
-     * @param id The id of the text to mark as processed.
+     * The two flags are set to 0, meaning processing is completed and no errors
+     * were encountered.
+     * 
+     * @param id The id of the text to mark as processed without errors.
      * @return True if the update was successful.
      * 
      * @throws SQLException
      */
-    public boolean setTextTokenizedFlag(int id) throws SQLException {
+    public boolean setTextTokenizationSuccessfulFlags(int id) throws SQLException {
         PreparedStatement statement = dbh.prepareStatement(
             "update texts set "+
-            "tokenized = 1, tokenized_at = ? where id = ?");
-        statement.setString(1, 
-            new Timestamp(new Date().getTime()).toString()
-        );
-        statement.setInt(2, id);
+            "tokenization_in_progress = 0, tokenization_error = 0 where id = ?");
+        statement.setInt(1, id);
         return statement.executeUpdate() == 1;
     }
 
+    /**
+     * Updates the database entry for the text with the given id. Assumes
+     * there's a table named `texts` with the following fields:
+     * 
+     *  - id
+     *  - tokenization_in_progress (1 or 0)
+     *  - tokenization_error (1 or 0)
+     * 
+     * The two flags are set to 1 and 0, meaning processing is completed, but 
+     * errors were encountered.
+     * 
+     * @param id The id of the text to mark as processed, but in an error state.
+     * @return True if the update was successful.
+     * 
+     * @throws SQLException
+     */
+    public boolean setTextTokenizationErrorFlag(int id) throws SQLException {
+        PreparedStatement statement = dbh.prepareStatement(
+            "update texts set "+
+            "tokenization_in_progress = 0, tokenization_error = 1 where id = ?");
+        statement.setInt(1, id);
+        return statement.executeUpdate() == 1;
+    }
 
     /**
      * Adds the annotation (in JSON format) to the annotations table of the

@@ -88,11 +88,11 @@ public class BookNLPProcessor extends Processor {
     }
 
     /**
-     * Handles a new request. A request should consist of a single line
-     * (ended with a new line) with the following tab-delimited columns:
+     * Handles an incoming request. A request should consist of a single line
+     * with the following tab-delimited columns:
      * 
      *  - text id
-     * 	- directory
+     * 	- texts directory (where text records are stored)
      *  - text name
      *  - annotation id
      * 
@@ -100,17 +100,28 @@ public class BookNLPProcessor extends Processor {
      * If there's a problem with the parameters, a failure message is 
      * returned.
      * 
-     * This process with look for the content of the book in 
-     * <directory>/<text id>/original.txt. It will create three new files named:
+     * This process will look for the content of the book in 
+     * <texts directory>/<text id>/original.txt. It will create the following 
+     * files in <texts directory>/<text id>/<annotation id>:
      * 
-     * <directory>/<text id>/<annotation id>/tokens   -- token information
-     * <directory>/<text id>/<annotation id>/ids.json -- marked up tokens (json)
-     * <directory>/<text id>/<annotation id>/ids.html -- marked up tokens (html)
+     *  - tokens.tsv      -- token information (TSV format)
+     *  - tokens.json     -- token information (JSON format)
+     *  - annotation.json -- annotation data (JSON format; also stored in the
+     *                       annotations table of the database)
+     *  - ids.json        -- marked up tokens (JSON format)
+     *  - ids.html        -- marked up tokens (HTML)
      * 
-     * When finished, updates the annotations table in the database for the
-     * entry with id = <annotation id> such that the 
-     * automated_method_in_progress and automated_method_error fields are set to
-     * 1.
+     * TODO describe the format of these files.
+     * 
+     * Once the arguments are verified, but before processing begins, the
+     * response "success\n" is printed to the socket and the socket is closed.
+     * Processing then begins and the annotation table in the database is
+     * updated with the proper `automated_method_in_progress` (set to 0 when
+     * completed or an error is encountered) and `automated_method_error` (set
+     * to 1 when an error is encountered) states.
+     * 
+     * If the arguments are not verified, or ids are not found in the database,
+     * an error is printed to the socket and closed.
      */
     public void processRequest(EntiTiesSocket socket, String argsString, 
             EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database){
@@ -122,21 +133,22 @@ public class BookNLPProcessor extends Processor {
         this.logger = logger;
 
         try {
-            // Reads the incoming parameters.
+            // Reads the incoming arguments.
             String[] args = argsString.split("\t");
 
             logger.log("Message received:");
             logger.log(argsString);
 
-            // Check that there are exactly three parameters.
+            // Check that there are exactly three arguments.
             if(args.length != 4){
                 error(socket.out, "Error: there should be 5 tab"+
-                    "-delimited parameters (text id, directory, book "+
+                    "-delimited arguments (text id, directory, book "+
                     "name, annotation id), not "+ 
                     (args.length));
                 return;
             }
 
+            // Parse the arguments.
             textId = Integer.parseInt(args[0]);
             directoryPath = args[1];
             name = args[2];
@@ -150,7 +162,7 @@ public class BookNLPProcessor extends Processor {
 
             if(!fileManager.getTextDirectory().exists() || !bookFile.exists()){
                 String errorMessage = "Error: Directory doesn't exist: "+ 
-                    annotationDirectory.getPath() +".";
+                    fileManager.getTextDirectory().getPath() +".";
                 if(!bookFile.exists()){
                     errorMessage = "Error: File doesn't exist: "+ 
                         bookFile.getPath() +".";
