@@ -382,10 +382,95 @@ var showPage = function(){
     $(`${page}.page`).show();
 };
 
+const START = 0;
+const END = 1;
+const IS_DISPLAYED = 2;
+const PAGE_SIZE = 700;
+const TOKEN_MARGIN = 200; // Where to start looking for a newline.
+var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
+var currentPage = 0;
+
+var initializeTokenizedContent = function(){
+    // Split into pages.
+    contentPages = [];
+    var pageStart = 0;
+    var tokenIndex = Math.min(pageStart+PAGE_SIZE-TOKEN_MARGIN, tokens.length-1);
+
+    while(tokenIndex < tokens.length){
+        if(tokenIndex === tokens.length-1 || 
+                tokens[tokenIndex][1].indexOf("\n") != -1) {
+
+            contentPages.push([pageStart, tokenIndex, false]);
+            pageStart = tokenIndex+1;
+            tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
+
+        } else if(tokenIndex === (pageStart + PAGE_SIZE + TOKEN_MARGIN)){
+            contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
+            pageStart = pageStart+PAGE_SIZE+1;
+            tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
+
+        } else {
+            tokenIndex++;
+        }
+    }
+
+    // TODO set listeners for when the end of a page is reached.
+
+    displayContentPage(1);
+};
+
+var displayContentPage = function(pageIndex){
+    // First, check if the page and surrounding pages are already displayed.
+    if( (pageIndex === 0 || contentPages[pageIndex-1][IS_DISPLAYED]) && 
+            contentPages[pageIndex][IS_DISPLAYED] &&
+            (pageIndex === contentPages.length-1 || 
+                contentPages[pageIndex+1][IS_DISPLAYED])){
+        return;
+    }
+
+    // Generate the HTML to display.
+    var html = '';
+    for(var i = pageIndex-1; i <= pageIndex+1; i++){
+        if(i >= 0 && i < contentPages.length){
+            // Add a beginning of page marker.
+            html += `<span data-page="${i}" class="page-start"></span>`;
+
+            html += tokensToHTML(contentPages[i][START], 
+                                 contentPages[i][END]);
+            contentPages[i][IS_DISPLAYED] = true;
+
+            // Add an end of page marker.
+            html += `<span data-page="${i}" class="page-end"></span>`;
+
+        }
+    }
+
+    // TODO update annotation locations.
+
+    $('#text-panel').html(html);
+    
+    $('#text-panel').scrollTop(
+        $(`#text-panel .page-start[data-page=${pageIndex}]`).position().top+
+        $('#text-panel').scrollTop());
+};
+
+
+var tokensToHTML = function(startIndex, endIndex) {
+    var html = "";
+    for(var i = startIndex; i <= endIndex; i++){
+        html += `<span data-token="${i+1}">`+ 
+            tokens[i][0].replace("&", "&amp;").
+                         replace("<", "&lt;").
+                         replace(">", "&gt;") +
+            '</span>'+ tokens[i][1];
+    }
+    return html;
+};
+
 $(document).ready(function(){
     //getTexts();
     showPage();
-    window.onhashchange = showPage;
+    //window.onhashchange = showPage;
     $(document).on('click', '#get-texts', getTexts);
     $('#file-upload-form').on('submit', upload);
     $(document).on('click', 'a.onpage', loadText);

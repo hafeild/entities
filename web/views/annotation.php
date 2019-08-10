@@ -30,15 +30,7 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
             </div>
             <script>
                 var tokens = <?php readfile($data["text"]["content_file"]) ?>;
-                var first1000 = "";
-                for(var i = 0; i < 1000; i++){
-                    first1000 += `<span class="token${i+1}">`+ 
-                        tokens[i][0].replace("&", "&amp;").
-                                     replace("<", "&lt;").
-                                     replace(">", "&gt;") +
-                        '</span>'+ tokens[i][1];
-                }
-                $('#text-panel').html(first1000);
+                initializeTokenizedContent();
             </script>
 
         </div>
