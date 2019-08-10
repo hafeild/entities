@@ -270,7 +270,10 @@ function addText($md5sum, $file, $title, $user_id){
 function getTextContentFilename($id) {
     global $CONFIG;
     $dbh = connectToDB();
-    return $CONFIG->text_storage ."/$id/original.txt";
+    // return $CONFIG->text_storage ."/$id/original.txt";
+
+    // TODO This should be annotation specific.
+    return $CONFIG->text_storage ."/$id/tokens.json";
 }
 
 

@@ -26,8 +26,21 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
         <div id="text-panel-wrapper">
             <!-- Text goes here... -->
             <div id="text-panel">
-                <?= readfile($data["text"]["content_file"]) ?>
+
             </div>
+            <script>
+                var tokens = <?php readfile($data["text"]["content_file"]) ?>;
+                var first1000 = "";
+                for(var i = 0; i < 1000; i++){
+                    first1000 += `<span class="token${i+1}">`+ 
+                        tokens[i][0].replace("&", "&amp;").
+                                     replace("<", "&lt;").
+                                     replace(">", "&gt;") +
+                        '</span>'+ tokens[i][1];
+                }
+                $('#text-panel').html(first1000);
+            </script>
+
         </div>
         <div id="relationship-panel">
             Relationships go here...

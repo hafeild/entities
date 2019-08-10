@@ -39,6 +39,7 @@ import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
  */
 public class TokenProcessor extends Processor {
     private static final String TOKENS_HTML_FILE_NAME = "tokens.html";
+    private static final String TOKENS_JSON_FILE_NAME = "tokens.json";
 
     /**
      * Handles an incoming request for tokenization. A request should consist
@@ -75,7 +76,7 @@ public class TokenProcessor extends Processor {
         EntiTiesFileManager fileManager;
         String directoryPath;
         int textId = -1;
-        File bookFile, tokensHTMLFile;
+        File bookFile, tokensHTMLFile, tokensJSONFile;
         this.logger = logger;
         ArrayList<Token> tokens;
 
@@ -103,6 +104,7 @@ public class TokenProcessor extends Processor {
                 directoryPath, textId);
             bookFile = fileManager.getTextFile("original.txt");
             tokensHTMLFile = fileManager.getTextFile(TOKENS_HTML_FILE_NAME);
+            tokensJSONFile = fileManager.getTextFile(TOKENS_JSON_FILE_NAME);
 
             if(!fileManager.getTextDirectory().exists() || !bookFile.exists()){
                 String errorMessage = "Error: Directory doesn't exist: "+ 
@@ -149,6 +151,8 @@ public class TokenProcessor extends Processor {
             // Output the entity info.
             logger.log("Converting tokens to HTML...");
             tokensToHTML(tokens, tokensHTMLFile);
+            logger.log("Converting tokens to JSON...");
+            tokensToJSON(tokens, tokensJSONFile);
             if(!database.setTextTokenizationSuccessfulFlags(textId))
                 logger.log("Error: unable to update tokenization status "+
                     "in the database.");
@@ -329,6 +333,32 @@ public class TokenProcessor extends Processor {
                                      .replaceAll("S", " ")
                                      .replaceAll("T", "\t"));
         }
+        out.close();
+    }
+
+    /**
+     * Converts a list of tokens into a JSON file. The JSON consists of a list
+     * of tokens, where each token is a two-tuple, with the token text and the
+     * whitespace that occurs after the token. The id of the token can be
+     * inferred by the index of the token in the list.
+     * 
+     * @param tokens The list of tokens to convert to HTML.
+     * @param outputFile The file to write the JSON to.
+     * @throws IOException
+     */
+    public static void tokensToJSON(ArrayList<Token> tokens, File outputFile) 
+    throws IOException {
+
+        PrintWriter out = new PrintWriter(outputFile);
+        out.print("[");
+        for(Token token : tokens){
+            out.print("[\""+
+                token.original.replaceAll("\"", "\\\\\"") +"\",\""+
+                token.whitespaceAfter.replaceAll("N", "\\\\n")
+                                     .replaceAll("S", " ")
+                                     .replaceAll("T", "\\\\t") +"\"],");
+        }
+        out.print("]");
         out.close();
     }
 
