@@ -26,7 +26,7 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
         <div id="text-panel-wrapper">
             <!-- Text goes here... -->
             <div id="text-panel">
-
+                <span id="end-marker"></span>
             </div>
             <script>
                 var tokens = <?php readfile($data["text"]["content_file"]) ?>;

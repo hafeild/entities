@@ -382,6 +382,12 @@ var showPage = function(){
     $(`${page}.page`).show();
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// TEXT CONTENT FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+const TOKEN_CONTENT = 0;
+const WHITESPACE_AFTER = 1;
 const START = 0;
 const END = 1;
 const IS_DISPLAYED = 2;
@@ -390,6 +396,14 @@ const TOKEN_MARGIN = 200; // Where to start looking for a newline.
 var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
 var currentPage = 0;
 
+/**
+ * Processes the tokenized content (made available in the annotation view 
+ * HTML, just below the #text-panel element). This includes splitting it into
+ * pages of roughly PAGE_SIZE (plus or minus TOKEN_MARGIN) and then redering the
+ * first few pages with annotations highlighted.
+ * 
+ * Places listeners for when the content is scrolled and new content is needed.
+ */
 var initializeTokenizedContent = function(){
     // Split into pages.
     contentPages = [];
@@ -415,18 +429,32 @@ var initializeTokenizedContent = function(){
     }
 
     // TODO set listeners for when the end of a page is reached.
+    $('#text-panel').on('scroll', null, (event)=>{
+        elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
+            appendContentPage(currentPage+1);
+        });
+    });
 
-    displayContentPage(1);
+    // Display the first page.
+    appendContentPage(0);
 };
 
-var displayContentPage = function(pageIndex){
+/**
+ * Displays the pages between startIndex and endIndex, inclusive, if they are
+ * not already.
+ * 
+ * @param {integer} startIndex The index of the first page to display.
+ * @parma {integer} endIndex The index of the last page to display.
+ */
+var displayContentPages = function(startIndex, endIndex){
     // First, check if the page and surrounding pages are already displayed.
-    if( (pageIndex === 0 || contentPages[pageIndex-1][IS_DISPLAYED]) && 
-            contentPages[pageIndex][IS_DISPLAYED] &&
-            (pageIndex === contentPages.length-1 || 
-                contentPages[pageIndex+1][IS_DISPLAYED])){
-        return;
+    var allDisplayed = true;
+    for(var i = startIndex; i <= endIndex; i++){ 
+        allDisplayed = allDisplayed || contentPages[i][IS_DISPLAYED];
     }
+    if(!allDisplayed) return;
+
+    // TODO update!
 
     // Generate the HTML to display.
     var html = '';
@@ -454,18 +482,85 @@ var displayContentPage = function(pageIndex){
         $('#text-panel').scrollTop());
 };
 
+/**
+ * Generates the HTML for the given page of tokens an appends it to the
+ * #text-panel element, before the #end-marker element.
+ * 
+ * @param {integer} pageIndex The index of the page to append to the #text-panel.
+ */
+var appendContentPage = function(pageIndex) {
+    if(contentPages[pageIndex][IS_DISPLAYED]) return;
 
+    var html = `<span data-page="${pageIndex}" class="content-page">`+ 
+        tokensToHTML(contentPages[pageIndex][START], 
+                     contentPages[pageIndex][END]
+        ) +'</span>';
+    contentPages[pageIndex][IS_DISPLAYED] = true;
+
+    currentPage = pageIndex;
+
+    $('#end-marker').before(html)
+}
+
+
+/**
+ * Returns a string of HTML in which each token in the given range is wrapped in
+ * a span tag with the data-token attribute set to the token's id (index + 1).
+ * &, <, and > are replaced with HTML entities. Whitespace is not converted to
+ * HTML entities (so \n is \n, not <br/>).
+ * 
+ * @param {integer} startIndex The index of the token at the start of the range.
+ * @param {integer} endIndex The index of the token at the end of the range.
+ * @return The HTML of tokens in the given range.
+ */
 var tokensToHTML = function(startIndex, endIndex) {
     var html = "";
     for(var i = startIndex; i <= endIndex; i++){
         html += `<span data-token="${i+1}">`+ 
-            tokens[i][0].replace("&", "&amp;").
+            tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
                          replace("<", "&lt;").
                          replace(">", "&gt;") +
-            '</span>'+ tokens[i][1];
+            '</span>'+ tokens[i][WHITESPACE_AFTER];
     }
     return html;
 };
+
+/**
+ * Called when an element with the page-start class comes into view in the
+ * #text-panel element. If the corresponding page is the page after the current
+ * page of focus, additional pages are rendered.
+ * 
+ * @param {Event} event The event that triggered this listener.
+ */
+var onStartOfContentPageShown = function(event){
+    var $pageElm = $(this);
+    appendContentPage(parseInt($pageElm.data('page'))+1);
+};
+
+/**
+ * Tests if the given element is visible in the #text-panel element.
+ * 
+ * @param {Event} event The DOM scroll event that triggered this listerner.
+ * @param {jQuery Element} The element to test.
+ * @param {function(jQuery element)} The function to invoke when a visible
+ *                                   element is found. Should take a jQuery
+ *                                   element (the match) as its only argument.
+ */
+var elementIsVisibleInTextPanel = function(event, $elm, onMatch){
+    var textPanelTop = 0;
+    var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
+    var elmScrollTop = $elm.position().top;
+    var elmScrollBottom = elmScrollTop + $elm.height();
+    if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
+        (elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
+
+        onMatch($elm);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// MAIN
+////////////////////////////////////////////////////////////////////////////////
 
 $(document).ready(function(){
     //getTexts();
