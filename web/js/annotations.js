@@ -395,13 +395,25 @@ const PAGE_SIZE = 700;
 const TOKEN_MARGIN = 200; // Where to start looking for a newline.
 var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
 var currentPage = 0;
+var locationsByPages = [];
 
 /**
- * Processes the tokenized content (made available in the annotation view 
- * HTML, just below the #text-panel element). This includes splitting it into
- * pages of roughly PAGE_SIZE (plus or minus TOKEN_MARGIN) and then redering the
- * first few pages with annotations highlighted.
- * 
+ * Processes the tokenized content (made available in the annotation view HTML,
+ * just below the #text-panel element). This includes splitting it into pages of
+ * roughly PAGE_SIZE (plus or minus TOKEN_MARGIN) and then redering the first
+ * few pages with annotations highlighted.
+ *
+ * Token ranges for pages are held in the global `contentPages`, which consists
+ * of an array of 3-tuples [startIndex, endIndex, isDisplayed]. The index is the
+ * page number, starting at 0.
+ *
+ * This function also initializes the global `locationsByPages` array, each
+ * element of which is the subset of keys in the
+ * `annotation_data.annotation.locations` object. The index corresponds to the
+ * content page index and aligns with `contentPages`. A location is considered a
+ * part of a page if either its start or end location falls within the bounds of
+ * the page: [startIndex, endIndex].
+ *
  * Places listeners for when the content is scrolled and new content is needed.
  */
 var initializeTokenizedContent = function(){
@@ -409,17 +421,24 @@ var initializeTokenizedContent = function(){
     contentPages = [];
     var pageStart = 0;
     var tokenIndex = Math.min(pageStart+PAGE_SIZE-TOKEN_MARGIN, tokens.length-1);
+    var locationKey, i;
 
     while(tokenIndex < tokens.length){
         if(tokenIndex === tokens.length-1 || 
                 tokens[tokenIndex][1].indexOf("\n") != -1) {
 
             contentPages.push([pageStart, tokenIndex, false]);
+            // Initialize the list of locations for this page.
+            locationsByPages.push([]); 
+
             pageStart = tokenIndex+1;
             tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
 
         } else if(tokenIndex === (pageStart + PAGE_SIZE + TOKEN_MARGIN)){
             contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
+            // Initialize the list of locations for this page.
+            locationsByPages.push([]);
+
             pageStart = pageStart+PAGE_SIZE+1;
             tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
 
@@ -428,7 +447,25 @@ var initializeTokenizedContent = function(){
         }
     }
 
-    // TODO set listeners for when the end of a page is reached.
+    // Find the locations specific to each page.
+    for(locationKey in annotation_data.annotation.locations){
+        // Find range of pages containing this location.
+        var pageIndexes = findPageWithLocation(annotation_data.annotation.locations[locationKey]);
+        var i;
+
+        console.log(locationKey, pageIndexes);
+        // If a page isn't found, skip the location.
+        if(pageIndexes[0] == -1 && pageIndexes[1] == -1){
+            continue;
+        }
+
+        // Add the location key to each page that the location spans.
+        for(i = pageIndexes[0]; i <= pageIndexes[1]; i++){
+                locationsByPages[i].push(locationKey);
+        }
+    }
+
+    // Set listeners for when the end of a page is reached.
     $('#text-panel').on('scroll', null, (event)=>{
         elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
             appendContentPage(currentPage+1);
@@ -440,46 +477,48 @@ var initializeTokenizedContent = function(){
 };
 
 /**
- * Displays the pages between startIndex and endIndex, inclusive, if they are
- * not already.
+ * Performs a binary search over content pages to find which pages a location
+ * spans.
  * 
- * @param {integer} startIndex The index of the first page to display.
- * @parma {integer} endIndex The index of the last page to display.
+ * @param {Object} location An entry from annotation_data.locations; should
+ *                          consist of at least `start` and `end` keys, which 
+ *                          are the starting and ending index of the tokens 
+ *                          the location spans.
+ * @return A 2-tuple containing the starting and ending indexes of the pages the
+ *         given location spans, inclusive. If not found, [-1,-1] is returned.
  */
-var displayContentPages = function(startIndex, endIndex){
-    // First, check if the page and surrounding pages are already displayed.
-    var allDisplayed = true;
-    for(var i = startIndex; i <= endIndex; i++){ 
-        allDisplayed = allDisplayed || contentPages[i][IS_DISPLAYED];
-    }
-    if(!allDisplayed) return;
+var findPageWithLocation = function(location) {
+    var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
+    var firstPage, lastPage;
 
-    // TODO update!
+    while(max >= min){
+        var pageStart = contentPages[mid][START], 
+            pageEnd = contentPages[mid][END];
 
-    // Generate the HTML to display.
-    var html = '';
-    for(var i = pageIndex-1; i <= pageIndex+1; i++){
-        if(i >= 0 && i < contentPages.length){
-            // Add a beginning of page marker.
-            html += `<span data-page="${i}" class="page-start"></span>`;
+        if(location.start >= pageStart && location.start <= pageEnd ||
+           location.end >= pageStart && location.end <= pageEnd){
+        
+            firstPage = mid;
+            while(firstPage >= 0 && location.start >= contentPages[firstPage][START]){
+                firstPage--;
+            }
+            lastPage = mid;
+            while(lastPage < contentPages.length && location.end >= contentPages[lastPage][START]){
+                lastPage++;
+            }
 
-            html += tokensToHTML(contentPages[i][START], 
-                                 contentPages[i][END]);
-            contentPages[i][IS_DISPLAYED] = true;
-
-            // Add an end of page marker.
-            html += `<span data-page="${i}" class="page-end"></span>`;
-
+            return [firstPage+1, lastPage-1];
+            
+        } else if(location.start > pageEnd) {
+            min = mid+1;
+            mid = Math.floor((min+max)/2);
+        } else {
+            max = mid-1;
+            mid = Math.floor((min+max)/2);
         }
     }
 
-    // TODO update annotation locations.
-
-    $('#text-panel').html(html);
-    
-    $('#text-panel').scrollTop(
-        $(`#text-panel .page-start[data-page=${pageIndex}]`).position().top+
-        $('#text-panel').scrollTop());
+    return [-1,-1];
 };
 
 /**
@@ -499,9 +538,12 @@ var appendContentPage = function(pageIndex) {
 
     currentPage = pageIndex;
 
-    $('#end-marker').before(html)
+    var $newPageElm = $(html);
+    $('#end-marker').before($newPageElm);
+    
+    // Highlight locations for this page.
+    highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
 }
-
 
 /**
  * Returns a string of HTML in which each token in the given range is wrapped in
@@ -526,35 +568,46 @@ var tokensToHTML = function(startIndex, endIndex) {
 };
 
 /**
- * Called when an element with the page-start class comes into view in the
- * #text-panel element. If the corresponding page is the page after the current
- * page of focus, additional pages are rendered.
- * 
- * @param {Event} event The event that triggered this listener.
- */
-var onStartOfContentPageShown = function(event){
-    var $pageElm = $(this);
-    appendContentPage(parseInt($pageElm.data('page'))+1);
-};
-
-/**
  * Tests if the given element is visible in the #text-panel element.
  * 
  * @param {Event} event The DOM scroll event that triggered this listerner.
- * @param {jQuery Element} The element to test.
+ * @param {jQuery Element} $element The element to test.
  * @param {function(jQuery element)} The function to invoke when a visible
  *                                   element is found. Should take a jQuery
  *                                   element (the match) as its only argument.
  */
-var elementIsVisibleInTextPanel = function(event, $elm, onMatch){
+var elementIsVisibleInTextPanel = function(event, $element, onMatch){
     var textPanelTop = 0;
     var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
-    var elmScrollTop = $elm.position().top;
-    var elmScrollBottom = elmScrollTop + $elm.height();
+    var elmScrollTop = $element.position().top;
+    var elmScrollBottom = elmScrollTop + $element.height();
     if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
         (elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
 
-        onMatch($elm);
+        onMatch($element);
+    }
+}
+
+/**
+ * Highlights entities in the given text content element. Tokens in the given
+ * element must contain an data-id="..." attribute with the token's id. Colors
+ * are chosen by the global pallet. This relies on the global `annotation_data`
+ * variable being properly initialized and maintained.
+ *
+ * @param {jQuery Element} The element to highlight entities in.
+ */
+var highlightEntitiesInContent = function(locationKeys, $element){
+    // TODO
+
+    // This is just to test things quick and dirty.
+    var i, j, location;
+    for(i = 0; i < locationKeys.length; i++){
+        location = annotation_data.annotation.locations[locationKeys[i]];
+        for(j = location.start; j <= location.end; j++){
+            $element.find(`[data-token=${j}]`).
+                addClass(`entity-${location.entity_id}`). 
+                addClass('entity');
+        }
     }
 }
 
