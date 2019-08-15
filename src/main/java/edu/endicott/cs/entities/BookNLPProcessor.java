@@ -325,7 +325,7 @@ public class BookNLPProcessor extends Processor {
 
         if (!tokensFile.exists()) {
             String text = Util.readText(bookFile.getPath());
-            text = Util.filterGutenberg(text);
+            //text = Util.filterGutenberg(text);
             SyntaxAnnotator syntaxAnnotator = new SyntaxAnnotator();
             tokens = syntaxAnnotator.process(text);
             

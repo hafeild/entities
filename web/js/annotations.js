@@ -453,7 +453,6 @@ var initializeTokenizedContent = function(){
         var pageIndexes = findPageWithLocation(annotation_data.annotation.locations[locationKey]);
         var i;
 
-        console.log(locationKey, pageIndexes);
         // If a page isn't found, skip the location.
         if(pageIndexes[0] == -1 && pageIndexes[1] == -1){
             continue;
@@ -491,7 +490,7 @@ var findPageWithLocation = function(location) {
     var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
     var firstPage, lastPage;
 
-    while(max >= min){
+    while(max >= min && contentPages[mid] !== undefined){
         var pageStart = contentPages[mid][START], 
             pageEnd = contentPages[mid][END];
 
@@ -558,7 +557,7 @@ var appendContentPage = function(pageIndex) {
 var tokensToHTML = function(startIndex, endIndex) {
     var html = "";
     for(var i = startIndex; i <= endIndex; i++){
-        html += `<span data-token="${i+1}">`+ 
+        html += `<span data-token="${i}">`+ 
             tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
                          replace("<", "&lt;").
                          replace(">", "&gt;") +
