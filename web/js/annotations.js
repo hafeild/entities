@@ -108,7 +108,7 @@ var makeGroupChecklist = function(groupId, entities){
     var list = `<li class="group" data-id="${groupId}">`, entityId, i,
         entitiesSize = size(entities);
     for(entityId in entities){
-        list += `<input type="checkbox" data-id="${entityId}"> ${entities[entityId].name}`;
+        list += `<input type="checkbox" data-id="${entityId}"> <span class="g${groupId}">${entities[entityId].name}</span>`;
         if(i < entitiesSize-1){
             list += ', ';
         }
@@ -604,7 +604,7 @@ var highlightEntitiesInContent = function(locationKeys, $element){
         location = annotation_data.annotation.locations[locationKeys[i]];
         for(j = location.start; j <= location.end; j++){
             $element.find(`[data-token=${j}]`).
-                addClass(`entity-${location.entity_id}`). 
+                addClass(`g${annotation_data.annotation.entities[location.entity_id].group_id}`). 
                 addClass('entity');
         }
     }
