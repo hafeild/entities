@@ -25,7 +25,7 @@ var data;
 var refresh;
 var links, gnodes;
 // For dragging and making new links.
-var movingNode = false, drawingLink;
+var movingNode = false, drawingLink = false, selectedNode = undefined;
 
 function loadData(graph) {
 
@@ -90,12 +90,42 @@ function dragended() {
     } 
 }
 
-function nodeClicked(event){
-    console.log('node clicked!');
-    console.log(this);
-    console.log(event);
-    console.log(d3.event);
+function nodeClicked(d, i, n){
+    console.log('Node clicked');
+    if(d3.event.metaKey || d3.event.ctrKey) return;
+    console.log('No meta key pressed during click');
+
+    // Three cases:
+    //   Case 1: not in drawingLink 
+    //      => enter drawingLink mode and mark node as selected node
+    //   Case 2: in drawingLink mode and selected node is clicked again 
+    //      => exit drawingLink and do nothing
+    //   Case 2: in drawingLink mode and a different node is clicked
+    //      => exit drawingLink, add link between selected node and current node
+
+    // Case 1
+    if(!drawingLink){
+        console.log('Case 1 triggered.');
+        drawingLink = true;
+        selectedNode = i;
+
+    // Case 2
+    } else if(selectedNode === i) {
+        console.log('Case 2 triggered.');
+        drawingLink = false;
+        selectedNode = undefined;
+
+    // Case 3;
+    } else {
+        console.log('Case 3 triggered.');
+        addLink(data.nodes[selectedNode], data.nodes[i], 1, true);
+        
+        drawingLink = false;
+        selectedNode = undefined;
+    }
 }
+
+
 
 function addLinks() {
     links = svg.selectAll(".link")
