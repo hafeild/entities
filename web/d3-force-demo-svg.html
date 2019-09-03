@@ -3,6 +3,7 @@
 <meta charset="utf-8">
 <head>
     <link rel="stylesheet" href="css/colors.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
 
 </head>
 <svg width="960" height="600"></svg>
@@ -23,6 +24,8 @@ var simulation = d3.forceSimulation()
 var data;
 var refresh;
 var links, gnodes;
+// For dragging and making new links.
+var movingNode = false, drawingLink;
 
 function loadData(graph) {
 
@@ -63,26 +66,28 @@ function loadData(graph) {
 };
 
 function dragstarted() {
-    console.log(d3.event);
-    if(!d3.event.sourceEvent.ctlKey) return;
-    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-    d3.event.subject.fx = d3.event.subject.x;
-    d3.event.subject.fy = d3.event.subject.y;
+    if(d3.event.sourceEvent.metaKey || d3.event.sourceEvent.ctrKey) {
+        movingNode = true;
+        if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+        d3.event.subject.fx = d3.event.subject.x;
+        d3.event.subject.fy = d3.event.subject.y;
+    } 
 }
 
 function dragged() {
-    console.log(d3.event);
-    if(!d3.event.sourceEvent.ctlKey) return;
-    d3.event.subject.fx = d3.event.x;
-    d3.event.subject.fy = d3.event.y;
+    if(movingNode) {
+        d3.event.subject.fx = d3.event.x;
+        d3.event.subject.fy = d3.event.y;
+    }
 }
 
 function dragended() {
-    console.log(d3.event);
-    if(!d3.event.sourceEvent.ctlKey) return;
-    if (!d3.event.active) simulation.alphaTarget(0);
-    //   d3.event.subject.fx = null;
-    //   d3.event.subject.fy = null;
+    if(movingNode){
+        if (!d3.event.active) simulation.alphaTarget(0);
+        //   d3.event.subject.fx = null;
+        //   d3.event.subject.fy = null;
+        movingNode = false;
+    } 
 }
 
 function nodeClicked(event){
@@ -122,6 +127,10 @@ function addNodes() {
         .append("circle")
         .attr("class", (d)=>{ return `node g${d.group}` })
         .attr("r", RADIUS);
+
+    d3.selectAll('circle.node')
+        .on('mouseover', (d, i, n)=>{ d3.select(n[i]).classed('node-hover', true); })
+        .on('mouseout', (d, i, n)=>{ d3.select(n[i]).classed('node-hover', false); });
 
     gnodes.exit().remove();
     gnodes = svg.selectAll('g.gnode')//('g.gnode')

@@ -257,3 +257,9 @@ body {
 .entity{
     background-color: green;
 }
+
+.node-hover {
+    stroke: blue;
+    fill-opacity: 0.5;
+    stroke-width: 3;
+}
