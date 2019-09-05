@@ -611,6 +611,32 @@ var highlightEntitiesInContent = function(locationKeys, $element){
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// NETWORK VISUALIZATION FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+const RADIUS = 10;
+var svgElm, svg, width, height;
+var simulation;
+var networkData;
+var refresh;
+var links, gnodes;
+// For dragging and making new links.
+var movingNode = false, drawingLink = false, selectedNode = undefined;
+
+var initializeNetworkVariables = function(){
+    svgElm = document.querySelector("#network-svg");
+    svg = d3.select('#network-svg');
+    width = svgElm.getBoundingClientRect().width;
+    height = svgElm.getBoundingClientRect().height;
+    simulation =  d3.forceSimulation()
+        .force("link", d3.forceLink().id(function(d) { return d.id; }))
+        .force("charge", d3.forceManyBody())
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide(RADIUS));
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
 // MAIN
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -629,4 +655,7 @@ $(document).ready(function(){
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
     // Autofocus the first input of a modal.
     $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
+
+    // For networking.
+    initializeNetworkVariables();
 });

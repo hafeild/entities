@@ -1,3 +1,4 @@
+<script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="/js/annotations.js"></script>
 
 <div class="header">
@@ -35,7 +36,8 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
 
         </div>
         <div id="relationship-panel">
-            Relationships go here...
+            <svg id="network-svg" width="100%" height="100%"></svg>
         </div>
     </div>
 </div>
+
