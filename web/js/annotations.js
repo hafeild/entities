@@ -614,7 +614,59 @@ var highlightEntitiesInContent = function(locationKeys, $element){
 // NETWORK VISUALIZATION FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
+var findTies = function(n){
+    console.log('Finding ties...');
+    mentions = [];
+    var i, j;
 
+    function insertMention(locationId){
+        var location = annotation_data.annotation.locations[locationId];
+        var min = 0, max = mentions.length-1, mid = Math.floor((min+max)/2);
+        var insertIndex = 0;
+
+        while(min <= max){
+            insertIndex = mid;
+
+            if(mentions[mid][0] === location.start){
+                break;
+            } else if(mentions[mid][0] > location.start) {
+                max = mid-1;
+                mid = Math.floor((min+max)/2);
+            } else {
+                min = mid+1;
+                mid = Math.floor((min+max)/2);
+            }
+        }
+        if(insertIndex < mentions.length && 
+            mentions[insertIndex][0] < location.start){
+            insertIndex++;
+        }
+
+        mentions.splice(insertIndex, 0, 
+            [location.start, locationId, location.entity_id]);
+    }
+
+    for(locationId in annotation_data.annotation.locations){
+        insertMention(locationId);
+    }
+
+    for(i = 0; i < mentions.length; i++){
+        for(j = i+1; j < mentions.length; j++){
+            if(mentions[j][0]-mentions[i][0] > n || 
+                annotation_data.annotation.entities[mentions[i][2]].group_id ===
+                annotation_data.annotation.entities[mentions[j][2]].group_id){
+                break;
+            }
+            annotation_data.annotation.ties.push({
+                weight: 1,
+                source_entity: {location_id: mentions[i][1]},
+                target_entity: {entity_id: mentions[j][2]}
+            });
+        }
+    }
+
+    console.log(`Found ${annotation_data.annotation.ties.length} ties!`);
+};
 
 
 
@@ -639,6 +691,5 @@ $(document).ready(function(){
     // Autofocus the first input of a modal.
     $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
 
-    // For networking.
-    networkViz.init();
+
 });

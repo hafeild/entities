@@ -35,6 +35,8 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
             <script>
                 var tokens = <?php readfile($data["text"]["content_file"]) ?>;
                 initializeTokenizedContent();
+                <!-- For testing only! -->
+                findTies(30);
             </script>
         </div>
 
@@ -42,6 +44,7 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
         <div id="network-panel">
             <svg id="network-svg"></svg>
             <script>
+                networkViz.init();
                 networkViz.loadNetwork(annotation_data.annotation);
             </script>
         </div>

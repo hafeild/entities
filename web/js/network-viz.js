@@ -21,6 +21,9 @@ var networkViz = (function(){
             .force("charge", d3.forceManyBody())
             .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
             .force("collision", d3.forceCollide(RADIUS));
+
+        simulation.force("charge").strength(-400);
+        console.log(svgHeight, svgWidth);
     };
     
     /**
@@ -42,7 +45,7 @@ var networkViz = (function(){
                 return 'translate(' + [d.x, d.y] + ')';
             }); 
     
-        }
+        };
 
         simulation
             .nodes(networkData.nodes)
@@ -88,24 +91,32 @@ var networkViz = (function(){
             return null;
         }
 
-        for(tie in entitiesData.ties){
+        function addNode(groupId){
+            if(seenGroups[groupId]) return;
+
+            seenGroups[groupId] = true;
+            graph.nodes.push({
+                name: entitiesData.groups[groupId].name,
+                id: groupId, 
+                group: groupId
+            });
+        }
+
+        for(tieId in entitiesData.ties){
+            var tie = entitiesData.ties[tieId];
             var sourceGroupId = getTieNodeGroup(tie.source_entity);
             var targetGroupId = getTieNodeGroup(tie.target_entity);
             
 
             graph.links.push({
-                id: `${tie.start}_${tie.end}`,
+                // id: tieId,
                 source: sourceGroupId,
                 target: targetGroupId,
                 value: tie.weight
             });
 
-            if(seenGroups[sourceGroupId] === undefined){
-                seenGroups[sourceGroupId] = true;
-            }
-            if(seenGroups[targetGroupId] === undefined){
-                seendGroups[targetGroupId] = true;
-            }
+            addNode(sourceGroupId);
+            addNode(targetGroupId);
         }
 
         return graph;
@@ -288,7 +299,7 @@ var networkViz = (function(){
     /**
      * Resets the network, drawing it from scratch.
      */
-    function reset() {
+    this.reset = function() {
         simulation.stop();
         var nodes = simulation.nodes();
         var i;
