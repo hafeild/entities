@@ -1,4 +1,5 @@
 <script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="/js/network-viz.js"></script>
 <script src="/js/annotations.js"></script>
 
 <div class="header">
@@ -24,6 +25,8 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
                 </script>
             </div>
         </div>
+
+
         <div id="text-panel-wrapper">
             <!-- Text goes here... -->
             <div id="text-panel">
@@ -33,10 +36,14 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
                 var tokens = <?php readfile($data["text"]["content_file"]) ?>;
                 initializeTokenizedContent();
             </script>
-
         </div>
-        <div id="relationship-panel">
-            <svg id="network-svg" width="100%" height="100%"></svg>
+
+
+        <div id="network-panel">
+            <svg id="network-svg"></svg>
+            <script>
+                networkViz.loadNetwork(annotation_data.annotation);
+            </script>
         </div>
     </div>
 </div>
