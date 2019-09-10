@@ -270,9 +270,28 @@ body {
     background-color: green;
 }
 
-.node-hover, .node-selected {
+circle {
+}
+.node-hover circle, .node-selected circle {
     stroke: blue;
     fill-opacity: 0.5;
     stroke-width: 3;
+    
 }
 
+g text {
+    display: none;
+    text-anchor: middle;
+    stroke-width: 1;
+    stroke: #fff;
+    fill: #000;
+    font-size: 20pt;
+    user-select: none;
+    cursor: pointer;
+}
+.node-hover text, .node-selected text {
+    display: block;
+}
+
+line {
+}

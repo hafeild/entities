@@ -250,7 +250,7 @@ var networkViz = (function(){
         gnodes = svg.selectAll('g.gnode')//('g.gnode')
             .data(networkData.nodes);
     
-        gnodes
+        var newG = gnodes
             .enter()
             .append('g')
             .classed('gnode', true)
@@ -259,26 +259,21 @@ var networkViz = (function(){
                 .on("start", dragstarted)
                 .on("drag", dragged)
                 .on("end", dragended))
-            .append("circle")
+            .on('mouseover', function(d, i, n){ 
+                d3.select(this).classed('node-hover', true); })
+            .on('mouseout', function(d, i, n){ 
+                d3.select(this).classed('node-hover', false); });;
+
+        newG.append("circle")
             .attr("class", (d)=>{ return `node g${d.group}` })
             .attr("r", RADIUS);
-    
-        d3.selectAll('circle.node')
-            .on('mouseover', (d, i, n)=>{ 
-                d3.select(n[i]).classed('node-hover', true); })
-            .on('mouseout', (d, i, n)=>{ 
-                d3.select(n[i]).classed('node-hover', false); });
-    
+
+        newG.append("text")
+            .text((d,i,n) => { return d.name });
+
         gnodes.exit().remove();
         gnodes = svg.selectAll('g.gnode')//('g.gnode')
             .data(networkData.nodes);
-    }
-    
-    function showLabel(d) {
-        d3.select()
-    }
-    
-    function hideLabel(d) {
     }
     
     /**
@@ -311,8 +306,16 @@ var networkViz = (function(){
         // simulation.stop();
         networkData.links.push(
             {source: sourceId, target: targetId, value: value});
+
+        // Need to clear the entire network so that edges display beneath the
+        // nodes.
+        svg.selectAll('g,link').remove();
+        
         drawLinks();
+        drawNodes();
+
         simulation.force("link").links(networkData.links);
+
         if(adjustLayout === true){
             simulation.alpha(1).restart();
         } else {
