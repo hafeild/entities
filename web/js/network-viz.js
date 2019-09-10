@@ -7,6 +7,7 @@ var networkViz = (function(){
     var links, gnodes;
     // For dragging and making new links.
     var movingNode = false, drawingLinkMode = false, selectedNode = undefined;
+    var readjustOnMove = true;
     
     /**
      * Initializes the network and D3 objects. Does NOT draw the network.
@@ -30,7 +31,11 @@ var networkViz = (function(){
      * Draws the network and places listeners on nodes for clicking/dragging/
      * hovering.
      * 
-
+     * @param {Object} entitiesData EntiTies map with the following keys:
+     *   - entities
+     *   - locations
+     *   - ties
+     *   - groups
      */
     this.loadNetwork = function(entitiesData) {
         networkData = entitiesDataToGraph(entitiesData);
@@ -127,9 +132,25 @@ var networkViz = (function(){
      * if the meta or ctrl keys are pressed.
      */
     function dragstarted() {
+        console.log('In dragstarted');
         if(d3.event.sourceEvent.metaKey || d3.event.sourceEvent.ctrKey) {
             movingNode = true;
-            if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+            readjustOnMove = !d3.event.sourceEvent.shiftKey;
+
+            // Freeze the network.
+            if(!readjustOnMove){
+                for(var i = 0; i < networkData.nodes.length; i++){
+                    networkData.nodes[i].fx = networkData.nodes[i].x;
+                    networkData.nodes[i].fy = networkData.nodes[i].y;
+                }
+            }
+            
+            if(!d3.event.active){
+                simulation.alphaTarget(0.3).restart();
+            }
+
+            console.log('readadjustOnMove:', readjustOnMove);
+
             d3.event.subject.fx = d3.event.subject.x;
             d3.event.subject.fy = d3.event.subject.y;
         } 
@@ -180,20 +201,23 @@ var networkViz = (function(){
     
         // Case 1
         if(!drawingLinkMode){
-            console.log('Case 1 triggered.');
             drawingLinkMode = true;
             selectedNode = i;
+            d3.select(n[i]).classed('node-selected', true);
     
         // Case 2
         } else if(selectedNode === i) {
-            console.log('Case 2 triggered.');
+            d3.select(n[selectedNode]).classed('node-selected', false);
+
             drawingLinkMode = false;
             selectedNode = undefined;
+
     
         // Case 3;
         } else {
-            console.log('Case 3 triggered.');
-            addLink(data.nodes[selectedNode], data.nodes[i], 1, true);
+            addLink(networkData.nodes[selectedNode], 
+                networkData.nodes[i], 1, true);
+            d3.select(n[selectedNode]).classed('node-selected', false);
             
             drawingLinkMode = false;
             selectedNode = undefined;

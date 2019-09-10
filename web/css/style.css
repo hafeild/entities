@@ -270,7 +270,7 @@ body {
     background-color: green;
 }
 
-.node-hover {
+.node-hover, .node-selected {
     stroke: blue;
     fill-opacity: 0.5;
     stroke-width: 3;
