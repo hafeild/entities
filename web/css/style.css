@@ -1,0 +1,297 @@
+/* Based on https://getbootstrap.com/docs/4.1/examples/sign-in/signin.css */
+html,
+body {
+    height: 100%;
+}
+
+body.account-page {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-align: center;
+    align-items: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #f5f5f5;
+}
+
+body.main-app {
+    padding-top: 70px;
+}
+
+ul {
+    margin-left: 0;
+    padding-left: 1em;
+}
+
+#user-text-list {
+    margin-top: 1em;
+}
+
+.center {
+    width: 100%;
+    max-width: 330px;
+    padding: 15px;
+    margin: auto;
+}
+
+#login-page form, #signup-page form {
+    margin-bottom: 2em;
+}
+
+#login-page .checkbox, #signup-page .checkbox {
+    font-weight: 400;
+}
+.form-control {
+    position: relative;
+    box-sizing: border-box;
+    height: auto;
+    padding: 10px;
+    font-size: 16px;
+}
+.form-control:focus {
+    z-index: 2;
+}
+input.top {
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+input.middle {
+    margin-bottom: -1px;
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+input.bottom {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+#messages, #errors {
+    /* display: none; */
+}
+
+.logout {
+    margin-top: 4em;
+}
+
+
+#response {
+    white-space: pre-wrap;
+    font-family: 'Courier New', Courier, monospace;
+    min-height: 50px;
+    width: 100%;
+    border: 1px solid gray;
+    background: #333;
+    color: #eee;
+}
+
+.page {
+    /* display: none; */
+}
+
+.errors h3, .messages h3 {
+    font-size: 125%;
+    padding: 0;
+    margin-top: .25em;
+    margin-bottom: .25em;
+}
+
+.errors p, .messages p {
+    padding: 0;
+    margin-top: .1em;
+    margin-bottom: .1em;
+}
+
+li.just-uploaded {
+    padding: .5em;
+    background-color: lightgreen;
+    border-radius: 3px;
+}
+
+li.tokenization-in-progress {
+    color: tan;
+}
+
+li.tokenization-error {
+    color: red;
+}
+
+li.just-uploaded.tokenization-in-progress {
+    padding: .5em;
+    background-color: yellow;
+    border-radius: 3px;
+    color: black;
+}
+
+li.just-uploaded.tokenization-error {
+    padding: .5em;
+    background-color: red;
+    border-radius: 3px;
+    color: white;
+}
+
+
+
+
+.error {
+    color: red;
+}
+
+.note {
+    color: #b3a400;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+#content {
+    /* flex-grow: 1; */
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+#content.annotation-page {
+    margin: 0;
+    padding: 0, 1em, 0, 1em;
+    width: 100%;
+}
+
+#annotation-panels-wrapper {
+    /* flex-grow: 1; */
+    flex: 1;
+    position: relative;
+    box-sizing: border-box;
+    margin: 2em 0 0 -1em;
+    padding: 0;
+    /* display: table; */
+}
+
+#annotation-panels {
+    /* position: absolute; */
+    display: table;
+    height: 100%;
+    /* top: 0;  */
+    /* bottom: 0; */
+    /* left: 0; */
+    /* right: -1em; */
+    /* max-height: 100%; */
+    width: calc(100% + 1em);
+    /* overflow: hidden; */
+}
+
+#annotation-panels > * {
+    border: 1px solid gray;
+    margin: 0 0 1em 0;
+    padding: 1em 2em 1em 2em;
+    box-sizing: border-box;
+}
+
+#text-panel-wrapper {
+    display: table-cell;
+    position: relative;
+}
+
+#text-panel {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    white-space: pre-wrap;
+    font-size: 14pt;
+    overflow-y: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1em;
+
+
+    /* height: 200px; */
+    /* max-height: 200px; */
+    /* width: 40vw;
+    position: absolute;
+    left: 30vw;
+    bottom: 0px;
+    top: 0px; */
+}
+
+#entity-panel-wrapper{
+    width: 30vw;
+    display: table-cell;
+    position: relative;
+    /* position: absolute;
+    left: 0vw;
+    bottom: 0px;
+    top: 0px; */
+}
+
+#entity-panel {
+    padding: 1em;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+}
+
+#network-panel {
+    width: 30vw;
+    display: table-cell;
+    position: relative;
+    /* position: absolute;
+    left: 70vw;
+    bottom: 0px;
+    top: 0px; */
+}
+
+#network-svg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    /* min-height: 100%; */
+}
+
+.entity{
+    background-color: green;
+}
+
+circle {
+}
+.node-hover circle, .node-selected circle {
+    stroke: blue;
+    fill-opacity: 0.5;
+    stroke-width: 3;
+    
+}
+
+g text {
+    display: none;
+    text-anchor: middle;
+    stroke-width: 1;
+    stroke: #fff;
+    fill: #000;
+    font-size: 20pt;
+    user-select: none;
+    cursor: pointer;
+}
+.node-hover text, .node-selected text {
+    display: block;
+}
+
+line {
+}

@@ -9,11 +9,11 @@ global $user;
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> 
     <title><?= $title ?></title>
-    <link rel="stylesheet" href="/style.css"/>
+    <link rel="stylesheet" href="/css/style.css"/>
+    <link rel="stylesheet" href="/css/colors.css"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script src="/js/messages.js"></script>
-    <script src="/js/character-list.js"></script>
 </head>
 <body class="main-app" data-logged-in="<?= $user == null ? "yes" : "no"?>">
     
@@ -45,10 +45,11 @@ global $user;
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><?= $user["username"] ?> <span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a href="#" class="logout-button">Logout</a>
-                            <form id="logout-form" action="account.php" method="post" style="display:none">
+                        <li>
+                            <form name="logoutform" action="/account.php" method="post">
                                 <input type="hidden" name="action" value="logout">
                             </form>
+                            <a href="#" onclick="forms.logoutform.submit();">Logout</a>
                         </li>
                     </ul>
                 </li>
@@ -58,10 +59,23 @@ global $user;
         </div>
     </nav>
       
+    <div id="content" class="container <?= $contentClasses ?>">
+        <div id="errors" class="alert alert-danger errors" role="alert" 
+            <?= count($errors) > 0 ? "" : 'style="display: none"' ?>>
+            <?php foreach($errors as $error) { ?>
+                <p><?= $error ?></p>
+            <?php } ?>
+        </div>
 
+        <div id="messages" class="alert alert-success messages" role="alert" 
+            <?= count($messages) > 0 ? "" : 'style="display: none"' ?>>
+            <?php foreach($messages as $message) { ?>
+                <p><?= $message ?></p>
+            <?php } ?>
+        </div>
 
-    <div class="container">
         <?php require($view) ?>
+
     </div>
 
 </body>

@@ -35,7 +35,7 @@ function connectToMongo(){
  * @param annotation The annotation to save. Should have the following fields:
  *          - entities
  *          - groups
- *          - interactions
+ *          - ties
  *          - locations
  */
 function addAnnotation($userId, $textId, $annotation){

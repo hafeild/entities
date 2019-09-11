@@ -15,6 +15,20 @@ fclose($configFD);
 
 require_once("model.php");
 
+// Annotation methods and their associated labels.
+$validMethods = [
+    "manual"        => "", 
+    "booknlp"       => "BookNLP v1",
+    "unannotated"   => "Blank slate"
+];
+
+// Supported text/annotation processors.
+$validProcessors = [
+    "booknlp" => 1,
+    "token"   => 1
+];
+
+
 $user = null;
 
 // Get user credentials (if currently logged in).
@@ -36,11 +50,25 @@ if(array_key_exists("WEI", $_COOKIE)){
  * @param success Sets the success value; defaults to false.
  */
 function error($message, $additionalData="", $success=false){
-    die(json_encode(array(
+    global $format;
+
+    $data = [
         "success" => $success,
         "message"   => $message,
         "additional_data" => $additionalData
-    )));
+    ];
+
+    if($format == "json"){
+        // JSON
+        die(json_encode($data));
+    } else {
+        // HTML
+        if($success)
+            Controllers::render("Success", "views/success.php", $data);
+        else 
+            Controllers::render("Error", "views/error.php", $data);
+        exit();
+    }
 }
 
 /**
@@ -59,4 +87,16 @@ function getWithDefault($array, $key, $default){
         return $array[$key];
     }
     return $default;
+}
+
+/**
+ * Checks if the user is logged in; if not, an error is generated in the 
+ * appropriate format (JSON or HTML).
+ */
+function confirmUserLoggedIn(){
+    global $user;
+
+    if($user == null){
+        error("Must be logged in to add a text.");
+    }
 }

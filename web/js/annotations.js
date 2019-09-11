@@ -57,9 +57,10 @@ var upload = function(event){
 
 var displayAnnotation = function(data){
     // Clear the annotation list.
-    $('#annotation-list').html('');
+    // $('#annotation-list').html('');
+    console.log("In displayAnnotation");
 
-    var charListOuterElm = $('#character-list');
+    var charListOuterElm = $('#entity-list');
     var charListElm = $('<ul class="groups">');
     charListOuterElm.html(
         '<button id="group-selected">Group selected</button> ');
@@ -107,7 +108,7 @@ var makeGroupChecklist = function(groupId, entities){
     var list = `<li class="group" data-id="${groupId}">`, entityId, i,
         entitiesSize = size(entities);
     for(entityId in entities){
-        list += `<input type="checkbox" data-id="${entityId}"> ${entities[entityId].name}`;
+        list += `<input type="checkbox" data-id="${entityId}"> <span class="g${groupId}">${entities[entityId].name}</span>`;
         if(i < entitiesSize-1){
             list += ', ';
         }
@@ -139,7 +140,7 @@ var groupSelected = function(){
     var groupId, entityId;
     var fullySelectedGroups = [];
     var selectedEntitiesSize, selectedGroupsSize, fullySelectedGroupsSize;
-    var changes = {entities: {}, groups: {}, locations: {}, interactions: {}};
+    var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
     
     $('.groups input:checked').each(function(i, elm){
         var groupId = $(this).parents('li.group').data('id');
@@ -237,10 +238,10 @@ var groupSelected = function(){
     }
 
     console.log(annotation_data);
-    console.log(`To: json/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
+    console.log(`To: /json/annotations/${annotation_data.annotation_id}`, {_method: 'PATCH', data: JSON.stringify(changes)});
     // Upload changes to the server.
     $.post({
-        url: `json/annotations/${annotation_data.annotation_id}`,
+        url: `/json/annotations/${annotation_data.annotation_id}`,
         data: {_method: 'PATCH', data: JSON.stringify(changes)},
         success: function(data){
             $('#response').html(`Updating modifications `+
@@ -381,10 +382,303 @@ var showPage = function(){
     $(`${page}.page`).show();
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// TEXT CONTENT FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+const TOKEN_CONTENT = 0;
+const WHITESPACE_AFTER = 1;
+const START = 0;
+const END = 1;
+const IS_DISPLAYED = 2;
+const PAGE_SIZE = 700;
+const TOKEN_MARGIN = 200; // Where to start looking for a newline.
+var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
+var currentPage = 0;
+var locationsByPages = [];
+
+/**
+ * Processes the tokenized content (made available in the annotation view HTML,
+ * just below the #text-panel element). This includes splitting it into pages of
+ * roughly PAGE_SIZE (plus or minus TOKEN_MARGIN) and then redering the first
+ * few pages with annotations highlighted.
+ *
+ * Token ranges for pages are held in the global `contentPages`, which consists
+ * of an array of 3-tuples [startIndex, endIndex, isDisplayed]. The index is the
+ * page number, starting at 0.
+ *
+ * This function also initializes the global `locationsByPages` array, each
+ * element of which is the subset of keys in the
+ * `annotation_data.annotation.locations` object. The index corresponds to the
+ * content page index and aligns with `contentPages`. A location is considered a
+ * part of a page if either its start or end location falls within the bounds of
+ * the page: [startIndex, endIndex].
+ *
+ * Places listeners for when the content is scrolled and new content is needed.
+ */
+var initializeTokenizedContent = function(){
+    // Split into pages.
+    contentPages = [];
+    var pageStart = 0;
+    var tokenIndex = Math.min(pageStart+PAGE_SIZE-TOKEN_MARGIN, tokens.length-1);
+    var locationKey, i;
+
+    while(tokenIndex < tokens.length){
+        if(tokenIndex === tokens.length-1 || 
+                tokens[tokenIndex][1].indexOf("\n") != -1) {
+
+            contentPages.push([pageStart, tokenIndex, false]);
+            // Initialize the list of locations for this page.
+            locationsByPages.push([]); 
+
+            pageStart = tokenIndex+1;
+            tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
+
+        } else if(tokenIndex === (pageStart + PAGE_SIZE + TOKEN_MARGIN)){
+            contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
+            // Initialize the list of locations for this page.
+            locationsByPages.push([]);
+
+            pageStart = pageStart+PAGE_SIZE+1;
+            tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
+
+        } else {
+            tokenIndex++;
+        }
+    }
+
+    // Find the locations specific to each page.
+    for(locationKey in annotation_data.annotation.locations){
+        // Find range of pages containing this location.
+        var pageIndexes = findPageWithLocation(annotation_data.annotation.locations[locationKey]);
+        var i;
+
+        // If a page isn't found, skip the location.
+        if(pageIndexes[0] == -1 && pageIndexes[1] == -1){
+            continue;
+        }
+
+        // Add the location key to each page that the location spans.
+        for(i = pageIndexes[0]; i <= pageIndexes[1]; i++){
+                locationsByPages[i].push(locationKey);
+        }
+    }
+
+    // Set listeners for when the end of a page is reached.
+    $('#text-panel').on('scroll', null, (event)=>{
+        elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
+            appendContentPage(currentPage+1);
+        });
+    });
+
+    // Display the first page.
+    appendContentPage(0);
+};
+
+/**
+ * Performs a binary search over content pages to find which pages a location
+ * spans.
+ * 
+ * @param {Object} location An entry from annotation_data.locations; should
+ *                          consist of at least `start` and `end` keys, which 
+ *                          are the starting and ending index of the tokens 
+ *                          the location spans.
+ * @return A 2-tuple containing the starting and ending indexes of the pages the
+ *         given location spans, inclusive. If not found, [-1,-1] is returned.
+ */
+var findPageWithLocation = function(location) {
+    var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
+    var firstPage, lastPage;
+
+    while(max >= min && contentPages[mid] !== undefined){
+        var pageStart = contentPages[mid][START], 
+            pageEnd = contentPages[mid][END];
+
+        if(location.start >= pageStart && location.start <= pageEnd ||
+           location.end >= pageStart && location.end <= pageEnd){
+        
+            firstPage = mid;
+            while(firstPage >= 0 && location.start >= contentPages[firstPage][START]){
+                firstPage--;
+            }
+            lastPage = mid;
+            while(lastPage < contentPages.length && location.end >= contentPages[lastPage][START]){
+                lastPage++;
+            }
+
+            return [firstPage+1, lastPage-1];
+            
+        } else if(location.start > pageEnd) {
+            min = mid+1;
+            mid = Math.floor((min+max)/2);
+        } else {
+            max = mid-1;
+            mid = Math.floor((min+max)/2);
+        }
+    }
+
+    return [-1,-1];
+};
+
+/**
+ * Generates the HTML for the given page of tokens an appends it to the
+ * #text-panel element, before the #end-marker element.
+ * 
+ * @param {integer} pageIndex The index of the page to append to the #text-panel.
+ */
+var appendContentPage = function(pageIndex) {
+    if(contentPages[pageIndex][IS_DISPLAYED]) return;
+
+    var html = `<span data-page="${pageIndex}" class="content-page">`+ 
+        tokensToHTML(contentPages[pageIndex][START], 
+                     contentPages[pageIndex][END]
+        ) +'</span>';
+    contentPages[pageIndex][IS_DISPLAYED] = true;
+
+    currentPage = pageIndex;
+
+    var $newPageElm = $(html);
+    $('#end-marker').before($newPageElm);
+    
+    // Highlight locations for this page.
+    highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
+}
+
+/**
+ * Returns a string of HTML in which each token in the given range is wrapped in
+ * a span tag with the data-token attribute set to the token's id (index + 1).
+ * &, <, and > are replaced with HTML entities. Whitespace is not converted to
+ * HTML entities (so \n is \n, not <br/>).
+ * 
+ * @param {integer} startIndex The index of the token at the start of the range.
+ * @param {integer} endIndex The index of the token at the end of the range.
+ * @return The HTML of tokens in the given range.
+ */
+var tokensToHTML = function(startIndex, endIndex) {
+    var html = "";
+    for(var i = startIndex; i <= endIndex; i++){
+        html += `<span data-token="${i}">`+ 
+            tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
+                         replace("<", "&lt;").
+                         replace(">", "&gt;") +
+            '</span>'+ tokens[i][WHITESPACE_AFTER];
+    }
+    return html;
+};
+
+/**
+ * Tests if the given element is visible in the #text-panel element.
+ * 
+ * @param {Event} event The DOM scroll event that triggered this listerner.
+ * @param {jQuery Element} $element The element to test.
+ * @param {function(jQuery element)} The function to invoke when a visible
+ *                                   element is found. Should take a jQuery
+ *                                   element (the match) as its only argument.
+ */
+var elementIsVisibleInTextPanel = function(event, $element, onMatch){
+    var textPanelTop = 0;
+    var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
+    var elmScrollTop = $element.position().top;
+    var elmScrollBottom = elmScrollTop + $element.height();
+    if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
+        (elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
+
+        onMatch($element);
+    }
+}
+
+/**
+ * Highlights entities in the given text content element. Tokens in the given
+ * element must contain an data-id="..." attribute with the token's id. Colors
+ * are chosen by the global pallet. This relies on the global `annotation_data`
+ * variable being properly initialized and maintained.
+ *
+ * @param {jQuery Element} The element to highlight entities in.
+ */
+var highlightEntitiesInContent = function(locationKeys, $element){
+    // TODO
+
+    // This is just to test things quick and dirty.
+    var i, j, location;
+    for(i = 0; i < locationKeys.length; i++){
+        location = annotation_data.annotation.locations[locationKeys[i]];
+        for(j = location.start; j <= location.end; j++){
+            $element.find(`[data-token=${j}]`).
+                addClass(`g${annotation_data.annotation.entities[location.entity_id].group_id}`). 
+                addClass('entity');
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// NETWORK VISUALIZATION FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+var findTies = function(n){
+    console.log('Finding ties...');
+    mentions = [];
+    var i, j;
+
+    function insertMention(locationId){
+        var location = annotation_data.annotation.locations[locationId];
+        var min = 0, max = mentions.length-1, mid = Math.floor((min+max)/2);
+        var insertIndex = 0;
+
+        while(min <= max){
+            insertIndex = mid;
+
+            if(mentions[mid][0] === location.start){
+                break;
+            } else if(mentions[mid][0] > location.start) {
+                max = mid-1;
+                mid = Math.floor((min+max)/2);
+            } else {
+                min = mid+1;
+                mid = Math.floor((min+max)/2);
+            }
+        }
+        if(insertIndex < mentions.length && 
+            mentions[insertIndex][0] < location.start){
+            insertIndex++;
+        }
+
+        mentions.splice(insertIndex, 0, 
+            [location.start, locationId, location.entity_id]);
+    }
+
+    for(locationId in annotation_data.annotation.locations){
+        insertMention(locationId);
+    }
+
+    for(i = 0; i < mentions.length; i++){
+        for(j = i+1; j < mentions.length; j++){
+            if(mentions[j][0]-mentions[i][0] > n || 
+                annotation_data.annotation.entities[mentions[i][2]].group_id ===
+                annotation_data.annotation.entities[mentions[j][2]].group_id){
+                break;
+            }
+            annotation_data.annotation.ties.push({
+                weight: 1,
+                source_entity: {location_id: mentions[i][1]},
+                target_entity: {entity_id: mentions[j][2]}
+            });
+        }
+    }
+
+    console.log(`Found ${annotation_data.annotation.ties.length} ties!`);
+};
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MAIN
+////////////////////////////////////////////////////////////////////////////////
+
 $(document).ready(function(){
     //getTexts();
     showPage();
-    window.onhashchange = showPage;
+    //window.onhashchange = showPage;
     $(document).on('click', '#get-texts', getTexts);
     $('#file-upload-form').on('submit', upload);
     $(document).on('click', 'a.onpage', loadText);
@@ -394,4 +688,8 @@ $(document).ready(function(){
     $(document).on('click', '.group .select-all', selectAllInGroup);
     $(document).on('click', '#group-selected', groupSelected);
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
+    // Autofocus the first input of a modal.
+    $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
+
+
 });

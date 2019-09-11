@@ -1,6 +1,5 @@
 #!/bin/bash
 
-defaultConfig="-s conf.json"
 sep=":"
 
 for arg in $@; do 
@@ -13,5 +12,7 @@ if [ -d "/c/" ] || [ -d "C:" ]; then
     sep=";"
 fi
 
+class=$1; shift
+
 CLASSPATH="" java -cp "bin/${sep}lib/*${sep}book-nlp/book-nlp.jar${sep}book-nlp/lib/*" \
-    edu/endicott/cs/entities/EntiTiesDispatcher $defaultConfig $@
+    edu/endicott/cs/entities/$class $@
