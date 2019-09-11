@@ -1,4 +1,4 @@
-# When Entities Interact
+# EntiTies
 
 Eventually, this will be a web application for annotating relationships between
 entities in text in a semi-automated way. For example, you can use it to
@@ -56,7 +56,63 @@ Then open a browser and go to: http://localhost:3535. You can change the port
 number to something other than 3535 if you wish.
 
 
+# Annotation storage format
 
+Annotations are stored in JSON organized as follows:
 
+```
+{
+    ## These are the distinct entities prior to co-reference resolution (so
+    ## Peter Pan, Peter, and Pan are each an entity). It is not required that
+    ## an entity have any corresponding location.
+    entities: {
+        id: {
+            name: "",
+            group_id: ""
+        }
+    }
+
+    ## Each group is a set of entities that refer to the same canonical entity.
+    ## E.g., Peter Pan, Peter, and Pan might all belong to the same group.
+    groups: {
+        id: {
+            name: ""
+        }
+    }
+
+    ## These are the locations where entities (not groups) are mentioned.
+    locations: {
+        id: {
+            start: 0,
+            end: 0,
+            entity_id: ""
+        }
+    }
+    
+    ## These describe relationships or edges between two entities (not groups).
+    ## Ideally, these are marked in the text (start and end) and involve two
+    ## entity locations. However, an explicit location in the text is not
+    ## required.
+    ties: {
+        id: {
+            start: 0, // optional
+            end: 0, // optional
+            source_entity: {
+                // ONE of the following two.
+                location_id: ""
+                entity_id: ""
+            },
+            target_entity: {
+                // ONE of the following two.
+                location_id: ""
+                entity_id: ""
+            },
+            label: "",
+            weight: 0.0, // optional; default 1.0
+            directed: false  // optional; default: false
+        }
+    }
+}
+```
 
 
