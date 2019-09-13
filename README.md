@@ -25,13 +25,22 @@ what database to use to store metadata. Any database that can be used with PHP
 Data Objects is okay to use.
 
 ## Step 3.
-Install https://github.com/dbamman/book-nlp with the supporting models. Copy or
-symlink the `book-nlp` directory to the `when-entities-interact` directory
-(`book-nlp` should be a subdirectory).
+Install https://github.com/dbamman/book-nlp with the supporting models in the
+`entities` directory:
+
+    git clone https://github.com/dbamman/book-nlp
+
+    ## As per the BookNLP README, acquire and install the models:
+    cd book-nlp
+    curl https://nlp.stanford.edu/software/stanford-corenlp-full-2017-06-09.zip -O
+    unzip stanford-corenlp-full-2017-06-09.zip
+    mv stanford-corenlp-full-2017-06-09/stanford-corenlp-3.8.0-models.jar lib/
+    cd ..
+    
 
 ## Step 4. 
 Make a copy or symlink to the `book-nlp/files/` directory in the 
-`when-entities-interact` directory. E.g.,
+`entities` directory. E.g.,
 
     ln -s book-nlp/files .
 
@@ -47,9 +56,10 @@ Start the BookNLPServer by running the `run-java-server.sh` script:
 
 # Development
 
-To start up a development server, use the built in PHP server. From the
-`web/` directory, enter:
+To start up a development server, go into the `web` directory and use the built 
+in PHP server. 
 
+    cd web/
     php -S localhost:3535 routes.php
 
 Then open a browser and go to: http://localhost:3535. You can change the port
