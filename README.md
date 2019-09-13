@@ -19,10 +19,13 @@ Clone this directory onto a webserver that has PHP 5.5+ and Java JDK 8 or
 higher installed. 
 
 ## Step 2. 
-Copy `conf-EXAMPLE.json` to `conf.json` and edit it. Note that you can must
+Copy `conf-EXAMPLE.json` to `conf.json` and edit it. Note that you must
 choose where to store original texts (must be writable by the apache user) and
 what database to use to store metadata. Any database that can be used with PHP
-Data Objects is okay to use.
+Data Objects is okay to use. 
+
+No property should be defined more than once; for any repeated property, the 
+last value set is used. You may use `//` to comment out lines.
 
 ## Step 3.
 Install https://github.com/dbamman/book-nlp with the supporting models in the
