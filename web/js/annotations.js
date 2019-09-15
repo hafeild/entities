@@ -606,11 +606,45 @@ var highlightEntitiesInContent = function(locationKeys, $element){
             $element.find(`[data-token=${j}]`).
                 addClass(`g${annotation_data.annotation.entities[location.entity_id].group_id}`). 
                 addClass('entity').
+                // Wrap all entities in an invisible button
+                // Note: simply adding "onClick" to text is an ugly solution, hence the button wrap
                 wrap("<button class='annotated-entity'></button>");
 
         }
     }
 }
+
+var existingEntityClicked = function(event) {
+	// Deselect previous entities
+	$('.selectedEntity').each(function() {
+		$(this).removeClass('selectedEntity');
+	})
+
+	var clicked = $(this).find(".entity");
+	var classesAsString = clicked.attr("class");
+
+	// This is gross, but I am not sure I have any other way of extracting an entities group
+	var groupName = classesAsString.replace(/ .*/, '');
+
+	// Gonna need this later to manipulate the groups ; TODO
+	var groupIDs =[];
+	var numberOfEntitiesInGroup = 0;
+
+	// Function to find every element in group
+	$('.' + groupName).each(function() {
+		// Note that this particular $(this) is different than the $(this) in var clicked
+		if ($(this).hasClass('entity')) {
+			$(this).addClass('selectedEntity');
+			console.log($(this));
+			groupIDs[numberOfEntitiesInGroup] = $(this).attr("data-token");
+			numberOfEntitiesInGroup++;
+		
+		}
+	})
+
+	console.log(groupIDs);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // NETWORK VISUALIZATION FUNCTIONS
@@ -690,8 +724,14 @@ $(document).ready(function(){
     $(document).on('click', '.group .select-all', selectAllInGroup);
     $(document).on('click', '#group-selected', groupSelected);
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
+    
+    // Manual Annotation
+    $(document).on('click', '.annotated-entity', existingEntityClicked);
+
     // Autofocus the first input of a modal.
     $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
+
+
 
 
 });

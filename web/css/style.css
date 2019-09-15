@@ -298,5 +298,9 @@ button.annotated-entity {
     border: none;
 }
 
+span.selectedEntity {
+    background-color: green;
+}
+
 line {
 }
