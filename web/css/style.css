@@ -293,5 +293,10 @@ g text {
     display: block;
 }
 
+button.annotated-entity {
+    background: none;
+    border: none;
+}
+
 line {
 }

@@ -605,7 +605,9 @@ var highlightEntitiesInContent = function(locationKeys, $element){
         for(j = location.start; j <= location.end; j++){
             $element.find(`[data-token=${j}]`).
                 addClass(`g${annotation_data.annotation.entities[location.entity_id].group_id}`). 
-                addClass('entity');
+                addClass('entity').
+                wrap("<button class='annotated-entity'></button>");
+
         }
     }
 }
