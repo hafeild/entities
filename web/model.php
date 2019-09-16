@@ -251,12 +251,16 @@ function addText($md5sum, $file, $title, $user_id){
         if(!mkdir($CONFIG->text_storage ."/$id")){
             $dbh->rollBack();
             error("Could not create a directory for the new text.");
-        } elseif(!move_uploaded_file($file, $CONFIG->text_storage ."/$id/original.txt")){
-            $dbh->rollBack();
-            error("Could not move the uploaded file on the server.");
         } else {
-            $dbh->commit();
-            return getTextMetadata($id);
+            // Make the directory rwxrwx--- for user:group www-data:www-data.
+            chmod($CONFIG->text_storage ."/$id", 0770);
+            if(!move_uploaded_file($file, $CONFIG->text_storage ."/$id/original.txt")){
+                $dbh->rollBack();
+                error("Could not move the uploaded file on the server.");
+            } else {
+                $dbh->commit();
+                return getTextMetadata($id);
+            }
         }
     }
 }
