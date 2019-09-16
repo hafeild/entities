@@ -69,6 +69,75 @@ Then open a browser and go to: http://localhost:3535. You can change the port
 number to something other than 3535 if you wish.
 
 
+# Using with Apache
+
+In order to route everything through `web/routes.php`, add the `[apache.conf]`
+configuration files to your sites (e.g., in `/etc/apache2/sites-available`),
+modify it to use your domain, adjust the `DOCUMENT_ROOT` path accordingly,
+then enable it:
+
+```
+## Note: this is the location on Ubuntu.
+sudo cp apache.conf /etc/apache2/sites-available/entities.conf
+
+## Edit the file.
+sudo vim /etc/apache2/sites-available/entities.conf
+
+## Enable the site.
+sudo a2ensite entities.conf
+```
+
+## SSL (optional but recommended)
+We **strongly** recommend that you use SSL to service requests. An easy and
+free way to do this is to use [EEF's certbot](https://certbot.eff.org/). 
+Follow the instructions to install and run certbot. Choose to secure the
+(sub)domain specified in `entities.conf`. We also recommend that you select to
+redirect all non-SSL traffic to SSL; certbot will take care of updating your
+`entities.conf` file.
+
+
+## Running under a special user
+Apache runs as a special user (e.g., `www-data` on Debian systems), which means
+that files and folders created via PHP will be owned by that user and a group
+of the same name. The data directory where texts and annotatation 
+information are stored needs to be writable by both the Apache user as well
+as the user that the Java server is running under. One way to make this work
+is as follows (with Ubuntu commands):
+
+  1. Make a new system user named `entities` (or whatever you'd like)
+```
+sudo useradd entities
+
+## Create a password.
+sudo password entities
+```
+
+  2. Add entities to the Apache user group (e.g., `www-data` on Ubuntu)
+```
+sudo usermod -a -G www-data entities
+```
+
+  3. This user also needs to be able to write to some log files in the
+     `book-nlp` directory, so make `entities` the owner of that
+```
+sudo chown -R entities book-nlp
+```
+
+  4. Run the Java server as the `entities` user:
+```
+su entities
+./run-java-server
+```
+
+  5. If you are using sqlite3 for the database (not a good idea in production),
+     make sure to make it group writable once it's created (e.g., after making
+     an initial user account)
+```
+## Supposing your sqlite3 database is in data/database.sqlite3
+sudo chmod g+w data/database.sqlite3
+```
+
+
 # Annotation storage format
 
 Annotations are stored in JSON organized as follows:
