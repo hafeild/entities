@@ -2,6 +2,10 @@ var timeoutId;
 var currentTextId = null;
 var annotation_data = null;
 
+// Context Menu
+var menuOpen = 0;
+var menu;
+
 var getTexts = function(){
     $.get({
         url: 'json/texts',
@@ -624,10 +628,9 @@ var existingEntityClicked = function(event) {
     var groupIDs =[];
     var numberOfEntitiesInGroup = 0;
 
-
+    // Classes of an HTML element can only be obtained as a single string
     var clicked = $(this).find(".entity");
     var classesAsString = clicked.attr("class");
-
     // This is gross, but I am not sure I have any other way of extracting the entity group class tag
     var groupName = classesAsString.replace(/ .*/, '');
 
@@ -639,6 +642,7 @@ var existingEntityClicked = function(event) {
     groupList.each(function(idx, li) {
         var current = $(li).find('input');
         if (current.is(':checked')) {
+        	// Uncheck the checkbox
             current.prop('checked', 0);
         }
     });
@@ -658,11 +662,71 @@ var existingEntityClicked = function(event) {
         var group = $(li);
         if (group.find('span').hasClass(groupName)) {
             group.click();
+            // Check the checkbox
             group.find('input').prop('checked', 1);
         }
     });
 
 	console.log(groupIDs);
+
+
+	// Context Menu
+	var active = "context-menu--active";
+
+	if (menuOpen !== 1) {
+		menuOpen = 1;
+		menu.classList.add(active);
+
+		var menuPosition = getPositionForMenu(event);
+		var menuPositionX;
+		var menuPositionY;
+
+		// Coordinates
+		menu.style.left = menuPosition.x + "px";
+		menu.style.top = menuPosition.y + "px";
+
+		// Dimensions
+		var menuWidth = menu.offsetWidth;
+		var menuHeight = menu.offsetHeight;
+
+
+	} else {
+		closeContextMenu();
+		// Not a useless function
+		// Also used in global click function.
+	}
+
+
+}
+
+var closeContextMenu = function() {
+	if (!$(this).find('.entity').hasClass('entity')) {
+		menuState = 0;
+		menu.classList.remove("context-menu--active");
+	}
+}
+
+// from https://www.sitepoint.com/building-custom-right-click-context-menu-javascript/
+function getPositionForMenu(e) {
+  var posx = 0;
+  var posy = 0;
+
+  if (!e) var e = window.event;
+
+  if (e.pageX || e.pageY) {
+    posx = e.pageX;
+    posy = e.pageY;
+  } else if (e.clientX || e.clientY) {
+    posx = e.clientX + document.body.scrollLeft + 
+                       document.documentElement.scrollLeft;
+    posy = e.clientY + document.body.scrollTop + 
+                       document.documentElement.scrollTop;
+  }
+
+  return {
+    x: posx,
+    y: posy
+  }
 }
 
 
@@ -744,8 +808,16 @@ $(document).ready(function(){
     $(document).on('click', '.group .select-all', selectAllInGroup);
     $(document).on('click', '#group-selected', groupSelected);
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
+
     
     // Manual Annotation
+    menu = document.querySelector(".context-menu");
+
+    $(document).click(closeContextMenu);
+    // Close context menu with escape key
+    $(document).keyup(function(e) { if (e.keyCode == 27) closeContextMenu();})
+    // Close context menu when window is resized
+    $(window).on('resize', closeContextMenu);
     $(document).on('click', '.annotated-entity', existingEntityClicked);
 
     // Autofocus the first input of a modal.
