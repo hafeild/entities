@@ -615,32 +615,52 @@ var highlightEntitiesInContent = function(locationKeys, $element){
 }
 
 var existingEntityClicked = function(event) {
-	// Deselect previous entities
+    // TODO
+    // Allow for multiple groups to be selected at once
+
+    var groupList = $(".groups li");
+
+    // Might need this later to manipulate the groups ; TODO
+    var groupIDs =[];
+    var numberOfEntitiesInGroup = 0;
+
+
+    var clicked = $(this).find(".entity");
+    var classesAsString = clicked.attr("class");
+
+    // This is gross, but I am not sure I have any other way of extracting the entity group class tag
+    var groupName = classesAsString.replace(/ .*/, '');
+
+
+	// Deselect previous entities - TEMPORARY
 	$('.selectedEntity').each(function() {
 		$(this).removeClass('selectedEntity');
 	})
-
-	var clicked = $(this).find(".entity");
-	var classesAsString = clicked.attr("class");
-
-	// This is gross, but I am not sure I have any other way of extracting an entities group
-	var groupName = classesAsString.replace(/ .*/, '');
-
-	// Gonna need this later to manipulate the groups ; TODO
-	var groupIDs =[];
-	var numberOfEntitiesInGroup = 0;
+    groupList.each(function(idx, li) {
+        var current = $(li).find('input');
+        if (current.is(':checked')) {
+            current.prop('checked', 0);
+        }
+    });
 
 	// Function to find every element in group
 	$('.' + groupName).each(function() {
 		// Note that this particular $(this) is different than the $(this) in var clicked
 		if ($(this).hasClass('entity')) {
 			$(this).addClass('selectedEntity');
-			console.log($(this));
 			groupIDs[numberOfEntitiesInGroup] = $(this).attr("data-token");
 			numberOfEntitiesInGroup++;
-		
 		}
 	})
+
+    //  Find group in group list
+    groupList.each(function(idx, li) {
+        var group = $(li);
+        if (group.find('span').hasClass(groupName)) {
+            group.click();
+            group.find('input').prop('checked', 1);
+        }
+    });
 
 	console.log(groupIDs);
 }
