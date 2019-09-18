@@ -623,40 +623,43 @@ var existingEntityClicked = function(event) {
     // Allow for multiple groups to be selected at once
 
     var groupList = $(".groups li");
+    var clickedEntity = $(this).find('.entity');
+
+    // This is gross, but I am not sure I have any other way of extracting the entity group class tag
+    var classesAsString = clickedEntity.attr("class");
+    var groupName = classesAsString.replace(/ .*/, '');
+
+    if (clickedEntity.hasClass('selectedEntity')) {
+        $('.' + groupName).each(function() {
+            if ($(this).hasClass('entity')) {
+                $(this).removeClass('selectedEntity');
+            }
+        })
+        groupList.each(function(idx, li) {
+            var group = $(li);
+            if (group.find('span').hasClass(groupName)) {
+                group.click();
+                // Check the checkbox
+                group.find('input').prop('checked', 0);
+            }
+        });
+        return;
+    }
 
     // Might need this later to manipulate the groups ; TODO
     var groupIDs =[];
     var numberOfEntitiesInGroup = 0;
-
-    // Classes of an HTML element can only be obtained as a single string
-    var clicked = $(this).find(".entity");
-    var classesAsString = clicked.attr("class");
-    // This is gross, but I am not sure I have any other way of extracting the entity group class tag
-    var groupName = classesAsString.replace(/ .*/, '');
-
-
-	// Deselect previous entities - TEMPORARY
-	$('.selectedEntity').each(function() {
-		$(this).removeClass('selectedEntity');
-	})
-    groupList.each(function(idx, li) {
-        var current = $(li).find('input');
-        if (current.is(':checked')) {
-        	// Uncheck the checkbox
-            current.prop('checked', 0);
-        }
-    });
 
 	// Function to find every element in group
 	$('.' + groupName).each(function() {
 		// Note that this particular $(this) is different than the $(this) in var clicked
 		if ($(this).hasClass('entity')) {
 			$(this).addClass('selectedEntity');
+			//$(this).wrap("<div class='highlighted'></div>");
 			groupIDs[numberOfEntitiesInGroup] = $(this).attr("data-token");
 			numberOfEntitiesInGroup++;
 		}
 	})
-
     //  Find group in group list
     groupList.each(function(idx, li) {
         var group = $(li);
@@ -667,19 +670,14 @@ var existingEntityClicked = function(event) {
         }
     });
 
-	console.log(groupIDs);
-
-
 	// Context Menu
 	var active = "context-menu--active";
 
 	if (menuOpen !== 1) {
 		menuOpen = 1;
 		menu.classList.add(active);
-
+	
 		var menuPosition = getPositionForMenu(event);
-		var menuPositionX;
-		var menuPositionY;
 
 		// Coordinates
 		menu.style.left = menuPosition.x + "px";
@@ -701,12 +699,13 @@ var existingEntityClicked = function(event) {
 
 var closeContextMenu = function() {
 	if (!$(this).find('.entity').hasClass('entity')) {
-		menuState = 0;
+		menuOpen = 0;
 		menu.classList.remove("context-menu--active");
 	}
 }
 
 // from https://www.sitepoint.com/building-custom-right-click-context-menu-javascript/
+// temporary
 function getPositionForMenu(e) {
   var posx = 0;
   var posy = 0;
@@ -812,13 +811,18 @@ $(document).ready(function(){
     
     // Manual Annotation
     menu = document.querySelector(".context-menu");
-
-    $(document).click(closeContextMenu);
+    $(document).on('click', '.annotated-entity', existingEntityClicked);
+    
+    // Close Context menu on click
+    $(document).on('click', '.main-app', closeContextMenu);
     // Close context menu with escape key
     $(document).keyup(function(e) { if (e.keyCode == 27) closeContextMenu();})
     // Close context menu when window is resized
     $(window).on('resize', closeContextMenu);
-    $(document).on('click', '.annotated-entity', existingEntityClicked);
+    // Close context menu on text are scroll
+    $("span").scroll(closeContextMenu);
+    $("div").scroll(closeContextMenu);
+
 
     // Autofocus the first input of a modal.
     $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
