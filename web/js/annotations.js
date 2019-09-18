@@ -606,10 +606,15 @@ var highlightEntitiesInContent = function(locationKeys, $element){
     var i, j, location;
     for(i = 0; i < locationKeys.length; i++){
         location = annotation_data.annotation.locations[locationKeys[i]];
+        var entityGroupId = annotation_data.annotation.entities[location.entity_id].group_id;
         for(j = location.start; j <= location.end; j++){
             $element.find(`[data-token=${j}]`).
-                addClass(`g${annotation_data.annotation.entities[location.entity_id].group_id}`). 
+                addClass(`g${entityGroupId}`). 
                 addClass('entity').
+                attr({
+                    'data-entity-id': location.entity_id,
+                    'data-group-id': entityGroupId
+                }).
                 // Wrap all entities in an invisible button
                 // Note: simply adding "onClick" to text is an ugly solution, hence the button wrap
                 wrap("<button class='annotated-entity'></button>");
