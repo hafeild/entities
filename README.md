@@ -71,7 +71,7 @@ number to something other than 3535 if you wish.
 
 # Using with Apache
 
-In order to route everything through `web/routes.php`, add the `[apache.conf]`
+In order to route everything through `web/routes.php`, add the [`apache.conf`](apache.conf)
 configuration files to your sites (e.g., in `/etc/apache2/sites-available`),
 modify it to use your domain, adjust the `DOCUMENT_ROOT` path accordingly,
 then enable it:

@@ -1,6 +1,6 @@
 // Author:  Henry Feild
 // Files:   BookNLPProcessor.java
-// Date:    29-Aug-2018
+// Date:    29-Aug-2019
 
 package edu.endicott.cs.entities;    
 
@@ -96,10 +96,6 @@ public class BookNLPProcessor extends Processor {
      *  - text name
      *  - annotation id
      * 
-     * Upon successful receipt, the workd "success" is returned on a line.
-     * If there's a problem with the parameters, a failure message is 
-     * returned.
-     * 
      * This process will look for the content of the book in 
      * <texts directory>/<text id>/original.txt. It will create the following 
      * files in <texts directory>/<text id>/<annotation id>:
@@ -113,7 +109,7 @@ public class BookNLPProcessor extends Processor {
      * 
      * TODO describe the format of these files.
      * 
-     * Once the arguments are verified, but before processing begins, the
+     * Once the arguments are verified, but BEFORE processing begins, the
      * response "success\n" is printed to the socket and the socket is closed.
      * Processing then begins and the annotation table in the database is
      * updated with the proper `automated_method_in_progress` (set to 0 when
@@ -122,8 +118,10 @@ public class BookNLPProcessor extends Processor {
      * 
      * If the arguments are not verified, or ids are not found in the database,
      * an error is printed to the socket and closed.
+     * 
+     * @return Whether processing completed successfully or not.
      */
-    public void processRequest(EntiTiesSocket socket, String argsString, 
+    public boolean processRequest(EntiTiesSocket socket, String argsString, 
             EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database){
 
         EntiTiesFileManager fileManager;
@@ -131,6 +129,7 @@ public class BookNLPProcessor extends Processor {
         int textId = -1, annotationId = -1;
         File annotationDirectory, bookFile;
         this.logger = logger;
+        boolean completedSuccessfully = false;
 
         try {
             // Reads the incoming arguments.
@@ -145,7 +144,7 @@ public class BookNLPProcessor extends Processor {
                     "-delimited arguments (text id, directory, book "+
                     "name, annotation id), not "+ 
                     (args.length));
-                return;
+                return false;
             }
 
             // Parse the arguments.
@@ -168,7 +167,7 @@ public class BookNLPProcessor extends Processor {
                         bookFile.getPath() +".";
                 }
                 error(socket.out, errorMessage);
-                return;
+                return false;
             }
 
             // Make the annotation directory if it doesn't already exist.
@@ -179,7 +178,7 @@ public class BookNLPProcessor extends Processor {
             if(!database.openConnection()){
                 error(socket.out, "Error: could not establish a database "+
                             "connection.");
-                return;
+                return false;
             }
 
             // Check that there's an entry for the text in the database
@@ -189,18 +188,18 @@ public class BookNLPProcessor extends Processor {
                     error(socket.out, 
                         "Error: this annotation has already been processed.");
                     database.close();
-                    return;
+                    return false;
                 case ID_NOT_PRESENT:
                     error(socket.out, 
                         "Error: no annotation with this id exists in "+
                         "the database.");
                     database.close();
-                    return;
+                    return false;
                 case ERROR_QUERYING_DB:
                     error(socket.out, 
                         "Error: couldn't query the metadata table.");
                     database.close();
-                    return;
+                    return false;
                 default:
                     break;
             }
@@ -219,6 +218,9 @@ public class BookNLPProcessor extends Processor {
             annotation = processTokensFile(annotationDirectory);
             if(!database.postAnnotation(annotationId, annotation))
                 logger.log("Error: unable to post annotation to database.");
+            else
+                completedSuccessfully = true;
+
 
         } catch (SQLException e) {
             logger.log("Problems connecting to the database.");
@@ -243,15 +245,19 @@ public class BookNLPProcessor extends Processor {
             } catch (IOException e) {
                 logger.log("Couldn't close a socket, what's going on?");
                 e.printStackTrace();
+                completedSuccessfully = false;
             } finally {
                 try{
                     database.close();
                 } catch (SQLException e) {
                     logger.log("Couldn't close database connection.");
+                    completedSuccessfully = false;
                 }
             }
             logger.log("Connection closed");
         }
+
+        return completedSuccessfully;
     }
 
 
