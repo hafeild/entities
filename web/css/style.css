@@ -299,10 +299,15 @@ button.annotated-entity {
 }
 
 span.selectedEntity {
-    background-color: green;
-}
+    border: 3px dashed #21303b;
 
-line {
+    /* don't ask */
+    margin-left: -1px;
+    margin-right: -1px;
+
+    box-sizing:border-box;
+    -moz-box-sizing:border-box;
+    -webkit-box-sizing:border-box;
 }
 
 /* CONTEXT MENU */
