@@ -627,27 +627,24 @@ var existingEntityClicked = function(event) {
     // TODO
     // Allow for multiple groups to be selected at once
 
-    var groupList = $(".groups li");
     var clickedEntity = $(this).find('.entity');
-
-    // This is gross, but I am not sure I have any other way of extracting the entity group class tag
-    var classesAsString = clickedEntity.attr("class");
-    var groupName = classesAsString.replace(/ .*/, '');
+    var group = clickedEntity.attr('data-group-id');
 
     if (clickedEntity.hasClass('selectedEntity')) {
-        $('.' + groupName).each(function() {
+        $('[data-group-id=' + group + ']').filter('span').each(function() {
+        	// Cannot use JQuery selector because entity isn't the only class
             if ($(this).hasClass('entity')) {
                 $(this).removeClass('selectedEntity');
             }
         })
-        groupList.each(function(idx, li) {
-            var group = $(li);
-            if (group.find('span').hasClass(groupName)) {
-                group.click();
-                // Check the checkbox
-                group.find('input').prop('checked', 0);
-            }
-        });
+        $('[data-id=' + group + ']').filter('li').each(function() {
+        	// Cannot use JQuery selector because group may not always be the only class
+        	if ($(this).hasClass('group')) {
+    	        $(this).click();
+    	        // Uncheck the checkbox
+    	        $(this).find('input').prop('checked', 0);
+        	}
+        })
         return;
     }
 
@@ -656,24 +653,23 @@ var existingEntityClicked = function(event) {
     var numberOfEntitiesInGroup = 0;
 
 	// Function to find every element in group
-	$('.' + groupName).each(function() {
-		// Note that this particular $(this) is different than the $(this) in var clicked
+	$('[data-group-id=' + group + ']').filter('span').each(function() {
+		// Cannot use JQuery selector because entity isn't the only class
 		if ($(this).hasClass('entity')) {
 			$(this).addClass('selectedEntity');
-			//$(this).wrap("<div class='highlighted'></div>");
 			groupIDs[numberOfEntitiesInGroup] = $(this).attr("data-token");
 			numberOfEntitiesInGroup++;
 		}
 	})
     //  Find group in group list
-    groupList.each(function(idx, li) {
-        var group = $(li);
-        if (group.find('span').hasClass(groupName)) {
-            group.click();
-            // Check the checkbox
-            group.find('input').prop('checked', 1);
-        }
-    });
+    $('[data-id=' + group + ']').filter('li').each(function() {
+    	// Cannot use JQuery selector because group may not always be the only class
+    	if ($(this).hasClass('group')) {
+	        $(this).click();
+	        // Check the checkbox
+	        $(this).find('input').prop('checked', 1);
+    	}
+    })
 
 	// Context Menu
 	var active = "context-menu--active";
@@ -682,7 +678,7 @@ var existingEntityClicked = function(event) {
 		menuOpen = 1;
 		menu.classList.add(active);
 	
-		var menuPosition = getPositionForMenu(event);
+		var menuPosition = getPositionForMenu(event, clickedEntity);
 
 		// Coordinates
 		menu.style.left = menuPosition.x + "px";
@@ -692,6 +688,7 @@ var existingEntityClicked = function(event) {
 		var menuWidth = menu.offsetWidth;
 		var menuHeight = menu.offsetHeight;
 
+        return false;
 
 	} else {
 		closeContextMenu();
@@ -703,34 +700,17 @@ var existingEntityClicked = function(event) {
 }
 
 var closeContextMenu = function() {
-	if (!$(this).find('.entity').hasClass('entity')) {
 		menuOpen = 0;
 		menu.classList.remove("context-menu--active");
-	}
 }
 
-// from https://www.sitepoint.com/building-custom-right-click-context-menu-javascript/
-// temporary
-function getPositionForMenu(e) {
-  var posx = 0;
-  var posy = 0;
+function getPositionForMenu(e, clickedEntity) {
+	var offset = clickedEntity.parent().offset();
 
-  if (!e) var e = window.event;
-
-  if (e.pageX || e.pageY) {
-    posx = e.pageX;
-    posy = e.pageY;
-  } else if (e.clientX || e.clientY) {
-    posx = e.clientX + document.body.scrollLeft + 
-                       document.documentElement.scrollLeft;
-    posy = e.clientY + document.body.scrollTop + 
-                       document.documentElement.scrollTop;
-  }
-
-  return {
-    x: posx,
-    y: posy
-  }
+	return {
+		y: offset.top + clickedEntity.parent().height(),
+		x: offset.left + clickedEntity.parent().width()
+	}
 }
 
 
@@ -819,7 +799,7 @@ $(document).ready(function(){
     $(document).on('click', '.annotated-entity', existingEntityClicked);
     
     // Close Context menu on click
-    $(document).on('click', '.main-app', closeContextMenu);
+    $(document).on('click', closeContextMenu);
     // Close context menu with escape key
     $(document).keyup(function(e) { if (e.keyCode == 27) closeContextMenu();})
     // Close context menu when window is resized
