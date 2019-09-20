@@ -17,10 +17,25 @@ require_once("model.php");
 
 // Annotation methods and their associated labels.
 $validMethods = [
-    "manual"        => "", 
-    "booknlp"       => "BookNLP v1",
-    "unannotated"   => "Blank slate"
+    "manual"        => 1, 
+    "booknlp"       => "automatic",
+    "booknlp+tie-window"       => "automatic",
+    "unannotated"   => 1
 ];
+
+function generateAnnotationLabel($method, $args){
+    $label = "";
+    if($method == "manual")
+        $label = $args["label"];
+    elseif($method == "booknlp")
+        $label = "BookNLP v1";
+    elseif($method == "booknlp+tie-window")
+        $label = "BookNLP v1 + Window-based Ties v1 (n=". 
+            htmlentities($args["n"]) . ")";
+    elseif($method == "unannotated")
+        $label = "Blank slate";
+    return $label;
+}
 
 // Supported text/annotation processors.
 $validProcessors = [

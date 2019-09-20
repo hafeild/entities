@@ -480,7 +480,8 @@ public class BookNLPProcessor extends Processor {
                             internalToExternalCharacterId.get(entityId);
                         if(!annotation.entityExists(externalEntityId))
                             annotation.addEntity(new Entity(
-                                externalEntityId, curCharacterText, curCharacterGroupId
+                                externalEntityId, curCharacterText, 
+                                curCharacterGroupId
                             ));
                         
                     }
