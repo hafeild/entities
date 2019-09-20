@@ -50,6 +50,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 
+import edu.endicott.cs.entities.annotations.Annotation;
+import edu.endicott.cs.entities.annotations.Tie;
+import edu.endicott.cs.entities.annotations.TieEntity;
+import edu.endicott.cs.entities.annotations.Entity;
+import edu.endicott.cs.entities.annotations.Group;
+import edu.endicott.cs.entities.annotations.Location;
+
 /**
  * A server interface to the BookNLP package. This is a substitute for 
  * the BookNLP command line interface. The code below is largely taken from
@@ -181,7 +188,7 @@ public class BookNLPProcessor extends Processor {
                 return false;
             }
 
-            // Check that there's an entry for the text in the database
+            // Check that there's an entry for the annotation in the database
             // and it's not already processed.
             switch(database.getAnnotationStatus(annotationId)){
                 case ID_ALREADY_PROCESSED:
@@ -380,12 +387,11 @@ public class BookNLPProcessor extends Processor {
         HashMap<String, HashMap<String,String>> characterIdLookup = 
             new HashMap<String, HashMap<String,String>>();
 
-        JSONObject entities = new JSONObject();
-        JSONObject locations = new JSONObject();
-        JSONObject ties = new JSONObject();
-        JSONObject groups = new JSONObject();
-        JSONObject entityInfo = new JSONObject();
         JSONArray tokens = new JSONArray();
+
+        Annotation annotation = new Annotation();
+        String jsonAnnotation;
+
 
         String curCharacterText = null;
         String curCharacterGroupId = null;
@@ -453,33 +459,28 @@ public class BookNLPProcessor extends Processor {
                                 put(curCharacterText, curCharacterGroupId);
 
                             // Make a new group entry.
-                            JSONObject newGroup = new JSONObject();
-                            newGroup.put("name", curCharacterText);
-                            groups.put(curCharacterGroupId, newGroup);
+                            annotation.addGroup(new Group(
+                                curCharacterGroupId, curCharacterText));
+
                         }
 
                         entityId = characterIdLookup.
                             get(curCharacterGroupId).get(curCharacterText);
 
                         // if entities[curCharacterGroupId] is present:
-                        if(!entities.containsKey(entityId)){
-                            JSONObject newEntity = new JSONObject();
-                            newEntity.put("name", curCharacterText);
-                            newEntity.put("group_id", curCharacterGroupId);
-                            entities.put(entityId, newEntity);
-                            // log("Adding entitiy: "+ entityId +", "+ curCharacterText);
-                        }
+                        if(!annotation.entityExists(entityId))
+                            annotation.addEntity(new Entity(
+                                entityId, curCharacterText, curCharacterGroupId
+                            ));
+                        
                     }
 
                     // Add location.
                     String locationKey = curCharacterStartOffset +"_"+
                         curCharacterEndOffset;
-                    JSONObject newLocation = new JSONObject();
-                    newLocation.put("start", curCharacterStartOffset);
-                    newLocation.put("end", curCharacterEndOffset);
-                    newLocation.put("entity_id", entityId);
-                    locations.put(locationKey, newLocation);
-                    
+                    annotation.addLocation(new Location(locationKey, 
+                        entityId, curCharacterStartOffset, 
+                        curCharacterEndOffset));
                 }
 
                 // See if we're entering an entity (cols 16 > -1)
@@ -511,17 +512,18 @@ public class BookNLPProcessor extends Processor {
         }
         tokensFileBuffer.close();
 
-        // Assemble the entity info object.
-        entityInfo.put("entities", entities);
-        entityInfo.put("groups", groups);
-        entityInfo.put("locations", locations);
-        entityInfo.put("ties", ties);
-
         // Write out character info.
-        FileWriter entityJSONFile = new FileWriter(
+        jsonAnnotation = annotation.toString();
+        PrintWriter entityJSONFile = new PrintWriter(
             new File(outputDirectory, ANNOTATION_JSON_FILE_NAME));
-        entityInfo.writeJSONString(entityJSONFile);
+        entityJSONFile.print(jsonAnnotation);
         entityJSONFile.close();
+
+        // FileWriter entityJSONFile = new FileWriter(
+        //     new File(outputDirectory, ANNOTATION_JSON_FILE_NAME));
+        // entityJSONFile.
+        // entityInfo.writeJSONString(entityJSONFile);
+        // entityJSONFile.close();
 
         // Write out token info.
         FileWriter tokensJSONFile = new FileWriter(
@@ -529,7 +531,7 @@ public class BookNLPProcessor extends Processor {
         tokens.writeJSONString(tokensJSONFile);
         tokensJSONFile.close();
 
-        return entityInfo.toString();
+        return jsonAnnotation;
     }
 
 

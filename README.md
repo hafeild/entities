@@ -162,7 +162,8 @@ Annotations are stored in JSON organized as follows:
         }
     }
 
-    ## These are the locations where entities (not groups) are mentioned.
+    ## These are the locations where entities (not groups) are mentioned. 
+    ## The id is in the format: start_end.
     locations: {
         id: {
             start: 0,
