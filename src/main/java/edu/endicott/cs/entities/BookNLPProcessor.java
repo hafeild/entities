@@ -401,6 +401,10 @@ public class BookNLPProcessor extends Processor {
 
         int prevCharacterId = -1; 
 
+        HashMap<String, String> internalToExternalCharacterId = 
+            new HashMap<String, String>();
+        long lastEntityId = 0;
+
         File tokensFile = new File(outputDirectory, TOKENS_TSV_FILE_NAME);
         BufferedReader tokensFileBuffer = 
             new BufferedReader(new FileReader(tokensFile)); 
@@ -468,9 +472,15 @@ public class BookNLPProcessor extends Processor {
                             get(curCharacterGroupId).get(curCharacterText);
 
                         // if entities[curCharacterGroupId] is present:
-                        if(!annotation.entityExists(entityId))
+
+                        if(!internalToExternalCharacterId.containsKey(entityId))
+                            internalToExternalCharacterId.put(entityId, 
+                                Long.toString(++lastEntityId));
+                        String externalEntityId = 
+                            internalToExternalCharacterId.get(entityId);
+                        if(!annotation.entityExists(externalEntityId))
                             annotation.addEntity(new Entity(
-                                entityId, curCharacterText, curCharacterGroupId
+                                externalEntityId, curCharacterText, curCharacterGroupId
                             ));
                         
                     }
@@ -479,8 +489,8 @@ public class BookNLPProcessor extends Processor {
                     String locationKey = curCharacterStartOffset +"_"+
                         curCharacterEndOffset;
                     annotation.addLocation(new Location(locationKey, 
-                        entityId, curCharacterStartOffset, 
-                        curCharacterEndOffset));
+                        internalToExternalCharacterId.get(entityId), 
+                        curCharacterStartOffset, curCharacterEndOffset));
                 }
 
                 // See if we're entering an entity (cols 16 > -1)

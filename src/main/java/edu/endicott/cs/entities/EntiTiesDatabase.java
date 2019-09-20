@@ -206,7 +206,7 @@ public class EntiTiesDatabase {
                 return null;
             }
 
-            return new Annotation(result.getString(0));
+            return new Annotation(result.getString(1));
 
         } catch (SQLException e) {
             logger.log(e.toString());

@@ -67,6 +67,7 @@ public class EntiTiesDispatcher extends Thread {
      * Processors:
      *      - booknlp (see BookNLPProcessor for arguments)
      *      - token (see TokenProcessor for arguments)
+     *      - tie-window (see WindowTieProcessor for arguments)
      * 
      * Requests are sent to the specified processor's `processRequest` method
      * to handle interacting with the client, including parsing arguments.
@@ -74,7 +75,7 @@ public class EntiTiesDispatcher extends Thread {
      * Additional PROCESSOR\tARGUMENTS pairs will be processed in the order
      * listed, but only if the previous processor completed successfully. This
      * is helpful if you would like to chain processes together. For example,
-     * you could run booknlp followed by tiewindow.
+     * you could run booknlp followed by tie-window.
      */
     public void run() {
         PrintWriter out = null;
@@ -101,13 +102,12 @@ public class EntiTiesDispatcher extends Thread {
                     firstDelimiterIndex+1);
 
                 logger.log("EntiTiesDispatcher: Processing stage "+ (i+1) +" of "+ 
-                    requestStages.length +"\t"+ request);
+                    requestStages.length +"\t"+ processorName +"\t"+ processorArgs);
 
                 requestLogger =  logger.createRequestLogger(
-                    "client "+ clientNumber +"\t"+ processorName +"\t");
+                    "client "+ clientNumber +"\t"+ processorName +"\t"+ 
+                    "stage "+ (i+1) +" of "+ requestStages.length +"\t");
                 database = new EntiTiesDatabase(dbSettings, requestLogger);
-
-                requestLogger.log("This is a test from EntTiesDispatcher...");
 
                 // BookNLP processing.
                 if(processorName.equals("booknlp")) {
@@ -117,6 +117,11 @@ public class EntiTiesDispatcher extends Thread {
                 // Simple tokenization.
                 } else if(processorName.equals("token")) {
                     lastStageSucceeded = new TokenProcessor().processRequest(
+                        socket, processorArgs, requestLogger, database);
+
+                // Window-base tie extraction.
+                } else if(processorName.equals("tie-window")) {
+                    lastStageSucceeded = new WindowTieProcessor().processRequest(
                         socket, processorArgs, requestLogger, database);
 
                 } else {

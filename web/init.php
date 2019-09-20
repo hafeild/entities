@@ -25,7 +25,8 @@ $validMethods = [
 // Supported text/annotation processors.
 $validProcessors = [
     "booknlp" => 1,
-    "token"   => 1
+    "token"   => 1,
+    "tie-window" => 1
 ];
 
 

@@ -35,8 +35,8 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
             <script>
                 var tokens = <?php readfile($data["text"]["content_file"]) ?>;
                 initializeTokenizedContent();
-                <!-- For testing only! -->
-                findTies(30);
+                // For testing only!
+                // findTies(30);
             </script>
         </div>
 

@@ -87,8 +87,7 @@ public class Annotation {
     // Extracting from JSON.
 
     public void load(String annotation) throws ParseException{
-        JSONParser parser = new JSONParser();
-        JSONObject json = (JSONObject) parser.parse(annotation);
+        JSONObject json = (JSONObject) (new JSONParser().parse(annotation));
 
         computeLastIdsFromData = (!json.containsKey("last_entity_id") || 
            !json.containsKey("last_group_id") ||
@@ -146,28 +145,28 @@ public class Annotation {
     public JSONObject entitiesToJSON(){
         JSONObject json = new JSONObject();
         for(String id : entities.keySet())
-            json.put(id, entities.get(id));
+            json.put(id, entities.get(id).toJSONObject());
         return json;
     }
 
     public JSONObject groupsToJSON(){
         JSONObject json = new JSONObject();
         for(String id : groups.keySet())
-            json.put(id, groups.get(id));
+            json.put(id, groups.get(id).toJSONObject());
         return json;
     }
 
     public JSONObject locationsToJSON(){
         JSONObject json = new JSONObject();
         for(String id : locations.keySet())
-            json.put(id, locations.get(id));
+            json.put(id, locations.get(id).toJSONObject());
         return json;
     }
 
     public JSONObject tiesToJSON(){
         JSONObject json = new JSONObject();
         for(String id : ties.keySet())
-            json.put(id, ties.get(id));
+            json.put(id, ties.get(id).toJSONObject());
         return json;
     }
 

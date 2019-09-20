@@ -106,7 +106,8 @@ public class WindowTieProcessor extends Processor {
             // Get the annotation from the database.
             annotation = database.getAnnotation(annotationId);
             if(annotation == null){
-                error(socket.out, "Retrieved annotation is null; cannot continue.");
+                error(socket.out, "Retrieved annotation (id = "+ annotationId +
+                    ") is null; cannot continue.");
                 return false;
             }
 

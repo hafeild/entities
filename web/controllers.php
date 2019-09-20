@@ -235,7 +235,7 @@ public static function tokenizeText($textId, $md5sum) {
         $CONFIG->text_storage  // Storage location.
     ]);
 
-    $response = Controllers::processText($textId, $md5sum, "token", $args);
+    $response = Controllers::processText($textId, $md5sum, ["token" => $args]);
 
     if($response["success"] === false){
         // Unsets the progress flag and sets the error flag.
@@ -251,6 +251,7 @@ public static function tokenizeText($textId, $md5sum) {
  * 
  * @param annotator The annotation processor to use. Current options are:
  *                      * booknlp -- an automatic, entity-only annotator
+ *                      * booknlp+tie-window
  * @param textId The id of the text in the metadata table.
  * @param md5sum The md5sum of the text (used as the base of the filename).
  * @param annotationId The id of the annotation.
@@ -271,8 +272,12 @@ public static function runAutomaticAnnotation($annotator, $textId, $md5sum,
         $annotationId          // Annotation entry id.
     ]);
 
-    error_log("processig text");
-    $response = Controllers::processText($textId, $md5sum, $annotator, $args);
+    error_log("processing text");
+    // $response = Controllers::processText($textId, $md5sum, $annotator, $args);
+    $response = Controllers::processText($textId, $md5sum, [
+        "booknlp"    => $args, 
+        "tie-window" => "$annotationId\t30\tfalse"
+    ]);
     error_log("heard back: ". json_encode($response));
 
     if($response["success"] === false){
@@ -290,23 +295,29 @@ public static function runAutomaticAnnotation($annotator, $textId, $md5sum,
  * 
  * @param textId The id of the text in the metadata table.
  * @param md5sum The md5sum of the text (used as the base of the filename).
- * @param processor The processor to call; can be one of:
+ * @param processor A map of processors to call and their arguments. These will
+ *                  be sent over, along with their corresponding argument lists,
+ *                  in a single request to the processor server and will be
+ *                  executed as a pipeline. Processors can be any of the
+ *                  following; arguments are specific to each processor (see the
+ *                  relevant documentation):
  *                   * token -- basic tokenization
  *                   * booknlp -- an automatic entity-only annotation
- * @param args Agruments to the processor. These are specific to each processor.
+ *                   * tie-window -- window-base tie extraction
  * @return An associative array with the following keys:
  *      success -- true if the request was received and initial checks cleared,
  *                 false otherwise.
  *      error --  an error message (only if success == false)
  */
-public static function processText($textId, $md5sum, $processor, $args) {
+public static function processText($textId, $md5sum, $processors) {
 
     global $CONFIG, $user, $validProcessors;
 
     // Check that this is a valid processor.
-    if(!array_key_exists($processor, $validProcessors))
-        return array("success" => false,
-            "error" => "Unrecognized processor: $processor.");
+    foreach($processors as $processor => $args)
+        if(!array_key_exists($processor, $validProcessors))
+            return array("success" => false,
+                "error" => "Unrecognized processor: $processor.");
 
     // Open the socket.
     if(!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
@@ -327,11 +338,14 @@ public static function processText($textId, $md5sum, $processor, $args) {
     }
 
     // Message to send to the automatic annotation service.
-    $message = join("\t", [
-        $processor, 
-        $args,
-        "\n"
-    ]);
+    $messageParts = [];
+    foreach($processors as $processor => $args){
+        array_push($messageParts, join("\t", [
+            $processor, 
+            $args
+        ]));
+    }
+    $message = join("::::", $messageParts) ."\n";
  
     // Send the request.
     if(!socket_send ($sock, $message, strlen($message), 0)) {
