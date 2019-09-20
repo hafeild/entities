@@ -170,6 +170,8 @@ public class WindowTieProcessor extends Processor {
                         annotation.entities.get(loc1.entityId).groupId != 
                         annotation.entities.get(loc2.entityId).groupId) {
                     Tie tie = new Tie();
+                    tie.start = loc1.start;
+                    tie.end = loc2.end;
                     tie.sourceEntity.locationId = loc1.id;
                     tie.targetEntity.locationId = loc2.id;
                     annotation.addTie(tie);        

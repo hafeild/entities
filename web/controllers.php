@@ -235,7 +235,7 @@ public static function tokenizeText($textId, $md5sum) {
         $CONFIG->text_storage  // Storage location.
     ]);
 
-    $response = Controllers::processText($textId, $md5sum, ["token" => $args]);
+    $response = Controllers::processText($textId, $md5sum, [["token", $args]]);
 
     if($response["success"] === false){
         // Unsets the progress flag and sets the error flag.
