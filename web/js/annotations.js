@@ -5,6 +5,7 @@ var annotation_data = null;
 // Context Menu
 var menuOpen = 0;
 var menu;
+var mouseClicked = 0;
 
 var getTexts = function(){
     $.get({
@@ -699,6 +700,78 @@ var existingEntityClicked = function(event) {
 
 }
 
+var checkSelectedText = function(event) {
+	// if nothing is selected, return
+	if (window.getSelection().toString() == "") return;
+
+	var textSpans = [];
+	var textSpans = getSelectedSpans();
+
+	if (textSpans === []) {
+		return;
+	} 
+
+	var newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
+
+	// create new annotation_data group
+	var entities = {};
+	for (var i = 0; i < textSpans.length; i++) {
+		entities[i] = {
+			group_id: newGroupID,
+			name: textSpans[i].innerHTML
+		}
+	}
+
+	// append new annotation_data group
+	annotation_data.annotation.groups[newGroupID] = {
+		name: textSpans[0].innerHTML,
+		entities
+	};
+
+	console.log(annotation_data.annotation.groups);
+
+}
+
+function getSelectedSpans() {
+	var startSpan;
+	var endSpan;
+	var spans = [];
+	var spanCount = 0;
+
+    sel = window.getSelection();
+    startSpan = sel.anchorNode.parentElement;
+    endSpan = sel.extentNode.parentElement;
+
+    var current;
+    // for every <span> in text area
+    $('.content-page').children('span').each(function() {
+    	current = $(this)[0];
+    	// if still searching for starting span
+		if (spanCount == 0) {
+			if (current === startSpan) {
+				// add starting span
+				spans[spanCount] = startSpan;
+				spanCount++;
+			}
+		// if starting span has already been found
+		} else {
+			// if current is not last span selected
+    		if (!(current === endSpan)) {
+    			spans[spanCount] = current;
+    			spanCount++;
+    		}
+    		// if current IS last span selected
+    		else {
+    			spans[spanCount] = endSpan;
+    			// quit each loop
+    			return false;
+    		}
+		}
+    });
+
+    return spans;
+}
+
 var closeContextMenu = function() {
 		menuOpen = 0;
 		menu.classList.remove("context-menu--active");
@@ -797,6 +870,7 @@ $(document).ready(function(){
     // Manual Annotation
     menu = document.querySelector(".context-menu");
     $(document).on('click', '.annotated-entity', existingEntityClicked);
+    $(document).mouseup(checkSelectedText);
     
     // Close Context menu on click
     $(document).on('click', closeContextMenu);
