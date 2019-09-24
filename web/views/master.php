@@ -82,7 +82,6 @@ global $user;
       <ul class="context-menu__items">
         <li class="context-menu__item">
           <a href="#" class="context-menu__link">
-            <i></i> TEST
           </a>
         </li>
       </ul>

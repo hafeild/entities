@@ -3,6 +3,7 @@ var currentTextId = null;
 var annotation_data = null;
 
 // Context Menu
+var menuDataToPass;
 var menuOpen = 0;
 var menu;
 var mouseClicked = 0;
@@ -672,32 +673,13 @@ var existingEntityClicked = function(event) {
     	}
     })
 
-	// Context Menu
-	var active = "context-menu--active";
+    /*
+        TODO - INTELLIGENTLY POPULATE CONTEXT MENU FOR CLICKED ENTITIES
+    */
 
-	if (menuOpen !== 1) {
-		menuOpen = 1;
-		menu.classList.add(active);
-	
-		var menuPosition = getPositionForMenu(event, clickedEntity);
+    var contextMenuOptions;
 
-		// Coordinates
-		menu.style.left = menuPosition.x + "px";
-		menu.style.top = menuPosition.y + "px";
-
-		// Dimensions
-		var menuWidth = menu.offsetWidth;
-		var menuHeight = menu.offsetHeight;
-
-        return false;
-
-	} else {
-		closeContextMenu();
-		// Not a useless function
-		// Also used in global click function.
-	}
-
-
+    openContextMenu(contextMenuOptions);
 }
 
 var checkSelectedText = function(event) {
@@ -711,25 +693,18 @@ var checkSelectedText = function(event) {
 		return;
 	} 
 
+    // get unused group ID
 	var newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
 
-	// create new annotation_data group
-	var entities = {};
-	for (var i = 0; i < textSpans.length; i++) {
-		entities[i] = {
-			group_id: newGroupID,
-			name: textSpans[i].innerHTML
-		}
-	}
+    var contextMenuOptions = [];
+    contextMenuOptions[0] = "<li class='context-menu__item'><a href='#' id='addGroupOption' class='context-menu__link'><i>Add Group</i></a></li>";
 
-	// append new annotation_data group
-	annotation_data.annotation.groups[newGroupID] = {
-		name: textSpans[0].innerHTML,
-		entities
-	};
+    menuDataToPass = {
+        textSpans: textSpans,
+        newGroupID: newGroupID
+    }
 
-	console.log(annotation_data.annotation.groups);
-
+    openContextMenu(contextMenuOptions);
 }
 
 function getSelectedSpans() {
@@ -772,11 +747,78 @@ function getSelectedSpans() {
     return spans;
 }
 
-var closeContextMenu = function() {
-		menuOpen = 0;
-		menu.classList.remove("context-menu--active");
+var addGroupFromSelected = function() {
+    // create new annotation_data group
+    var entities = {};
+    for (var i = 0; i < textSpans.length; i++) {
+        entities[i] = {
+            group_id: menuDataToPass.newGroupID,
+            name: menuDataToPass.textSpans[i].innerHTML
+        }
+    }
+
+    // append new annotation_data group
+    annotation_data.annotation.groups[newGroupID] = {
+        name: menuDataToPass.textSpans[0].innerHTML,
+        entities
+    };
+
+    console.log(annotation_data.annotation.groups);
 }
 
+var openContextMenu = function(options, clickedEntity) {
+    if (options == null) return;
+
+    var active = "context-menu--active";
+
+
+    /*
+        WHAT THE ACTUAL HELL
+    */
+
+
+
+
+    $('.context-menu__items').empty();
+    options.forEach(function(entry) {
+        $('.context-menu__items').text($('.context-menu__items').text() + entry);
+    });
+
+    if (menuOpen !== 1) {
+        menuOpen = 1;
+        menu.classList.add(active);
+    
+        if (clickedEntity == null) {
+            var menuPosition = getPositionForMenu(event);
+        } else {
+            var menuPositon = getPositionForMenu(event, clickedEntity);
+        }
+
+        // Coordinates
+        menu.style.left = menuPosition.x + "px";
+        menu.style.top = menuPosition.y + "px";
+
+        // Dimensions
+        var menuWidth = menu.offsetWidth;
+        var menuHeight = menu.offsetHeight;
+
+        return false;
+
+    } else {
+        closeContextMenu();
+        // Not a useless function
+        // Also used in global click function.
+    }
+}
+
+var closeContextMenu = function() {
+	menuOpen = 0;
+	menu.classList.remove("context-menu--active");
+
+    $('.context-menu__items').html("");
+}
+
+// @ entity
 function getPositionForMenu(e, clickedEntity) {
 	var offset = clickedEntity.parent().offset();
 
@@ -784,6 +826,14 @@ function getPositionForMenu(e, clickedEntity) {
 		y: offset.top + clickedEntity.parent().height(),
 		x: offset.left + clickedEntity.parent().width()
 	}
+}
+
+// @ mouse position
+function getPositionForMenu(e) {
+    return {
+        y: e.clientY,
+        x: e.clientX
+    }
 }
 
 
@@ -881,6 +931,9 @@ $(document).ready(function(){
     // Close context menu on text are scroll
     $("span").scroll(closeContextMenu);
     $("div").scroll(closeContextMenu);
+
+    // Context Menu Options
+    $('#addGroupOption').on('click', addGroupFromSelected);
 
 
     // Autofocus the first input of a modal.
