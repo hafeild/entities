@@ -771,14 +771,6 @@ var openContextMenu = function(options, clickedEntity) {
 
     var active = "context-menu--active";
 
-
-    /*
-        WHAT THE ACTUAL HELL
-    */
-
-
-
-
     $('.context-menu__items').empty();
     options.forEach(function(entry) {
         $('.context-menu__items').text($('.context-menu__items').text() + entry);
