@@ -37,6 +37,35 @@ function generateAnnotationLabel($method, $args){
     return $label;
 }
 
+function generateAnnotationMethodMetadata($method, $args){
+    // $data = [];
+    if($method == "manual")
+        $data = [];
+    elseif($method == "booknlp")
+        $data = [
+            "entity_extraction" => ["BookNLP", "1.0"]
+        ];
+    elseif($method == "booknlp+tie-window")
+        $data = [
+            "entity_extraction" => [
+                "algorithm" => "BookNLP", 
+                "version" => "1.0",
+                "parameters" => []
+            ],
+            "tie_extraction" => [
+                "algorithm" => "Window", 
+                "version" => "1.0", 
+                "parameters" => [
+                    "n" => htmlentities($args["n"])
+                ]
+            ]
+        ];
+    elseif($method == "unannotated")
+        $data = [];
+    return json_encode($data, JSON_FORCE_OBJECT);
+}
+
+
 // Supported text/annotation processors.
 $validProcessors = [
     "booknlp" => 1,

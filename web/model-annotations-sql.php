@@ -20,6 +20,7 @@ function connectToAnnotationDB(){
             "annotation text,".
             "parent_annotation_id integer,".
             "method text,".
+            "method_metadata text,". // Versioning, parameters, etc.
             "label text,".
             "created_at datetime,".
             "updated_at datetime,".
@@ -56,12 +57,14 @@ function connectToAnnotationDB(){
  *                    label, weight, directed}
  * @param method A description of the method used for this, e.g.,
  *               "manual", "automatic", "unannotated".
+ * @param method_metadata A JSON string containing metadata information, such as
+ *                        algorithm, version, parameters, etc.
  * @param label A descriptive name for the annotation, e.g. "BookNLP".
  * @param automatedMethodInProgress Optional (default is 0).
  * @return The id of the newly added annotation.
  */
 function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
-    $method, $label, $automatedMethodInProgress=0){
+    $method, $method_metadata, $label, $automatedMethodInProgress=0){
 
     $dbh = connectToAnnotationDB();
 
@@ -69,9 +72,10 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
         $statement = $dbh->prepare(
             "insert into annotations(" .
                 "text_id, created_by, parent_annotation_id, annotation, ". 
-                "method, label, created_at, updated_at, ". 
+                "method, method_metadata, label, created_at, updated_at, ". 
                 "automated_method_in_progress) values(:text_id, :user_id, ". 
-                ":parent_annotation_id, :annotation, :method, :label, ". 
+                ":parent_annotation_id, :annotation, :method, ".
+                ":method_metadata, :label, ". 
                 "DATETIME('now'), DATETIME('now'), ". 
                 ":automated_method_in_progress)");
         $statement->execute([
@@ -80,6 +84,7 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
             ":parent_annotation_id" => $parentAnnotationId,
             ":annotation"           => json_encode($annotation),
             ":method"               => $method,
+            ":method_metadata"      => $method_metadata,
             ":label"                => $label,
             ":automated_method_in_progress" => $automatedMethodInProgress
         ]);
@@ -102,6 +107,7 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
+ *      * method_metadata (specific to method and algorithm used)
  *      * label
  *      * created_at
  *      * updated_at
@@ -119,8 +125,8 @@ function lookupAnnotations($textId = null){
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
                 "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
-                "parent_annotation_id, method, label, annotations.created_at, ". 
-                "updated_at, ". 
+                "parent_annotation_id, method, method_metadata, label, ". 
+                "annotations.created_at, updated_at, ". 
                 "automated_method_in_progress, automated_method_error ". 
                 "from annotations ".
                 "join users join texts where text_id = texts.id and ".
@@ -147,6 +153,7 @@ function lookupAnnotations($textId = null){
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
+ *      * method_metadata (specific to method and algorithm)
  *      * label
  *      * created_at
  *      * updated_at
@@ -160,8 +167,8 @@ function lookupAnnotationsByUser($userId){
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
-            "parent_annotation_id, method, label, annotations.created_at, ". 
-            "updated_at, ". 
+            "parent_annotation_id, method, method_metadata, label, ".
+            "annotations.created_at, updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
             "join users join texts where text_id = texts.id and ".
@@ -189,6 +196,7 @@ function lookupAnnotationsByUser($userId){
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
+ *      * method_metadata
  *      * label
  *      * created_at
  *      * updated_at
@@ -202,8 +210,8 @@ function lookupAnnotationsByText($textId){
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
-            "parent_annotation_id, method, label, annotations.created_at, ". 
-            "updated_at, ". 
+            "parent_annotation_id, method, method_metadata, label, ". 
+            "annotations.created_at, updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
             "join users join texts where text_id = texts.id and ".
@@ -231,6 +239,7 @@ function lookupAnnotationsByText($textId){
  *      * username (owner)
  *      * user_id  (owner)
  *      * method
+ *      * method_metadata
  *      * label
  *      * created_at
  *      * updated_at
@@ -249,8 +258,8 @@ function lookupAnnotation($id){
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
-            "parent_annotation_id, method, label, annotations.created_at, ". 
-            "updated_at, ". 
+            "parent_annotation_id, method, method_metadata, label, ". 
+            "annotations.created_at, updated_at, ". 
             "automated_method_in_progress, automated_method_error, annotation ". 
             "from annotations ".
             "join users join texts where text_id = texts.id and ".

@@ -182,7 +182,8 @@ public static function postText($path, $matches, $params, $format){
         "groups"        => new stdClass(),
         "locations"     => new stdClass(),
         "ties"  => new stdClass()
-    ], "unannotated", generateAnnotationLabel("unannotated", []));
+    ], "unannotated", generateAnnotationMethodMetadata("unannotated", []),
+    generateAnnotationLabel("unannotated", []));
 
     // Kick off the processing.
     // $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
@@ -466,7 +467,8 @@ public static function postAnnotation($path, $matches, $params, $format){
     if($method == "manual"){
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
-            $parentAnnotationId, $textData["annotation"], $method, $label);
+            $parentAnnotationId, $textData["annotation"], $method,
+            generateAnnotationMethodMetadata($method, $args), $label);
 
         if($format == "html"){
             // Reroute to the new annotation.
@@ -489,6 +491,7 @@ public static function postAnnotation($path, $matches, $params, $format){
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
             $parentAnnotationId, null, $method, 
+            generateAnnotationMethodMetadata($method, $args),
             generateAnnotationLabel($method, $args), 1);
 
         $result = Controllers::runAutomaticAnnotation($method, $args, $textId, 
