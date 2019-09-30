@@ -4,7 +4,11 @@ var annotation_data = null;
 var annotationManager = null;
 
 // Context Menu
-var menuDataToPass;
+var menuConfigData = {
+	textSpans: null,
+	newGroupId: null,
+	numSelectedGroups: 0,
+};
 var menuOpen = 0;
 var menu;
 var mouseClicked = 0;
@@ -87,10 +91,10 @@ var size = function(obj){
 }
 
 var makeGroupChecklist = function(groupId, entities){
-    var list = `<li class="group" data-id="${groupId}">`, entityId, i,
+    var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
         entitiesSize = size(entities);
     for(entityId in entities){
-        list += `<input type="checkbox" data-id="${entityId}"> <span class="g${groupId}">${entities[entityId].name}</span>`;
+        list += `<input type="checkbox" data-id="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
         if(i < entitiesSize-1){
             list += ', ';
         }
@@ -437,6 +441,7 @@ var existingEntityClicked = function(event) {
     var group = clickedEntity.attr('data-group-id');
 
     if (clickedEntity.hasClass('selectedEntity')) {
+    	menuConfigData.numSelectedGroups -= 1;
         $('[data-group-id=' + group + ']').filter('span').each(function() {
         	// Cannot use JQuery selector because entity isn't the only class
             if ($(this).hasClass('entity')) {
@@ -454,17 +459,13 @@ var existingEntityClicked = function(event) {
         return;
     }
 
-    // Might need this later to manipulate the groups ; TODO
-    var groupIDs =[];
-    var numberOfEntitiesInGroup = 0;
+    menuConfigData.numSelectedGroups += 1;
 
 	// Function to find every element in group
 	$('[data-group-id=' + group + ']').filter('span').each(function() {
 		// Cannot use JQuery selector because entity isn't the only class
 		if ($(this).hasClass('entity')) {
 			$(this).addClass('selectedEntity');
-			groupIDs[numberOfEntitiesInGroup] = $(this).attr("data-token");
-			numberOfEntitiesInGroup++;
 		}
 	})
     //  Find group in group list
@@ -481,9 +482,17 @@ var existingEntityClicked = function(event) {
         TODO - INTELLIGENTLY POPULATE CONTEXT MENU FOR CLICKED ENTITIES
     */
 
-    var contextMenuOptions;
+    var contextMenuOptions = [];
+    var optionNumber = 0;
 
-    openContextMenu(contextMenuOptions);
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='deleteEntityOption' class='context-menu__link'><i>Delete Entity</i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='deleteGroupOption' class='context-menu__link'><i>Delete Group</i></a></li>";
+    if (menuConfigData.numSelectedGroups > 1) {
+    	contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='combineSelectedGroupsOption' class='context-menu__link'><i>Combine Selected Groups</i></a></li>";
+    }
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='combineGroupsOption' class='context-menu__link'><i>Combine Group with \></i></a></li>";
+
+    openContextMenu(contextMenuOptions, clickedEntity);
 }
 
 var checkSelectedText = function(event) {
@@ -501,12 +510,19 @@ var checkSelectedText = function(event) {
 	var newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
 
     var contextMenuOptions = [];
-    contextMenuOptions[0] = "<li class='context-menu__item'><a href='#' id='addGroupOption' class='context-menu__link'><i>Add Group</i></a></li>";
+    var optionNumber = 0;
 
-    menuDataToPass = {
-        textSpans: textSpans,
-        newGroupID: newGroupID
-    }
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='addEntityOption' class='context-menu__link'><i>Add Entity</i></a></li>";
+    // Add Tie menu HTML
+    // TODO
+    // MAKE MODULAR - SHOW LIST OF GROUPS TO MAKE TIE TO
+    // END TODO
+
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='addTieOption' class='context-menu__link'><i>Add Tie \></i></a></li>";
+
+
+    menuConfigData.textSpans = textSpans;
+    menuConfigData.newGroupID = newGroupID;
 
     openContextMenu(contextMenuOptions);
 }
@@ -551,19 +567,55 @@ function getSelectedSpans() {
     return spans;
 }
 
+var deselectAllText = function() {
+	window.getSelection().removeAllRanges();
+	// maybe do some more stuff here later
+}
+
+var contextOptionClicked = function () {
+	closeContextMenu();
+
+	var addEntityFromSelection = function() {
+		console.log("In addEntityFromSelection");
+	}
+	var addTieFromSelection = function() {
+		console.log("In addTieFromSelection");
+	}
+	var combineSelectedEntities = function() {
+		console.log("In combineSelectedEntities");
+	}
+	var combineSelectedGroups = function() {
+		console.log("in combineSelectedGroups");
+	}
+	var deleteSelectedEntity = function() {
+		console.log("in deleteSelectedEntity");
+	}
+	var deleteSelectedGroup = function() {
+		console.log("In deleteSelectedGroup");
+	}
+	var deleteSelectedTie = function() {
+		console.log("In deleteSelectedTie");
+	}
+
+	menuConfigData = {};
+}
+
+//////  NOT USED.
+//////  FOR REFERENCE ONLY
+
 var addGroupFromSelected = function() {
     // create new annotation_data group
     var entities = {};
     for (var i = 0; i < textSpans.length; i++) {
         entities[i] = {
-            group_id: menuDataToPass.newGroupID,
-            name: menuDataToPass.textSpans[i].innerHTML
+            group_id: menuConfigData.newGroupID,
+            name: menuConfigData.textSpans[i].innerHTML
         }
     }
 
     // append new annotation_data group
     annotation_data.annotation.groups[newGroupID] = {
-        name: menuDataToPass.textSpans[0].innerHTML,
+        name: menuConfigData.textSpans[0].innerHTML,
         entities
     };
 
@@ -576,8 +628,11 @@ var openContextMenu = function(options, clickedEntity) {
     var active = "context-menu--active";
 
     $('.context-menu__items').empty();
+    var contextMenu = $('.context-menu__items');
+
+    // add menu options to menu
     options.forEach(function(entry) {
-        $('.context-menu__items').text($('.context-menu__items').text() + entry);
+        contextMenu.html(contextMenu.html() + entry);
     });
 
     if (menuOpen !== 1) {
@@ -587,7 +642,7 @@ var openContextMenu = function(options, clickedEntity) {
         if (clickedEntity == null) {
             var menuPosition = getPositionForMenu(event);
         } else {
-            var menuPositon = getPositionForMenu(event, clickedEntity);
+            var menuPosition = getPositionForMenu(event, clickedEntity);
         }
 
         // Coordinates
@@ -602,36 +657,35 @@ var openContextMenu = function(options, clickedEntity) {
 
     } else {
         closeContextMenu();
-        // Not a useless function
-        // Also used in global click function.
     }
 }
 
 var closeContextMenu = function() {
-	menuOpen = 0;
-	menu.classList.remove("context-menu--active");
+	if (window.getSelection() == "" && !($(event.target).hasClass('entity'))) {
+		menuOpen = 0;
+		menu.classList.remove("context-menu--active");
 
-    $('.context-menu__items').html("");
+	    $('.context-menu__items').html("");
+	}
 }
 
-// @ entity
 function getPositionForMenu(e, clickedEntity) {
+	if (clickedEntity == null) {
+		// mouse position
+		return {
+		    y: e.clientY,
+		    x: e.clientX
+		}
+	}
+
 	var offset = clickedEntity.parent().offset();
 
+	// entity position
 	return {
 		y: offset.top + clickedEntity.parent().height(),
 		x: offset.left + clickedEntity.parent().width()
 	}
 }
-
-// @ mouse position
-function getPositionForMenu(e) {
-    return {
-        y: e.clientY,
-        x: e.clientX
-    }
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // NETWORK VISUALIZATION FUNCTIONS
@@ -725,11 +779,22 @@ $(document).ready(function(){
     // Close context menu when window is resized
     $(window).on('resize', closeContextMenu);
     // Close context menu on text are scroll
-    $("span").scroll(closeContextMenu);
-    $("div").scroll(closeContextMenu);
+    $("span").scroll(function() {
+    	deselectAllText();
+    	closeContextMenu();
+    });
+    $("div").scroll(function() {
+    	deselectAllText();
+    	closeContextMenu();
+    });
 
     // Context Menu Options
-    $('#addGroupOption').on('click', addGroupFromSelected);
+    $('#addEntityOption').on('click', contextOptionClicked.addEntityFromSelection);
+    $('#deleteEntityOption').on('click', contextOptionClicked.deleteSelectedEntity);
+    $('#deleteGroupOption').on('click', contextOptionClicked.deleteSelectedGroup);
+
+    $('#addTieOption').on('click', contextOptionClicked.addTieFromSelection);
+
 
 
     // Autofocus the first input of a modal.
