@@ -666,32 +666,45 @@ public static function editAnnotation($path, $matches, $params, $format){
     // TODO Ensure the user has write permissions for this.
 
     $validUpdateFields = [
-        "entities" => ["name"=>1, "group_id"=>1],
-        "groups" => ["name"=>1],
+        "last_entity_id" => 1,
+        "last_group_id"  => 1,
+        "last_tie_id"    => 1,
+        "entities"  => ["name"=>1, "group_id"=>1],
+        "groups"    => ["name"=>1],
         "locations" => ["start"=>1, "end"=>1, "entity_id"=>1],
-        "ties" => ["start"=>1, "end"=>1, "source_entity"=>1, 
-            "target_entity"=>1, "label"=>1, "weight"=>1, "directed"=>1]
+        "ties"      => ["start"=>1, "end"=>1, "source_entity"=>1, 
+                        "target_entity"=>1, "label"=>1, "weight"=>1, 
+                        "directed"=>1]
     ];
 
     $data = json_decode($params["data"], true);
 
     // Update the annotation.
     $updater = function($annotation) use(&$validUpdateFields, &$data){
-        foreach($validUpdateFields as $field => $x){
+        foreach($validUpdateFields as $field => $value){
             if(array_key_exists($field, $data)){
-                foreach($data[$field] as $id => $val){
-                    // Check if this is being deleted.
-                    if(array_key_exists($id, $annotation[$field]) && $val == "DELETE"){
-                        unset($annotation[$field][$id]);
-                    } else {
-                        // Check if this is new or updated.
-                        if(!array_key_exists($id, $annotation[$field])){
-                            $annotation[$field][$id] = [];
-                        }
-                        foreach($validUpdateFields[$field] as $subfield => $y){
-                            if(array_key_exists($subfield, $val)){
-                                $annotation[$field][$id][$subfield] =
-                                    $val[$subfield];
+                // Check if this is a top-level data field...
+                if($value === 1){
+                    $annotation[$field] = $data[$field];
+
+                // ...or an object.
+                } else {
+                    foreach($data[$field] as $id => $val){
+                        // Check if this is being deleted.
+                        if(array_key_exists($id, $annotation[$field]) && 
+                            $val == "DELETE"){
+
+                            unset($annotation[$field][$id]);
+                        } else {
+                            // Check if this is new or updated.
+                            if(!array_key_exists($id, $annotation[$field])){
+                                $annotation[$field][$id] = [];
+                            }
+                            foreach($validUpdateFields[$field] as $subfield => $y){
+                                if(array_key_exists($subfield, $val)){
+                                    $annotation[$field][$id][$subfield] =
+                                        $val[$subfield];
+                                }
                             }
                         }
                     }
