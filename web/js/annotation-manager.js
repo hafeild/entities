@@ -554,7 +554,7 @@ var AnnotationManager = function(annotation_data){
 
                 // Add in new convenience links.
                 if(updatedTie[node].location_id !== undefined){
-                    tie[node] = {location_id: updatedTie[node].location_id;
+                    tie[node] = {location_id: updatedTie[node].location_id};
                     this.locations[tie[node].location_id].ties[tieId] = tie;
                     this.entities[this.locations[tie[node].location_id].
                         entity_id].ties[tieId] = tie;
