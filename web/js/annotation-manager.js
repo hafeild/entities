@@ -19,6 +19,52 @@ var AnnotationManager = function(annotation_data){
         // TODO
     };
 
+    /**
+     * Updates the given entity and synchronizes changes with the server.
+     * 
+     * @param {string} entityText The text of the entity to add.
+     * @param {object} updatedEntity A map of modified entity fields and their
+     *                               values. The following fields are supported:
+     *                                  - group_id
+     *                                  - name
+     * @param {function} callback (Optional) A callback to invoke after sending
+     *                            changes to the server.
+     */
+    this.updateEntity = function(entityId, updatedEntity, callback){
+        var changes = {entities: {entityId: {}}, groups: {}, locations: {}, 
+            ties: {}};
+        
+        // Update group id.
+        if(updatedEntity.group_id !== undefined){
+            var oldGroupId = this.entities[entityId].group_id;
+
+            // Remove old group if singleton.
+            if(size(this.groups[oldGroupId]) === 1 && 
+               this.groups[oldGroupId][entityId] !== undefined){
+                delete this.groups[oldGroupId];
+                // Mark changes.
+                changes.groups[oldGroupId] = "DELETE";
+            }
+
+            this.entities[entityId].group_id = updatedEntity.group_id;
+            this.groups[updatedEntity.group_id].entities[entityId] = 
+                this.entities[entityId];
+
+            // Mark changes.
+            changes.entities[entityId].group_id = updatedEntity.group_id;
+        }
+
+        // Update name.
+        if(updatedEntity.name !== undefined){
+            this.entities[entityId].name = updatedEntity.name;
+            // Mark changes.
+            changes.entities[entityId].name = updatedEntity.name;
+        }
+
+        // Sync with the server.
+        sendChangesToServer(changes, callback);
+    };
+
 
     /**
      *  Adds a new entity. If 
@@ -39,7 +85,7 @@ var AnnotationManager = function(annotation_data){
     this.addEntity = function(name, mentionStart, mentionEnd, groupId, callback) {
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var entityId = (++annotation.last_entity_id)+'';
-        changes.last_entity_id = entityId;
+        changes.last_entity_id = annotation.last_entity_id;
         
         // Make the new entity.
         this.entities[entityId] = {
@@ -80,7 +126,8 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
 
         return entityId;
-    }
+    };
+
 
     // Groups.
 
