@@ -1,5 +1,6 @@
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="/js/network-viz.js"></script>
+<script src="/js/annotation-manager.js"></script>
 <script src="/js/annotations.js"></script>
 
 <div class="header">
@@ -20,8 +21,9 @@ Annotation by <?= $data["annotation"]["username"] ?> <br/>
                 <div id="entity-list">
                 </div>
                 <script>
-                    var d = <?= json_encode($data["annotation"]) ?>;
-                    displayAnnotation(d);
+                    annotation_data = <?= json_encode($data["annotation"]) ?>;
+                    annotationManager = AnnotationManager(annotation_data);
+                    displayAnnotation();
                 </script>
             </div>
         </div>
