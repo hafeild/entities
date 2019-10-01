@@ -61,7 +61,14 @@ var AnnotationManager = function(annotation_data){
      * 
      * @param {string[]} entityIds A list of entity ids to remove.
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.removeEntities = function(entityIds, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
@@ -127,7 +134,14 @@ var AnnotationManager = function(annotation_data){
      *                                  - group_id
      *                                  - name
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.updateEntity = function(entityId, updatedEntity, callback){
         var changes = {entities: {entityId: {}}, groups: {}, locations: {}, 
@@ -177,7 +191,14 @@ var AnnotationManager = function(annotation_data){
      * @param {integer} endingOffset (Optional) The ending token offset of the
      *                              mention.
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      * 
      * @return The id of the entity.
      */
@@ -246,6 +267,15 @@ var AnnotationManager = function(annotation_data){
      *      -- remove empty groups
      * 
      * @param {array} A list of entity ids to associate with a new group.
+     * @param {function} callback (Optional) A callback to invoke after sending
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.groupEntities = function(entityIds, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
@@ -352,13 +382,27 @@ var AnnotationManager = function(annotation_data){
     };
 
     /**
+     * Alias for moveEntitiesToGroup([entityId], groupId, callback).
+     */
+    this.moveEntityToGroup = function(entityId, groupId, callback){
+        this.moveEntitiesToGroup([entityId], groupId, callback);
+    };
+
+    /**
      * Moves each of the entities over to the specified group; groups made empty
      * by the move are deleted.
      * 
      * @param {string[]} entityIds A list of ids of entities to move.
      * @param {string} groupId The id of the group to move the entities to.
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.moveEntitiesToGroup = function(entityIds, groupId, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
@@ -391,14 +435,21 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
-    /*
+    /**
      * Updates the given group's name and synchronizes the change with the 
      * server.
      * 
      * @param {string} groupId The id of the group to modify.
      * @param {string} name The new name for the group.
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.changeGroupName = function(groupId, name, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
@@ -421,7 +472,14 @@ var AnnotationManager = function(annotation_data){
      * @param {integer} startingOffset The starting token offset of the mention.
      * @param {integer} endingOffset The ending token offset of the mention.
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.addMention = function(entityId, startingOffset, endingOffset,callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
@@ -451,8 +509,14 @@ var AnnotationManager = function(annotation_data){
      * 
      * @param {string} locationId The id of the mention to remove.
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
-     * 
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.removeMention = function(locationId){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
@@ -501,7 +565,14 @@ var AnnotationManager = function(annotation_data){
      *                                  * end (token offset; integer)
      *                                  * entity_id (string)
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.updateMention = function(locationId, updatedMention, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
@@ -559,7 +630,14 @@ var AnnotationManager = function(annotation_data){
      *                              label: "speak"
      *                             }
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.addTie = function(tieData, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}}; 
@@ -599,7 +677,14 @@ var AnnotationManager = function(annotation_data){
      *                              label: "speak"
      *                             }
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      * @param {object} changes (Optional) A map of changes to made to the 
      *                         annotation data. This is used for internal 
      *                         AnnotationManager calls.
@@ -663,8 +748,15 @@ var AnnotationManager = function(annotation_data){
      * Removes a tie and syncs with the server.
      * 
      * @param {string} tieId The id of the tie to remove.
-     * @param {funciton} callback The function to call after hearing back from 
-     *                            the server.
+     * @param {function} callback (Optional) A callback to invoke after sending
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     this.removeTie = function(tieId, callback){
         var changes = {
@@ -717,28 +809,38 @@ var AnnotationManager = function(annotation_data){
      *                         target_entity: {location_id: "" | entity_id: ""}, 
      *                         label, weight, directed}
      * @param {function} callback (Optional) A callback to invoke after sending
-     *                            changes to the server. This should handle
-     *                            errors and successes.
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
      */
     var sendChangesToServer = function(changes, callback){
         $.post({
             url: `/json/annotations/${this.annotation_data.annotation_id}`,
             data: {_method: 'PATCH', data: JSON.stringify(changes)},
             success: function(response){
-                callback({
-                    success: true, 
-                    data: response
-                });
+                if(callback !== undefined){
+                    callback({
+                        success: true, 
+                        data: response
+                    });
+                }
             },
             error: function(jqXHR, textStatus, errorThrown){
-                callback({
-                    success: false, 
-                    error: errorThrown, 
-                    data: {
-                        jqXHR: jqXHR,
-                        textStatus: textStatus
-                    }
-                });
+                if(callback !== undefined){
+                    callback({
+                        success: false, 
+                        error: errorThrown, 
+                        data: {
+                            jqXHR: jqXHR,
+                            textStatus: textStatus
+                        }
+                    });
+                }
             }
         });
     };
