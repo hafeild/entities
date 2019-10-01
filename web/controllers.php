@@ -642,6 +642,9 @@ public static function getAnnotation($path, $matches, $params, $format){
  * @param params The request parameters. Should contain a JSON string under
  *               "data" with the following structure:
  * 
+ *       - last_entity_id (integer)
+ *       - last_group_id (integer)
+ *       - last_tie_id (integer)
  *       - entities
  *          <entityId>: {name, group_id}
  *       - groups

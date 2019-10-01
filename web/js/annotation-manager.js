@@ -44,7 +44,9 @@ var AnnotationManager = function(annotation_data){
     this.locations = annotation.locations;
     this.ties = annotation.ties;
 
+    ////////////////////////////////////////////////////////////////////////////
     // Entities.
+    ////////////////////////////////////////////////////////////////////////////
 
     /**
      * Alias for removeEntities([entityId], callback).
@@ -162,7 +164,6 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
-
     /**
      *  Adds a new entity and links it to a new or existing group, and a new 
      * location (if provided).
@@ -226,8 +227,9 @@ var AnnotationManager = function(annotation_data){
         return entityId;
     };
 
-
+    ////////////////////////////////////////////////////////////////////////////
     // Groups.
+    ////////////////////////////////////////////////////////////////////////////
 
     /**
      * Moves all of the given entities to a new group.
@@ -349,10 +351,44 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
+    /**
+     * Moves each of the entities over to the specified group; groups made empty
+     * by the move are deleted.
+     * 
+     * @param {string[]} entityIds A list of ids of entities to move.
+     * @param {string} groupId The id of the group to move the entities to.
+     * @param {function} callback (Optional) A callback to invoke after sending
+     *                            changes to the server.
+     */
+    this.moveEntitiesToGroup = function(entityIds, groupId, callback){
+        var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
+        var i, entityId, entity;
+        var newGroup = this.groups[group_id];
+        
+        for(i = 0; i < entityIds.length; i++){
+            entityId = entityIds[i];
+            entity = this.entities[entityId];
 
-    this.addEntitiesToGroup = function(entityIds, groupId){
+            // Remove reference to old group.
+            delete this.groups[entity.group_id].entities[entityId];
 
-        // TODO
+            // Remove old group if now empty.
+            if(size(this.groups[entity.group_id].entities) === 0){
+                delete this.groups[entity.group_id];
+                // Mark the change.
+                changes.groups[entity.group_id] = "DELETE";
+            }
+
+            // Link the entity to the new group and update convenience links.
+            entity.group_id = group_id;
+            newGroup.entities[entityId] = entity;
+
+            // Mark the change.
+            changes.entities[entityId].group_id = group_id;
+        }
+
+        // Sync with server.
+        sendChangesToServer(changes, callback);
     };
 
     /*
@@ -374,8 +410,9 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
-
+    ////////////////////////////////////////////////////////////////////////////
     // Entity mentions (locations).
+    ////////////////////////////////////////////////////////////////////////////
 
     /**
      * Adds a new mention.
@@ -454,16 +491,15 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
-
     /**
      * Updates the given mention and synchronizes changes with the server.
      * 
      * @param {string} locationId The id of the mention to update.
      * @param {object} updatedMention A map of modified entity fields and their
      *                               values. The following fields are supported:
-     *                                  - start
-     *                                  - end
-     *                                  - entity_id
+     *                                  * start (token offset; integer)
+     *                                  * end (token offset; integer)
+     *                                  * entity_id (string)
      * @param {function} callback (Optional) A callback to invoke after sending
      *                            changes to the server.
      */
@@ -495,18 +531,48 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
-
+    ////////////////////////////////////////////////////////////////////////////
     // Ties.
-    this.addTieBetweenMentions = function(sourceMention, targetMention, 
-        startingOffset, endingOffset, label, weight, directed){
+    ////////////////////////////////////////////////////////////////////////////
 
-        // TODO
-    };
+    /**
+     * Adds a tie between two mentions, updating the convenience links, then
+     * syncs with the server.
+     * 
+     * @param {object} tieData A map of tie fields and their values. Optional 
+     *                         fields are asterisked. 
+     *                             * start (token offset; integer)
+     *                             * end (token offset; integer)
+     *                             * source_entity (object)
+     *                                 - location_id OR entity_id
+     *                             * target_entity (object)
+     *                                 - location_id OR entity_id
+     *                             * label* (string)
+     *                             * weight* (floating point)
+     *                             * directed* (boolean)
+     *                            e.g., 
+     *                            {
+     *                              start: 10, 
+     *                              end: 30, 
+     *                              source_entity: {location_id: "10_11"}, 
+     *                              target_entity: {entity_id: "5"}, 
+     *                              label: "speak"
+     *                             }
+     * @param {function} callback (Optional) A callback to invoke after sending
+     *                            changes to the server.
+     */
+    this.addTie = function(tieData, callback){
+        var changes = {entities: {}, groups: {}, locations: {}, ties: {}}; 
 
-    this.addTieBetweenEntities = function(sourceEntity, targetEntity, 
-        startingOffset, endingOffset, label, weight, directed){
+        // Generate a new tie id.
+        var tieId = `${++annotation.last_tie_id}`;
 
-        // TODO
+        // Add a placeholder for the tie data and mark the change.
+        this.ties[tieId] = {};
+        changes.last_tie_id = annotation.last_tie_id;
+
+        // Let updateTie do all the heavy lifting...
+        this.updateTie(tieId, tieData, callback, changes);
     };
 
     /**
@@ -514,24 +580,38 @@ var AnnotationManager = function(annotation_data){
      * 
      * @param {string} tieId The id of the tie to update.
      * @param {object} updatedTie A map of modified entity fields and their
-     *                               values. The following fields are supported:
-     *                                  - start
-     *                                  - end
-     *                                  - source_entity
-     *                                      * location_id OR entity_id
-     *                                  - target_entity
-     *                                      * location_id OR entity_id
-     *                                  - label
-     *                                  - weight
-     *                                  - directed
+     *                            values. The following fields are supported:
+     *                             * start (token offset; integer)
+     *                             * end (token offset; integer)
+     *                             * source_entity (object)
+     *                                 - location_id OR entity_id
+     *                             * target_entity (object)
+     *                                 - location_id OR entity_id
+     *                             * label (string)
+     *                             * weight (floating point)
+     *                             * directed (boolean)
+     *                            e.g., 
+     *                            {
+     *                              start: 10, 
+     *                              end: 30, 
+     *                              source_entity: {location_id: "10_11"}, 
+     *                              target_entity: {entity_id: "5"}, 
+     *                              label: "speak"
+     *                             }
      * @param {function} callback (Optional) A callback to invoke after sending
      *                            changes to the server.
+     * @param {object} changes (Optional) A map of changes to made to the 
+     *                         annotation data. This is used for internal 
+     *                         AnnotationManager calls.
      */
-    this.updateTie = function(tieId, updatedTie, callback){
-        var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
+    this.updateTie = function(tieId, updatedTie, callback, changes){
         var basicFields = ['start', 'end', 'label', 'weight', 'directed'],field;
-        var nodes = ['source_entity', 'target_entity'], node, nodeEntity;
+        var nodes = ['source_entity', 'target_entity'], node;
         var tie = this.ties[tieId];
+
+        if(changes === undefined){
+            changes = {entities: {}, groups: {}, locations: {}, ties: {}};
+        }
 
         // Update the simple fields.
         for(field in basicFields){
@@ -579,24 +659,86 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
-    this.removeTie = function(tieId){
-        // TODO
+    /**
+     * Removes a tie and syncs with the server.
+     * 
+     * @param {string} tieId The id of the tie to remove.
+     * @param {funciton} callback The function to call after hearing back from 
+     *                            the server.
+     */
+    this.removeTie = function(tieId, callback){
+        var changes = {
+            entities: {}, groups: {}, locations: {}, ties: {tieId: "DELETE"}
+        };
+        var nodes = ['source_entity', 'target_entity'], node;
+        var tie = this.ties[tieId];
+
+        // Update the *_entity fields.
+        for(node in nodes){
+            if(updatedTie[node] !== undefined){
+                // Remove convenience links.
+                if(tie[node].location_id !== undefined){
+                    delete this.locations[tie[node].location_id].ties[tieId];
+                } else if(tie[node].entity_id !== undefined) {
+                    delete this.entities[tie[node].entity_id].ties[tieId];
+                }
+            }
+        }
+
+        // Sync with server.
+        sendChangesToServer(changes, callback);
     };
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Helpers, etc.
+    ////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Synchronizes changes made to the annotation data with the server.
+     * 
+     * @param {object} changes An object that includes the entries to update or
+     *                         delete. Here are the supported fields. To delete
+     *                         an entity, group, location, or tie, simply use 
+     *                         the id of the entry as the key and set its value
+     *                         to the string "DELETE".
+     * 
+     *            - last_entity_id (integer)
+     *            - last_group_id (integer)
+     *            - last_tie_id (integer)
+     *            - entities
+     *               <entityId>: {name, group_id}
+     *            - groups
+     *               <groupId>: {name}
+     *            - locations
+     *               <locationId>: {start, end, entity_id}
+     *            - ties
+     *               <tieId>: {start, end, 
+     *                         source_entity: {location_id: "" | entity_id: ""}, 
+     *                         target_entity: {location_id: "" | entity_id: ""}, 
+     *                         label, weight, directed}
+     * @param {function} callback (Optional) A callback to invoke after sending
+     *                            changes to the server. This should handle
+     *                            errors and successes.
+     */
     var sendChangesToServer = function(changes, callback){
         $.post({
             url: `/json/annotations/${this.annotation_data.annotation_id}`,
             data: {_method: 'PATCH', data: JSON.stringify(changes)},
-            success: function(data){
-                // TODO update this.
-                $('#response').html(`Updating modifications `+
-                    `(${JSON.stringify(changes)}) `+
-                    `${JSON.stringify(data, null, 4)}`);
+            success: function(response){
+                callback({
+                    success: true, 
+                    data: response
+                });
             },
             error: function(jqXHR, textStatus, errorThrown){
-                // TODO update this.
-                $('#response').html('ERROR: '+ errorThrown);
-                console.log(jqXHR, textStatus, errorThrown);
+                callback({
+                    success: false, 
+                    error: errorThrown, 
+                    data: {
+                        jqXHR: jqXHR,
+                        textStatus: textStatus
+                    }
+                });
             }
         });
     };
@@ -668,8 +810,6 @@ var AnnotationManager = function(annotation_data){
         }
     };
 
-
-
     /**
      * Initializes things, including adding extra data to the annotation 
      * structure to help with real-time processing (e.g., adding a reference
@@ -680,7 +820,6 @@ var AnnotationManager = function(annotation_data){
     };
 
     init();
-
 
     return this;
 };
