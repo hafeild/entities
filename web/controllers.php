@@ -178,10 +178,13 @@ public static function postText($path, $matches, $params, $format){
     $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
         // new stdClass() forces the empty array to show up as an object in the 
         // JSON.
+        "last_entity_id"=> 0,
+        "last_group_id" => 0,
+        "last_tie_id"   => 0,
         "entities"      => new stdClass(), 
         "groups"        => new stdClass(),
         "locations"     => new stdClass(),
-        "ties"  => new stdClass()
+        "ties"          => new stdClass()
     ], "unannotated", generateAnnotationMethodMetadata("unannotated", []),
     generateAnnotationLabel("unannotated", []));
 
@@ -282,6 +285,10 @@ public static function runAutomaticAnnotation($annotator, $args, $textId, $md5su
     elseif($annotator == "booknlp+tie-window")
         $processors = [
             ["booknlp", $bookNLPArgs], 
+            ["tie-window", "$annotationId\t{$args["n"]}\tfalse"]
+        ];
+    elseif($annotator == "tie-window")
+        $processors = [
             ["tie-window", "$annotationId\t{$args["n"]}\tfalse"]
         ];
     
@@ -399,6 +406,12 @@ public static function processText($textId, $md5sum, $processors) {
  *      * manual (default)
  *      * booknlp -- BookNLP annotation (entities only); can only be forked from
  *                   root
+ *      * booknlp+tie-window -- BookNLP entity extraction + Window-based tie 
+ *                   extraction; can only be forked from root; should specify 
+ *                   the window size (n)
+ *      * tie-window -- Window-based tie extraction; should specify window size
+ *                      (n)
+ *   - n -- the window size for window-based tie extraction (see above)
  * @param format The format of the response, 'json' or 'html' (unsupported). 
  * @return If format is 'json', returns an associative array with the fields
  *         outlines above; otherwise, returns nothing.
@@ -429,12 +442,10 @@ public static function postAnnotation($path, $matches, $params, $format){
     $label = htmlentities($params["label"] ?? "");
     $method = htmlentities($params["method"] ?? "manual");
 
-    // Stop if this ia an automatic run and it's being forked from a non-root
-    // annotation.
-    if($method != "manual" && !($textData["parent_annotation_id"] == "" || 
-            $textData["parent_annotation_id"] == null)){
+    // Stop if the specified method is invalid.
+    if(!array_key_exists($method, $validMethods)){
 
-        $error =  "Automatic annotations must be run from scratch.";
+        $error = "The annotation method '$method' is not supported.";
         if($format == "html"){
             // Reroute to the new annotation.
             Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
@@ -447,10 +458,14 @@ public static function postAnnotation($path, $matches, $params, $format){
         }
     }
 
-    // Stop if the specified method is invalid.
-    if(!array_key_exists($method, $validMethods)){
+    // Stop if this ia a root-only annotation and it's being forked from a 
+    // non-root annotation.
+    if($validMethods[$method]["root_only"] && 
+            !($textData["parent_annotation_id"] == "" || 
+              $textData["parent_annotation_id"] == null)){
 
-        $error = "The annotation method '$method' is not supported.";
+        $error =  "This fork method ($method) can only be forked from the ". 
+                  "original annotation.";
         if($format == "html"){
             // Reroute to the new annotation.
             Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
@@ -468,7 +483,7 @@ public static function postAnnotation($path, $matches, $params, $format){
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
             $parentAnnotationId, $textData["annotation"], $method,
-            generateAnnotationMethodMetadata($method, $args), $label);
+            generateAnnotationMethodMetadata($method, []), $label);
 
         if($format == "html"){
             // Reroute to the new annotation.
@@ -482,15 +497,22 @@ public static function postAnnotation($path, $matches, $params, $format){
         }
 
     // Create an automatic annotation.
-    } else if($validMethods[$method] == "automatic") {
+    } else if($validMethods[$method]["automatic"]) {
         $args = [];
 
-        if($method == "booknlp+tie-window")
-            $args["n"] = $params["n"];
+        if($method == "booknlp+tie-window" || $method == "tie-window")
+            $args["n"] = htmlentities($params["n"]);
+
+        // Copy over the annotation of the parent as long as this isn't a root-
+        // only annotation.
+        $annotation = null;
+        if(!$validMethods[$method]["root_only"]){
+            $annotation = $textData["annotation"];
+        }
 
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
-            $parentAnnotationId, null, $method, 
+            $parentAnnotationId, $annotation, $method, 
             generateAnnotationMethodMetadata($method, $args),
             generateAnnotationLabel($method, $args), 1);
 

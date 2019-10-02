@@ -3,14 +3,80 @@
 <script src="/js/annotations.js"></script>
 
 <div class="header">
-<h2>
-    <a href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= $data["text"]["title"] ?>"</em> Annotations</a> : 
-     <?= $data["annotation"]["label"] == "" ? ("Annotation ". $data["annotation"]["annotation_id"]) : $data["annotation"]["label"] ?>
-</h2>
-Annotation by <?= $data["annotation"]["username"] ?> <br/>
+    <h2>
+        <a href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= 
+            $data["text"]["title"] ?>"</em> Annotations</a> : 
+            <?= $data["annotation"]["label"] == "" ? 
+                ("Annotation ". $data["annotation"]["annotation_id"]) : 
+                $data["annotation"]["label"] ?>
+    </h2>
+    Annotation by <?= $data["annotation"]["username"] ?> <br/>
 
-<form action="/texts/<?= $data["text"]["id"] ?>/annotations/<?= $data["annotation"]["annotation_id"] ?>" method="POST"><button class="btn btn-sm btn-default">Fork</button></form>
-</div>
+
+    <!-- Fork. -->
+    <?php if($user != null){ // Begin logged-in user only section. ?>
+        <!-- Button trigger modal -->
+        <button type="button" class="btn btn-primary btn-md fork-button" 
+            data-toggle="modal" data-target="#fork-modal">
+        Fork
+        </button>
+        <div class="modal fade" tabindex="-1" role="dialog" id="fork-modal">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <?php 
+                    // Goes to: 
+                    // POST /texts/:textId/annotations/:annotationId
+                    // with parameters: method (manual or tie-window) and
+                    // n (if tie-window selected).
+                    ?>
+                    <form action="/texts/<?= $data["text"]["id"] ?>/annotations/<?= 
+                        $data["annotation"]["annotation_id"] ?>" method="POST">
+
+                        <div class="modal-header">
+                            <button type="button" class="close" 
+                                data-dismiss="modal" aria-label="Close"
+                                ><span aria-hidden="true">&times;</span>
+                            </button>
+                            <h4 class="modal-title">Fork this annotation</h4>
+
+                        </div>
+                        <div class="modal-body">
+                            <p>
+                                Select the type of fork you'd like to make.
+                            </p>
+                            <div class="radio">
+                                <label>
+                                    <input type="radio" name="method" 
+                                        value="manual" checked/>
+                                    Basic fork (for further manual annotations)
+                                </label>
+                            </div>
+                            <hr/>
+                            <div class="radio">
+                                <label>
+                                    <input type="radio" name="method" 
+                                        value="tie-window"/>
+                                    Fork and extract ties (Window method)
+                                </label>
+                                <div>
+                                    <label>Window size: <input type="number" 
+                                        name="n" value="30"/></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" 
+                                data-dismiss="modal">Cancel</button>
+                            <input type="submit" class="btn btn-primary"
+                                value="Fork"/>
+                        </div>
+                    </form>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
+        </div><!-- /.modal -->
+    <?php } ?>
+
+</div> <!-- /.header -->
 
 <div id="annotation-panels-wrapper">
     <div id="annotation-panels">

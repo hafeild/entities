@@ -79,13 +79,13 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
                 "DATETIME('now'), DATETIME('now'), ". 
                 ":automated_method_in_progress)");
         $statement->execute([
-            ":text_id"              => $textId,
-            ":user_id"              => $userId,
-            ":parent_annotation_id" => $parentAnnotationId,
-            ":annotation"           => json_encode($annotation),
-            ":method"               => $method,
-            ":method_metadata"      => $method_metadata,
-            ":label"                => $label,
+            ":text_id"             => $textId,
+            ":user_id"             => $userId,
+            ":parent_annotation_id"=> $parentAnnotationId,
+            ":annotation"          =>json_encode($annotation,JSON_FORCE_OBJECT),
+            ":method"              => $method,
+            ":method_metadata"     => $method_metadata,
+            ":label"               => $label,
             ":automated_method_in_progress" => $automatedMethodInProgress
         ]);
         return $dbh->lastInsertId();

@@ -17,10 +17,11 @@ require_once("model.php");
 
 // Annotation methods and their associated labels.
 $validMethods = [
-    "manual"        => 1, 
-    "booknlp"       => "automatic",
-    "booknlp+tie-window"       => "automatic",
-    "unannotated"   => 1
+    "manual"             => ["automatic" => false, "root_only" => false], 
+    "unannotated"        => ["automatic" => false, "root_only" => false],
+    "tie-window"         => ["automatic" => true,  "root_only" => false],
+    "booknlp"            => ["automatic" => true,  "root_only" => true],
+    "booknlp+tie-window" => ["automatic" => true,  "root_only" => true]
 ];
 
 function generateAnnotationLabel($method, $args){
@@ -57,6 +58,16 @@ function generateAnnotationMethodMetadata($method, $args){
                 "version" => "1.0", 
                 "parameters" => [
                     "n" => htmlentities($args["n"])
+                ]
+            ]
+        ];
+    elseif($method == "tie-window")
+        $data = [
+            "tie_extraction" => [
+                "algorithm" => "Window", 
+                "version" => "1.0", 
+                "parameters" => [
+                    "n" => $args["n"]
                 ]
             ]
         ];
