@@ -69,7 +69,7 @@ public class TokenProcessor extends Processor {
      * and `tokenization_error` is set to 1. The error is printed to the socket 
      * and the socket closed.
      */
-    public void processRequest(EntiTiesSocket socket, String argsString, 
+    public boolean processRequest(EntiTiesSocket socket, String argsString, 
         EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database) {
 
         String text;
@@ -79,6 +79,7 @@ public class TokenProcessor extends Processor {
         File bookFile, tokensHTMLFile, tokensJSONFile;
         this.logger = logger;
         ArrayList<Token> tokens;
+        boolean completedSuccessfully = false;
 
         try {
             // Reads the incoming arguments.
@@ -92,7 +93,7 @@ public class TokenProcessor extends Processor {
                 error(socket.out, "Error: there should be 2 tab"+
                     "-delimited arguments (text id, text directory), not "+
                     (args.length));
-                return;
+                return false;
             }
 
             // Parse the arguments.
@@ -114,14 +115,14 @@ public class TokenProcessor extends Processor {
                         bookFile.getPath() +".";
                 }
                 error(socket.out, errorMessage);
-                return;
+                return false;
             }
 
             // Check that we can open the database.
             if(!database.openConnection()){
                 error(socket.out, "Error: could not establish a database "+
                             "connection.");
-                return;
+                return false;
             }
 
             // Check that there's an entry for the text in the database
@@ -132,12 +133,12 @@ public class TokenProcessor extends Processor {
                         "Error: no text with this id exists in "+
                         "the database.");
                     database.close();
-                    return;
+                    return false;
                 case ERROR_QUERYING_DB:
                     error(socket.out, 
                         "Error: couldn't query the metadata table.");
                     database.close();
-                    return;
+                    return false;
                 default:
                     break;
             }
@@ -164,6 +165,7 @@ public class TokenProcessor extends Processor {
             logger.log("Completed tokenization.");
             socket.close();
 
+            completedSuccessfully = true;
         } catch (SQLException e) {
             logger.log("Problems connecting to the database.");
             e.printStackTrace();
@@ -187,15 +189,19 @@ public class TokenProcessor extends Processor {
             } catch (IOException e) {
                 logger.log("Couldn't close a socket, what's going on?");
                 e.printStackTrace();
+                completedSuccessfully = false;
             } finally {
                 try{
                     database.close();
                 } catch (SQLException e) {
                     logger.log("Couldn't close database connection.");
+                    completedSuccessfully = false;
                 }
             }
             logger.log("Connection closed");
         }
+
+        return completedSuccessfully;
     }
 
     /** 

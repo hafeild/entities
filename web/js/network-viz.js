@@ -132,8 +132,8 @@ var networkViz = (function(){
      * if the meta or ctrl keys are pressed.
      */
     function dragstarted() {
-        console.log('In dragstarted');
-        if(d3.event.sourceEvent.metaKey || d3.event.sourceEvent.ctrKey) {
+        console.log('In dragstarted', d3.event.sourceEvent);
+        //if(d3.event.sourceEvent.metaKey || d3.event.sourceEvent.ctrKey) {
             movingNode = true;
             readjustOnMove = !d3.event.sourceEvent.shiftKey;
 
@@ -153,7 +153,7 @@ var networkViz = (function(){
 
             d3.event.subject.fx = d3.event.subject.x;
             d3.event.subject.fy = d3.event.subject.y;
-        } 
+        //} 
     }
     
     /**

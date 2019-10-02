@@ -9,9 +9,11 @@ require_once("model.php");
 require_once("model-annotations-sql.php");
 require_once("controllers.php");
 
+
 // Extracts the requested path. Assumes the URI is in the format: 
-// .../api.php/<path>, where <path> is what is extracted.
+// .../routes.php/<path>, where <path> is what is extracted.
 if(isset($_SERVER['REQUEST_URI'])){
+#    $path = preg_replace("#^(/routes.php)?/#", "", $_SERVER['REQUEST_URI']);
     $path = preg_replace("#^(/json)?/#", "", $_SERVER['REQUEST_URI']);
     $path = preg_replace("#\?.*$#", "", $path);
 } else {

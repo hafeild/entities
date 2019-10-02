@@ -178,11 +178,15 @@ public static function postText($path, $matches, $params, $format){
     $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
         // new stdClass() forces the empty array to show up as an object in the 
         // JSON.
+        "last_entity_id"=> 0,
+        "last_group_id" => 0,
+        "last_tie_id"   => 0,
         "entities"      => new stdClass(), 
         "groups"        => new stdClass(),
         "locations"     => new stdClass(),
-        "ties"  => new stdClass()
-    ], "unannotated", $validMethods["unannotated"]);
+        "ties"          => new stdClass()
+    ], "unannotated", generateAnnotationMethodMetadata("unannotated", []),
+    generateAnnotationLabel("unannotated", []));
 
     // Kick off the processing.
     // $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
@@ -235,7 +239,7 @@ public static function tokenizeText($textId, $md5sum) {
         $CONFIG->text_storage  // Storage location.
     ]);
 
-    $response = Controllers::processText($textId, $md5sum, "token", $args);
+    $response = Controllers::processText($textId, $md5sum, [["token", $args]]);
 
     if($response["success"] === false){
         // Unsets the progress flag and sets the error flag.
@@ -251,6 +255,8 @@ public static function tokenizeText($textId, $md5sum) {
  * 
  * @param annotator The annotation processor to use. Current options are:
  *                      * booknlp -- an automatic, entity-only annotator
+ *                      * booknlp+tie-window -- adds in window-based tie 
+ *                                              extraction
  * @param textId The id of the text in the metadata table.
  * @param md5sum The md5sum of the text (used as the base of the filename).
  * @param annotationId The id of the annotation.
@@ -259,20 +265,38 @@ public static function tokenizeText($textId, $md5sum) {
  *                 false otherwise.
  *      error --  an error message (only if success == false)
  */
-public static function runAutomaticAnnotation($annotator, $textId, $md5sum, 
+public static function runAutomaticAnnotation($annotator, $args, $textId, $md5sum, 
     $annotationId) {
     
     global $CONFIG;
 
-    $args = join("\t", [
+    $bookNLPArgs = join("\t", [
         $textId,                // Id of the text.
         $CONFIG->text_storage,  // Storage location.
         $md5sum,                // Text name.
         $annotationId          // Annotation entry id.
     ]);
 
-    error_log("processig text");
-    $response = Controllers::processText($textId, $md5sum, $annotator, $args);
+    error_log("processing text");
+
+    $processors = [];
+    if($annotator == "booknlp")
+        $processors = [["booknlp", $bookNLPArgs]];
+    elseif($annotator == "booknlp+tie-window")
+        $processors = [
+            ["booknlp", $bookNLPArgs], 
+            ["tie-window", "$annotationId\t{$args["n"]}\tfalse"]
+        ];
+    elseif($annotator == "tie-window")
+        $processors = [
+            ["tie-window", "$annotationId\t{$args["n"]}\tfalse"]
+        ];
+    
+    error_log("calling Controllers::processText($textId, $md5sum, ". 
+        json_encode($processors) .")");
+
+    // $response = Controllers::processText($textId, $md5sum, $annotator, $args);
+    $response = Controllers::processText($textId, $md5sum, $processors);
     error_log("heard back: ". json_encode($response));
 
     if($response["success"] === false){
@@ -290,23 +314,29 @@ public static function runAutomaticAnnotation($annotator, $textId, $md5sum,
  * 
  * @param textId The id of the text in the metadata table.
  * @param md5sum The md5sum of the text (used as the base of the filename).
- * @param processor The processor to call; can be one of:
+ * @param processor A map of processors to call and their arguments. These will
+ *                  be sent over, along with their corresponding argument lists,
+ *                  in a single request to the processor server and will be
+ *                  executed as a pipeline. Processors can be any of the
+ *                  following; arguments are specific to each processor (see the
+ *                  relevant documentation):
  *                   * token -- basic tokenization
  *                   * booknlp -- an automatic entity-only annotation
- * @param args Agruments to the processor. These are specific to each processor.
+ *                   * tie-window -- window-base tie extraction
  * @return An associative array with the following keys:
  *      success -- true if the request was received and initial checks cleared,
  *                 false otherwise.
  *      error --  an error message (only if success == false)
  */
-public static function processText($textId, $md5sum, $processor, $args) {
+public static function processText($textId, $md5sum, $processors) {
 
     global $CONFIG, $user, $validProcessors;
 
     // Check that this is a valid processor.
-    if(!array_key_exists($processor, $validProcessors))
-        return array("success" => false,
-            "error" => "Unrecognized processor: $processor.");
+    foreach($processors as $processor)
+        if(!array_key_exists($processor[0], $validProcessors))
+            return array("success" => false,
+                "error" => "Unrecognized processor: $processor.");
 
     // Open the socket.
     if(!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
@@ -327,11 +357,11 @@ public static function processText($textId, $md5sum, $processor, $args) {
     }
 
     // Message to send to the automatic annotation service.
-    $message = join("\t", [
-        $processor, 
-        $args,
-        "\n"
-    ]);
+    $messageParts = [];
+    foreach($processors as $processor){
+        array_push($messageParts, join("\t", $processor));
+    }
+    $message = join("::::", $messageParts) ."\n";
  
     // Send the request.
     if(!socket_send ($sock, $message, strlen($message), 0)) {
@@ -376,6 +406,12 @@ public static function processText($textId, $md5sum, $processor, $args) {
  *      * manual (default)
  *      * booknlp -- BookNLP annotation (entities only); can only be forked from
  *                   root
+ *      * booknlp+tie-window -- BookNLP entity extraction + Window-based tie 
+ *                   extraction; can only be forked from root; should specify 
+ *                   the window size (n)
+ *      * tie-window -- Window-based tie extraction; should specify window size
+ *                      (n)
+ *   - n -- the window size for window-based tie extraction (see above)
  * @param format The format of the response, 'json' or 'html' (unsupported). 
  * @return If format is 'json', returns an associative array with the fields
  *         outlines above; otherwise, returns nothing.
@@ -383,6 +419,7 @@ public static function processText($textId, $md5sum, $processor, $args) {
 public static function postAnnotation($path, $matches, $params, $format){
     global $user;
     global $validMethods;
+    global $validProcessors;
 
 
     if(count($matches) < 3){
@@ -405,24 +442,6 @@ public static function postAnnotation($path, $matches, $params, $format){
     $label = htmlentities($params["label"] ?? "");
     $method = htmlentities($params["method"] ?? "manual");
 
-    // Stop if this ia an automatic run and it's being forked from a non-root
-    // annotation.
-    if($method != "manual" && !($textData["parent_annotation_id"] == "" || 
-            $textData["parent_annotation_id"] == null)){
-
-        $error =  "Automatic annotations must be run from scratch.";
-        if($format == "html"){
-            // Reroute to the new annotation.
-            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
-                $error, null);
-        } else {
-            return [
-                "success" => false,
-                "message" => $error
-            ];
-        }
-    }
-
     // Stop if the specified method is invalid.
     if(!array_key_exists($method, $validMethods)){
 
@@ -439,11 +458,32 @@ public static function postAnnotation($path, $matches, $params, $format){
         }
     }
 
+    // Stop if this ia a root-only annotation and it's being forked from a 
+    // non-root annotation.
+    if($validMethods[$method]["root_only"] && 
+            !($textData["parent_annotation_id"] == "" || 
+              $textData["parent_annotation_id"] == null)){
+
+        $error =  "This fork method ($method) can only be forked from the ". 
+                  "original annotation.";
+        if($format == "html"){
+            // Reroute to the new annotation.
+            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
+                $error, null);
+        } else {
+            return [
+                "success" => false,
+                "message" => $error
+            ];
+        }
+    }
+
     // Create a manual annotation.
     if($method == "manual"){
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
-            $parentAnnotationId, $textData["annotation"], $method, $label);
+            $parentAnnotationId, $textData["annotation"], $method,
+            generateAnnotationMethodMetadata($method, []), $label);
 
         if($format == "html"){
             // Reroute to the new annotation.
@@ -457,13 +497,26 @@ public static function postAnnotation($path, $matches, $params, $format){
         }
 
     // Create an automatic annotation.
-    } else if($method == "booknlp") {
+    } else if($validMethods[$method]["automatic"]) {
+        $args = [];
+
+        if($method == "booknlp+tie-window" || $method == "tie-window")
+            $args["n"] = htmlentities($params["n"]);
+
+        // Copy over the annotation of the parent as long as this isn't a root-
+        // only annotation.
+        $annotation = null;
+        if(!$validMethods[$method]["root_only"]){
+            $annotation = $textData["annotation"];
+        }
 
         // Create the new annotation.
         $newAnnotationId = addAnnotation($user["id"], $textId, 
-            $parentAnnotationId, null, $method, $validMethods[$method], 1);
+            $parentAnnotationId, $annotation, $method, 
+            generateAnnotationMethodMetadata($method, $args),
+            generateAnnotationLabel($method, $args), 1);
 
-        $result = Controllers::runAutomaticAnnotation($method, $textId, 
+        $result = Controllers::runAutomaticAnnotation($method, $args, $textId, 
             $textData["text_md5sum"], $newAnnotationId);
 
         if($result["success"] === true){

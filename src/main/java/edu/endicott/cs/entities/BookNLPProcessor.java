@@ -1,6 +1,6 @@
 // Author:  Henry Feild
 // Files:   BookNLPProcessor.java
-// Date:    29-Aug-2018
+// Date:    29-Aug-2019
 
 package edu.endicott.cs.entities;    
 
@@ -50,6 +50,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 
+import edu.endicott.cs.entities.annotations.Annotation;
+import edu.endicott.cs.entities.annotations.Tie;
+import edu.endicott.cs.entities.annotations.TieEntity;
+import edu.endicott.cs.entities.annotations.Entity;
+import edu.endicott.cs.entities.annotations.Group;
+import edu.endicott.cs.entities.annotations.Location;
+
 /**
  * A server interface to the BookNLP package. This is a substitute for 
  * the BookNLP command line interface. The code below is largely taken from
@@ -71,6 +78,7 @@ public class BookNLPProcessor extends Processor {
     private static final int TOKEN_ID_COLUMN = 2;
     private static final int ORIGINAL_WORD_COLUMN = 7;
     private static final int POS_COLUMN = 10;
+    private static final int NER_COLUMN = 11;
     private static final int CHARACTER_ID_COLUMN = 14;
     private static final int SUPERSENSE_COLUMN = 15;
 
@@ -80,12 +88,13 @@ public class BookNLPProcessor extends Processor {
     private static final String IDS_HTML_FILE_NAME = "ids.html";
     private static final String IDS_JSON_FILE_NAME = "ids.json";
 
-    private static final HashSet<String> NOUN_TYPES = new HashSet<String>();
-    static {
-        NOUN_TYPES.add("NNP");
-        NOUN_TYPES.add("NNPS");
-        NOUN_TYPES.add("NN");
-    }
+    // private static final HashSet<String> NOUN_TYPES = new HashSet<String>();
+    // static {
+    //     NOUN_TYPES.add("NNP");
+    //     NOUN_TYPES.add("NNPS");
+    //     NOUN_TYPES.add("NN");
+    //     NOUN_TYPES.add("NNS");
+    // }
 
     /**
      * Handles an incoming request. A request should consist of a single line
@@ -95,10 +104,6 @@ public class BookNLPProcessor extends Processor {
      * 	- texts directory (where text records are stored)
      *  - text name
      *  - annotation id
-     * 
-     * Upon successful receipt, the workd "success" is returned on a line.
-     * If there's a problem with the parameters, a failure message is 
-     * returned.
      * 
      * This process will look for the content of the book in 
      * <texts directory>/<text id>/original.txt. It will create the following 
@@ -113,7 +118,7 @@ public class BookNLPProcessor extends Processor {
      * 
      * TODO describe the format of these files.
      * 
-     * Once the arguments are verified, but before processing begins, the
+     * Once the arguments are verified, but BEFORE processing begins, the
      * response "success\n" is printed to the socket and the socket is closed.
      * Processing then begins and the annotation table in the database is
      * updated with the proper `automated_method_in_progress` (set to 0 when
@@ -122,8 +127,10 @@ public class BookNLPProcessor extends Processor {
      * 
      * If the arguments are not verified, or ids are not found in the database,
      * an error is printed to the socket and closed.
+     * 
+     * @return Whether processing completed successfully or not.
      */
-    public void processRequest(EntiTiesSocket socket, String argsString, 
+    public boolean processRequest(EntiTiesSocket socket, String argsString, 
             EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database){
 
         EntiTiesFileManager fileManager;
@@ -131,6 +138,7 @@ public class BookNLPProcessor extends Processor {
         int textId = -1, annotationId = -1;
         File annotationDirectory, bookFile;
         this.logger = logger;
+        boolean completedSuccessfully = false;
 
         try {
             // Reads the incoming arguments.
@@ -145,7 +153,7 @@ public class BookNLPProcessor extends Processor {
                     "-delimited arguments (text id, directory, book "+
                     "name, annotation id), not "+ 
                     (args.length));
-                return;
+                return false;
             }
 
             // Parse the arguments.
@@ -168,7 +176,7 @@ public class BookNLPProcessor extends Processor {
                         bookFile.getPath() +".";
                 }
                 error(socket.out, errorMessage);
-                return;
+                return false;
             }
 
             // Make the annotation directory if it doesn't already exist.
@@ -179,28 +187,28 @@ public class BookNLPProcessor extends Processor {
             if(!database.openConnection()){
                 error(socket.out, "Error: could not establish a database "+
                             "connection.");
-                return;
+                return false;
             }
 
-            // Check that there's an entry for the text in the database
+            // Check that there's an entry for the annotation in the database
             // and it's not already processed.
             switch(database.getAnnotationStatus(annotationId)){
                 case ID_ALREADY_PROCESSED:
                     error(socket.out, 
                         "Error: this annotation has already been processed.");
                     database.close();
-                    return;
+                    return false;
                 case ID_NOT_PRESENT:
                     error(socket.out, 
                         "Error: no annotation with this id exists in "+
                         "the database.");
                     database.close();
-                    return;
+                    return false;
                 case ERROR_QUERYING_DB:
                     error(socket.out, 
                         "Error: couldn't query the metadata table.");
                     database.close();
-                    return;
+                    return false;
                 default:
                     break;
             }
@@ -219,6 +227,9 @@ public class BookNLPProcessor extends Processor {
             annotation = processTokensFile(annotationDirectory);
             if(!database.postAnnotation(annotationId, annotation))
                 logger.log("Error: unable to post annotation to database.");
+            else
+                completedSuccessfully = true;
+
 
         } catch (SQLException e) {
             logger.log("Problems connecting to the database.");
@@ -243,15 +254,19 @@ public class BookNLPProcessor extends Processor {
             } catch (IOException e) {
                 logger.log("Couldn't close a socket, what's going on?");
                 e.printStackTrace();
+                completedSuccessfully = false;
             } finally {
                 try{
                     database.close();
                 } catch (SQLException e) {
                     logger.log("Couldn't close database connection.");
+                    completedSuccessfully = false;
                 }
             }
             logger.log("Connection closed");
         }
+
+        return completedSuccessfully;
     }
 
 
@@ -374,20 +389,24 @@ public class BookNLPProcessor extends Processor {
         HashMap<String, HashMap<String,String>> characterIdLookup = 
             new HashMap<String, HashMap<String,String>>();
 
-        JSONObject entities = new JSONObject();
-        JSONObject locations = new JSONObject();
-        JSONObject ties = new JSONObject();
-        JSONObject groups = new JSONObject();
-        JSONObject entityInfo = new JSONObject();
         JSONArray tokens = new JSONArray();
+
+        Annotation annotation = new Annotation();
+        String jsonAnnotation;
+
 
         String curCharacterText = null;
         String curCharacterGroupId = null;
         String curCharacterPOS = null;
+        String curCharacterNER = null;
         int curCharacterStartOffset = -1;
         int curCharacterEndOffset = -1;
 
         int prevCharacterId = -1; 
+
+        HashMap<String, String> internalToExternalCharacterId = 
+            new HashMap<String, String>();
+        long lastEntityId = 0;
 
         File tokensFile = new File(outputDirectory, TOKENS_TSV_FILE_NAME);
         BufferedReader tokensFileBuffer = 
@@ -427,8 +446,8 @@ public class BookNLPProcessor extends Processor {
                     // log("Ended character location (NNP or Pronoun), processing...");
                     String entityId = curCharacterGroupId;
 
-                    // Add new character if POS is NNP
-                    if(NOUN_TYPES.contains(curCharacterPOS)){
+                    // Add new character if not a pronoun.
+                    if(!curCharacterNER.equals("O")){
                         // log("Found character (curCharacterPos == NNP)");
 
                         // Get entity id.
@@ -447,33 +466,35 @@ public class BookNLPProcessor extends Processor {
                                 put(curCharacterText, curCharacterGroupId);
 
                             // Make a new group entry.
-                            JSONObject newGroup = new JSONObject();
-                            newGroup.put("name", curCharacterText);
-                            groups.put(curCharacterGroupId, newGroup);
+                            annotation.addGroup(new Group(
+                                curCharacterGroupId, curCharacterText));
+
                         }
 
                         entityId = characterIdLookup.
                             get(curCharacterGroupId).get(curCharacterText);
 
                         // if entities[curCharacterGroupId] is present:
-                        if(!entities.containsKey(entityId)){
-                            JSONObject newEntity = new JSONObject();
-                            newEntity.put("name", curCharacterText);
-                            newEntity.put("group_id", curCharacterGroupId);
-                            entities.put(entityId, newEntity);
-                            // log("Adding entitiy: "+ entityId +", "+ curCharacterText);
-                        }
+
+                        if(!internalToExternalCharacterId.containsKey(entityId))
+                            internalToExternalCharacterId.put(entityId, 
+                                Long.toString(++lastEntityId));
+                        String externalEntityId = 
+                            internalToExternalCharacterId.get(entityId);
+                        if(!annotation.entityExists(externalEntityId))
+                            annotation.addEntity(new Entity(
+                                externalEntityId, curCharacterText, 
+                                curCharacterGroupId
+                            ));
+                        
                     }
 
                     // Add location.
                     String locationKey = curCharacterStartOffset +"_"+
                         curCharacterEndOffset;
-                    JSONObject newLocation = new JSONObject();
-                    newLocation.put("start", curCharacterStartOffset);
-                    newLocation.put("end", curCharacterEndOffset);
-                    newLocation.put("entity_id", entityId);
-                    locations.put(locationKey, newLocation);
-                    
+                    annotation.addLocation(new Location(locationKey, 
+                        internalToExternalCharacterId.get(entityId), 
+                        curCharacterStartOffset, curCharacterEndOffset));
                 }
 
                 // See if we're entering an entity (cols 16 > -1)
@@ -487,6 +508,7 @@ public class BookNLPProcessor extends Processor {
                     curCharacterEndOffset = 
                         Integer.parseInt(cols[TOKEN_ID_COLUMN]);
                     curCharacterPOS = cols[POS_COLUMN];
+                    curCharacterNER = cols[NER_COLUMN];
 
                 // Otherwise, mark that we're no longer processing an
                 // entity.
@@ -505,17 +527,18 @@ public class BookNLPProcessor extends Processor {
         }
         tokensFileBuffer.close();
 
-        // Assemble the entity info object.
-        entityInfo.put("entities", entities);
-        entityInfo.put("groups", groups);
-        entityInfo.put("locations", locations);
-        entityInfo.put("ties", ties);
-
         // Write out character info.
-        FileWriter entityJSONFile = new FileWriter(
+        jsonAnnotation = annotation.toString();
+        PrintWriter entityJSONFile = new PrintWriter(
             new File(outputDirectory, ANNOTATION_JSON_FILE_NAME));
-        entityInfo.writeJSONString(entityJSONFile);
+        entityJSONFile.print(jsonAnnotation);
         entityJSONFile.close();
+
+        // FileWriter entityJSONFile = new FileWriter(
+        //     new File(outputDirectory, ANNOTATION_JSON_FILE_NAME));
+        // entityJSONFile.
+        // entityInfo.writeJSONString(entityJSONFile);
+        // entityJSONFile.close();
 
         // Write out token info.
         FileWriter tokensJSONFile = new FileWriter(
@@ -523,7 +546,7 @@ public class BookNLPProcessor extends Processor {
         tokens.writeJSONString(tokensJSONFile);
         tokensJSONFile.close();
 
-        return entityInfo.toString();
+        return jsonAnnotation;
     }
 
 

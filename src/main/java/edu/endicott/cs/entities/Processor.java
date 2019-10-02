@@ -12,6 +12,6 @@ public abstract class Processor {
     //     this.database = database;
     // }
 
-    public abstract void processRequest(EntiTiesSocket socket, String argsString, 
+    public abstract boolean processRequest(EntiTiesSocket socket, String argsString, 
         EntiTiesLogger.RequestLogger logger, EntiTiesDatabase database);
 }

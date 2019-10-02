@@ -50,7 +50,7 @@ foreach($data["annotations"] as $annotation){
     several minutes for our servers to carry out the annotation, so be patient!
     </p>
 
-    <!-- File upload. -->
+    <!-- Run annotation. -->
     <!-- Button trigger modal -->
     <button type="button" class="btn btn-primary btn-md automatic-annotation-button" 
         data-toggle="modal" data-target="#automatic-annotation-modal">
@@ -78,8 +78,18 @@ foreach($data["annotations"] as $annotation){
                         <div class="radio">
                             <label>
                                 <input type="radio" name="method" value="booknlp"/>
-                                BookNLP (meant for books; entity annotations only)
+                                BookNLP (entity annotations only)
                             </label>
+                        </div>
+                        <hr/>
+                        <div class="radio">
+                            <label>
+                                <input type="radio" name="method" value="booknlp+tie-window"/>
+                                BookNLP + window-based tie extraction (entity and tie annotations)
+                            </label>
+                            <div>
+                                <label>Window size: <input type="number" name="n" value="30"/></label>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
