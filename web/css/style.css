@@ -372,6 +372,10 @@ span.selectedEntity {
   margin-bottom: 4px;
 }
 
+.context-menu__item {
+    cursor: pointer;
+}
+
 .context-menu__item:last-child {
   margin-bottom: 0;
 }
@@ -387,4 +391,5 @@ span.selectedEntity {
   color: #fff;
   background-color: #0066aa;
   text-decoration: none;
+  cursor: pointer;
 }

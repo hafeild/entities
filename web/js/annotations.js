@@ -7,6 +7,9 @@ var annotationManager = null;
 var menuConfigData = {
 	textSpans: null,
 	newGroupId: null,
+    recentSelectedEntityId: null,
+    selectedEntities: [],
+    numSelectedEntities: 0,
 	numSelectedGroups: 0,
 };
 var menuOpen = 0;
@@ -94,7 +97,7 @@ var makeGroupChecklist = function(groupId, entities){
     var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
         entitiesSize = size(entities);
     for(entityId in entities){
-        list += `<input type="checkbox" data-id="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
+        list += `<input type="checkbox" class="group-checkbox" data-id="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
         if(i < entitiesSize-1){
             list += ', ';
         }
@@ -416,81 +419,59 @@ var highlightEntitiesInContent = function(locationKeys, $element){
     var i, j, location;
     for(i = 0; i < locationKeys.length; i++){
         location = annotation_data.annotation.locations[locationKeys[i]];
-        var entityGroupId = annotation_data.annotation.entities[location.entity_id].group_id;
-        for(j = location.start; j <= location.end; j++){
-            $element.find(`[data-token=${j}]`).
-                addClass(`g${entityGroupId}`). 
-                addClass('entity').
-                attr({
-                    'data-entity-id': location.entity_id,
-                    'data-group-id': entityGroupId
-                }).
-                // Wrap all entities in an invisible button
-                // Note: simply adding "onClick" to text is an ugly solution, hence the button wrap
-                wrap("<button class='annotated-entity'></button>");
-
+        if (annotation_data.annotation.entities[location.entity_id] !== undefined) {
+            var entityGroupId = annotation_data.annotation.entities[location.entity_id].group_id;
+            for(j = location.start; j <= location.end; j++){
+                $element.find(`[data-token=${j}]`).
+                    addClass(`g${entityGroupId}`). 
+                    addClass('entity').
+                    attr({
+                        'data-entity-id': location.entity_id,
+                        'data-group-id': entityGroupId
+                    }).
+                    // Wrap all entities in an invisible button
+                    // Note: simply adding "onClick" to text is an ugly solution, hence the button wrap
+                    wrap("<button class='annotated-entity'></button>");
+            }
         }
     }
 }
 
 var existingEntityClicked = function(event) {
-    // TODO
-    // Allow for multiple groups to be selected at once
-
     var clickedEntity = $(this).find('.entity');
-    var group = clickedEntity.attr('data-group-id');
+    var entityId = clickedEntity.attr('data-entity-id');
+
+    menuConfigData.recentSelectedEntityId = null;
 
     if (clickedEntity.hasClass('selectedEntity')) {
-    	menuConfigData.numSelectedGroups -= 1;
-        $('[data-group-id=' + group + ']').filter('span').each(function() {
-        	// Cannot use JQuery selector because entity isn't the only class
-            if ($(this).hasClass('entity')) {
-                $(this).removeClass('selectedEntity');
-            }
-        })
-        $('[data-id=' + group + ']').filter('li').each(function() {
-        	// Cannot use JQuery selector because group may not always be the only class
-        	if ($(this).hasClass('group')) {
-    	        $(this).click();
-    	        // Uncheck the checkbox
-    	        $(this).find('input').prop('checked', 0);
-        	}
-        })
+        deselectEntity(entityId);
+
+        $('[data-id=' + entityId + ']').filter('li').click();
+        // Uncheck the checkbox
+        $('[data-id=' + entityId + ']').filter('li').find('input').prop('checked', 0);
+
         return;
     }
 
-    menuConfigData.numSelectedGroups += 1;
+    selectEntity(entityId);
 
-	// Function to find every element in group
-	$('[data-group-id=' + group + ']').filter('span').each(function() {
-		// Cannot use JQuery selector because entity isn't the only class
-		if ($(this).hasClass('entity')) {
-			$(this).addClass('selectedEntity');
-		}
-	})
-    //  Find group in group list
-    $('[data-id=' + group + ']').filter('li').each(function() {
-    	// Cannot use JQuery selector because group may not always be the only class
-    	if ($(this).hasClass('group')) {
-	        $(this).click();
-	        // Check the checkbox
-	        $(this).find('input').prop('checked', 1);
-    	}
-    })
-
-    /*
-        TODO - INTELLIGENTLY POPULATE CONTEXT MENU FOR CLICKED ENTITIES
-    */
+    //  Find entity in group list
+    $('[data-id=' + entityId + ']').filter('li').click();
+    // Check the checkbox
+    $('[data-id=' + entityId + ']').filter('li').find('input').prop('checked', 1);
 
     var contextMenuOptions = [];
     var optionNumber = 0;
 
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='deleteEntityOption' class='context-menu__link'><i>Delete Entity</i></a></li>";
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='deleteGroupOption' class='context-menu__link'><i>Delete Group</i></a></li>";
-    if (menuConfigData.numSelectedGroups > 1) {
-    	contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='combineSelectedGroupsOption' class='context-menu__link'><i>Combine Selected Groups</i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link deleteEntityOption'><i>Delete Entity</i></a></li>";
+    if (menuConfigData.numSelectedEntities > 1) {
+        contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link deletedSelectedEntitiesOption'><i>Delete Selected Entities</i></a></li>";
     }
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='combineGroupsOption' class='context-menu__link'><i>Combine Group with \></i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link deleteGroupOption'><i>Delete Group</i></a></li>";
+    if (menuConfigData.numSelectedGroups > 1) {
+    	contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link combineSelectedGroupsOption'><i>Combine Selected Groups</i></a></li>";
+    }
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link combineGroupsOption'><i>Combine Group with \></i></a></li>";
 
     openContextMenu(contextMenuOptions, clickedEntity);
 }
@@ -512,14 +493,13 @@ var checkSelectedText = function(event) {
     var contextMenuOptions = [];
     var optionNumber = 0;
 
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='addEntityOption' class='context-menu__link'><i>Add Entity</i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i>Add Entity</i></a></li>";
     // Add Tie menu HTML
     // TODO
     // MAKE MODULAR - SHOW LIST OF GROUPS TO MAKE TIE TO
     // END TODO
 
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a href='#' id='addTieOption' class='context-menu__link'><i>Add Tie \></i></a></li>";
-
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addTieOption'><i>Add Tie \></i></a></li>";
 
     menuConfigData.textSpans = textSpans;
     menuConfigData.newGroupID = newGroupID;
@@ -534,8 +514,26 @@ function getSelectedSpans() {
 	var spanCount = 0;
 
     sel = window.getSelection();
-    startSpan = sel.anchorNode.parentElement;
-    endSpan = sel.extentNode.parentElement;
+
+    if (sel.anchorNode.nodeValue.trim() == "") {
+        console.log("anchor");
+        startSpan = sel.anchorNode.previousSibling;
+    } else {
+        startSpan = sel.anchorNode.parentElement;
+    }
+    if (sel.focusNode.nodeValue.trim() == "") {
+        console.log("focus");
+        endSpan = sel.focusNode.previousSibling;
+    } else {
+        endSpan = sel.focusNode.parentElement;
+    }
+
+    if (Number($(startSpan).attr('data-token')) > Number($(endSpan).attr('data-token'))) {
+
+    	var temp = startSpan;
+    	startSpan = endSpan;
+    	endSpan = temp;
+    } 
 
     var current;
     // for every <span> in text area
@@ -572,54 +570,12 @@ var deselectAllText = function() {
 	// maybe do some more stuff here later
 }
 
-var contextOptionClicked = function () {
-	closeContextMenu();
-
-	var addEntityFromSelection = function() {
-		console.log("In addEntityFromSelection");
-	}
-	var addTieFromSelection = function() {
-		console.log("In addTieFromSelection");
-	}
-	var combineSelectedEntities = function() {
-		console.log("In combineSelectedEntities");
-	}
-	var combineSelectedGroups = function() {
-		console.log("in combineSelectedGroups");
-	}
-	var deleteSelectedEntity = function() {
-		console.log("in deleteSelectedEntity");
-	}
-	var deleteSelectedGroup = function() {
-		console.log("In deleteSelectedGroup");
-	}
-	var deleteSelectedTie = function() {
-		console.log("In deleteSelectedTie");
-	}
-
-	menuConfigData = {};
-}
-
-//////  NOT USED.
-//////  FOR REFERENCE ONLY
-
-var addGroupFromSelected = function() {
-    // create new annotation_data group
-    var entities = {};
-    for (var i = 0; i < textSpans.length; i++) {
-        entities[i] = {
-            group_id: menuConfigData.newGroupID,
-            name: menuConfigData.textSpans[i].innerHTML
-        }
+var groupListCheckboxClicked = function() {
+    if ($(this).is(":checked")) {
+        selectEntity($(this).attr("data-id"));
+    } else {
+        deselectEntity($(this).attr("data-id"));
     }
-
-    // append new annotation_data group
-    annotation_data.annotation.groups[newGroupID] = {
-        name: menuConfigData.textSpans[0].innerHTML,
-        entities
-    };
-
-    console.log(annotation_data.annotation.groups);
 }
 
 var openContextMenu = function(options, clickedEntity) {
@@ -654,14 +610,15 @@ var openContextMenu = function(options, clickedEntity) {
         var menuHeight = menu.offsetHeight;
 
         return false;
-
     } else {
         closeContextMenu();
+        return;
     }
 }
 
 var closeContextMenu = function() {
-	if (window.getSelection() == "" && !($(event.target).hasClass('entity'))) {
+	if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
+									   !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
 		menuOpen = 0;
 		menu.classList.remove("context-menu--active");
 
@@ -685,6 +642,109 @@ function getPositionForMenu(e, clickedEntity) {
 		y: offset.top + clickedEntity.parent().height(),
 		x: offset.left + clickedEntity.parent().width()
 	}
+}
+
+function selectEntity(entityId) {
+    menuConfigData.numSelectedEntities++;
+    menuConfigData.recentSelectedEntityId = entityId;
+    menuConfigData.selectedEntities.push(entityId);
+
+
+    // Function to find every token in entity
+    $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
+        // Cannot use JQuery selector because entity isn't the only class
+        if ($(this).hasClass('entity')) {
+            $(this).addClass('selectedEntity');
+        }
+    })
+}
+
+function deselectEntity(entityId) {
+    // Remove entity from selection list
+    menuConfigData.numSelectedEntities--;
+    menuConfigData.selectedEntities.splice(menuConfigData.selectedEntities.indexOf(entityId), 1);
+    $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
+        // Cannot use JQuery selector because entity isn't the only class
+        if ($(this).hasClass('entity')) {
+            $(this).removeClass('selectedEntity');
+        }
+    })
+
+    menuConfigData.recentSelectedEntityId = null;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// MANUAL ANNOTATION MANIPULATION FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+var addEntityFromSelection = function() {
+	closeContextMenu();
+	console.log("In addEntityFromSelection");
+
+	var spans = menuConfigData.textSpans;
+    var name = "";
+
+    spans.forEach(s => {
+        name += s.innerHTML + " ";
+    })
+    name -= " ";
+
+	// addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
+	var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null, null);
+
+    menuConfigData.textSpans = null;
+
+    window.location.reload(true);
+}
+
+var addTieFromSelection = function() {
+	console.log("In addTieFromSelection");
+}
+
+var combineSelectedEntities = function() {
+	console.log("In combineSelectedEntities");
+}
+
+var combineSelectedGroups = function() {
+	console.log("in combineSelectedGroups");
+}
+
+var deleteSelectedEntity = function() {
+	console.log("in deleteSelectedEntity");
+
+    var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, null);
+    menuConfigData.recentSelectedEntityId = null;
+    menuConfigData.numSelectedEntities--;
+
+    window.location.reload(true);
+}
+
+var deleteSelectedEntities = function() {
+    console.log("in deleteSelectedEntities");
+
+    // Get entity ids without the "ID-1" or "ID-2"
+    menuConfigData.selectedEntities.forEach(s => {
+        if (s.includes('-')) {
+            s = s.match(/.+?(?=-)/)[0];
+        }        
+        s = Number(s);
+        console.log(s);
+    });
+
+    var entityId = annotationManager.removeEntities(menuConfigData.selectedEntities, null);
+    menuConfigData.selectedEntity = null;
+    menuConfigData.selectedEntities = [];
+    menuConfigData.numSelectedEntities--;
+
+    window.location.reload(true);
+}
+
+var deleteSelectedGroup = function() {
+	console.log("In deleteSelectedGroup");
+}
+
+var deleteSelectedTie = function() {
+	console.log("In deleteSelectedTie");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -765,6 +825,7 @@ $(document).ready(function(){
     $(document).on('click', '.group .select-all', selectAllInGroup);
     $(document).on('click', '#group-selected', groupSelected);
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
+    $(document).on('click', 'input.group-checkbox', groupListCheckboxClicked);
 
     
     // Manual Annotation
@@ -788,13 +849,14 @@ $(document).ready(function(){
     	closeContextMenu();
     });
 
+
     // Context Menu Options
-    $('#addEntityOption').on('click', contextOptionClicked.addEntityFromSelection);
-    $('#deleteEntityOption').on('click', contextOptionClicked.deleteSelectedEntity);
-    $('#deleteGroupOption').on('click', contextOptionClicked.deleteSelectedGroup);
+    $('body').on('click', '.addEntityOption', addEntityFromSelection);
+    $('body').on('click', '.deleteEntityOption', deleteSelectedEntity);
+    $('body').on('click', '.deletedSelectedEntitiesOption', deleteSelectedEntities);
+    $('body').on('click', '.deleteGroupOption', deleteSelectedGroup);
 
-    $('#addTieOption').on('click', contextOptionClicked.addTieFromSelection);
-
+    $('body').on('click', '.addTieOption', addTieFromSelection);
 
 
     // Autofocus the first input of a modal.

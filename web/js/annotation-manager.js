@@ -202,7 +202,7 @@ var AnnotationManager = function(annotation_data){
      * 
      * @return The id of the entity.
      */
-    this.addEntity = function(name, startingOfset, endingOffset, groupId, callback) {
+    this.addEntity = function(name, startingOffset, endingOffset, groupId, callback) {
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var entityId = (++annotation.last_entity_id)+'';
         changes.last_entity_id = annotation.last_entity_id;
@@ -221,7 +221,7 @@ var AnnotationManager = function(annotation_data){
             };
 
             // Mark changes.
-            changes.last_group_id = newGroupId;
+            changes.last_group_id = groupId;
             changes.groups[groupId] = {name: name};
         }
 
@@ -823,7 +823,7 @@ var AnnotationManager = function(annotation_data){
             url: `/json/annotations/${this.annotation_data.annotation_id}`,
             data: {_method: 'PATCH', data: JSON.stringify(changes)},
             success: function(response){
-                if(callback !== undefined){
+                if(callback !== undefined && callback !== null){
                     callback({
                         success: true, 
                         data: response
@@ -831,7 +831,7 @@ var AnnotationManager = function(annotation_data){
                 }
             },
             error: function(jqXHR, textStatus, errorThrown){
-                if(callback !== undefined){
+                if(callback !== undefined && callback !== null){
                     callback({
                         success: false, 
                         error: errorThrown, 
