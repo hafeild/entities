@@ -41,27 +41,39 @@
 
                         </div>
                         <div class="modal-body">
-                            <p>
-                                Select the type of fork you'd like to make.
-                            </p>
-                            <div class="radio">
+                            <div>
                                 <label>
-                                    <input type="radio" name="method" 
-                                        value="manual" checked/>
-                                    Basic fork (for further manual annotations)
+                                    Give your new fork a name
                                 </label>
+                                <input type="text" class="form-control"
+                                    name="label" placeholder="A descriptive name"/>
                             </div>
-                            <hr/>
-                            <div class="radio">
+                            <br/>
+                            <div>
                                 <label>
-                                    <input type="radio" name="method" 
-                                        value="tie-window"/>
-                                    Fork and extract ties (Window method)
+                                    Select the type of fork you'd like to make
                                 </label>
-                                <div>
-                                    <label>Window size: <input type="number" 
-                                        name="n" value="30"/></label>
-                                </div>
+                                <ul>
+                                    <div class="radio">
+                                        <label>
+                                            <input type="radio" name="method" 
+                                                value="manual" checked/>
+                                            Basic fork (for further manual annotations)
+                                        </label>
+                                    </div>
+                                    <hr/>
+                                    <div class="radio">
+                                        <label>
+                                            <input type="radio" name="method" 
+                                                value="tie-window"/>
+                                            Fork and extract ties (Window method)
+                                        </label>
+                                        <div>
+                                            <label>Window size: <input type="number" 
+                                                name="n" value="30"/></label>
+                                        </div>
+                                    </div>
+                                </ul>
                             </div>
                         </div>
                         <div class="modal-footer">

@@ -446,9 +446,7 @@ public class BookNLPProcessor extends Processor {
                     // log("Ended character location (NNP or Pronoun), processing...");
                     String entityId = curCharacterGroupId;
 
-                    // Add new character if POS is NN
-                    // if(NOUN_TYPES.contains(curCharacterPOS)){
-                    //if(curCharacterPOS.startsWith("NN")){
+                    // Add new character if not a pronoun.
                     if(!curCharacterNER.equals("O")){
                         // log("Found character (curCharacterPos == NNP)");
 
