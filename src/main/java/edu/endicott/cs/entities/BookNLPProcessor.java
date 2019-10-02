@@ -78,6 +78,7 @@ public class BookNLPProcessor extends Processor {
     private static final int TOKEN_ID_COLUMN = 2;
     private static final int ORIGINAL_WORD_COLUMN = 7;
     private static final int POS_COLUMN = 10;
+    private static final int NER_COLUMN = 11;
     private static final int CHARACTER_ID_COLUMN = 14;
     private static final int SUPERSENSE_COLUMN = 15;
 
@@ -87,12 +88,13 @@ public class BookNLPProcessor extends Processor {
     private static final String IDS_HTML_FILE_NAME = "ids.html";
     private static final String IDS_JSON_FILE_NAME = "ids.json";
 
-    private static final HashSet<String> NOUN_TYPES = new HashSet<String>();
-    static {
-        NOUN_TYPES.add("NNP");
-        NOUN_TYPES.add("NNPS");
-        NOUN_TYPES.add("NN");
-    }
+    // private static final HashSet<String> NOUN_TYPES = new HashSet<String>();
+    // static {
+    //     NOUN_TYPES.add("NNP");
+    //     NOUN_TYPES.add("NNPS");
+    //     NOUN_TYPES.add("NN");
+    //     NOUN_TYPES.add("NNS");
+    // }
 
     /**
      * Handles an incoming request. A request should consist of a single line
@@ -396,6 +398,7 @@ public class BookNLPProcessor extends Processor {
         String curCharacterText = null;
         String curCharacterGroupId = null;
         String curCharacterPOS = null;
+        String curCharacterNER = null;
         int curCharacterStartOffset = -1;
         int curCharacterEndOffset = -1;
 
@@ -443,8 +446,10 @@ public class BookNLPProcessor extends Processor {
                     // log("Ended character location (NNP or Pronoun), processing...");
                     String entityId = curCharacterGroupId;
 
-                    // Add new character if POS is NNP
-                    if(NOUN_TYPES.contains(curCharacterPOS)){
+                    // Add new character if POS is NN
+                    // if(NOUN_TYPES.contains(curCharacterPOS)){
+                    //if(curCharacterPOS.startsWith("NN")){
+                    if(!curCharacterNER.equals("O")){
                         // log("Found character (curCharacterPos == NNP)");
 
                         // Get entity id.
@@ -505,6 +510,7 @@ public class BookNLPProcessor extends Processor {
                     curCharacterEndOffset = 
                         Integer.parseInt(cols[TOKEN_ID_COLUMN]);
                     curCharacterPOS = cols[POS_COLUMN];
+                    curCharacterNER = cols[NER_COLUMN];
 
                 // Otherwise, mark that we're no longer processing an
                 // entity.

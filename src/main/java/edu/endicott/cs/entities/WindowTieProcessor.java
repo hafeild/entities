@@ -14,6 +14,8 @@ import java.sql.Timestamp;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import java.lang.NullPointerException;
+
 import edu.endicott.cs.entities.EntiTiesDatabase;
 import edu.endicott.cs.entities.annotations.Annotation;
 import edu.endicott.cs.entities.annotations.Tie;
@@ -104,6 +106,7 @@ public class WindowTieProcessor extends Processor {
             }
 
             // Get the annotation from the database.
+            logger.log("Fetching annotation "+ annotationId +" from database.");
             annotation = database.getAnnotation(annotationId);
             if(annotation == null){
                 error(socket.out, "Retrieved annotation (id = "+ annotationId +
@@ -113,18 +116,23 @@ public class WindowTieProcessor extends Processor {
 
             // Truncate existing ties if necessary.
             if(truncateExistingTies){
+                logger.log("Truncating annotation.");
                 annotation.truncateTies();
             }
 
             // Extract ties.
+            logger.log("Extracting ties with window size "+ n +".");
             extractTies(annotation, n);
 
             // Post the updated annotation.
-            if(!database.postAnnotation(annotationId, annotation.toString()))
+            logger.log("Posting updated annotation to database.");
+            if(!database.postAnnotation(annotationId, annotation.toString())){
                 logger.log("Error: unable to post annotation to database.");
-            else
+            } else {
                 completedSuccessfully = true;
-
+                socket.println("success");
+                socket.close();
+            }
         } catch (SQLException e) {
             logger.log("Problems connecting to the database.");
             e.printStackTrace();
@@ -159,22 +167,42 @@ public class WindowTieProcessor extends Processor {
             }
             logger.log("Connection closed");
         }
+        if(completedSuccessfully)
+            logger.log("Completed successfully!");
+        else
+            logger.log("Tie extraction was unsuccessful.");
 
         return completedSuccessfully;
     }
 
+    /**
+     * Extracts ties between any pair of entities mentioned within n tokens
+     * of each other (inclusive). These are added to the list of ties in the 
+     * Annotation instance. The distance is computed from the first token of
+     * each entity.
+     * 
+     * @param annotation The annotation to extract ties from and update.
+     * @param n The window size, i.e., the maximum number of tokens between
+     *          two entity mentions for a tie to be extracted.
+     */
     public void extractTies(Annotation annotation, int n){
         for(Location loc1 : annotation.locations.values()){
             for(Location loc2 : annotation.locations.tailMap(loc1.id).values()){
-                if(loc2.start - loc1.start <= n &&
-                        annotation.entities.get(loc1.entityId).groupId != 
-                        annotation.entities.get(loc2.entityId).groupId) {
-                    Tie tie = new Tie();
-                    tie.start = loc1.start;
-                    tie.end = loc2.end;
-                    tie.sourceEntity.locationId = loc1.id;
-                    tie.targetEntity.locationId = loc2.id;
-                    annotation.addTie(tie);        
+                try{
+                    if(loc2.start - loc1.start <= n &&
+                            annotation.entities.get(loc1.entityId).groupId != 
+                            annotation.entities.get(loc2.entityId).groupId) {
+                        Tie tie = new Tie();
+                        tie.start = loc1.start;
+                        tie.end = loc2.end;
+                        tie.sourceEntity.locationId = loc1.id;
+                        tie.targetEntity.locationId = loc2.id;
+                        annotation.addTie(tie);        
+                    }
+                } catch(NullPointerException e){
+                    logger.log("NullPointerException processing Locations "+ 
+                        loc1.id +" (entity id: "+ loc1.entityId +") and "+ 
+                        loc2.id +" (entity id: "+ loc2.entityId +").");
                 }
             }
         }
