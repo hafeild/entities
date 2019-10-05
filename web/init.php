@@ -17,15 +17,71 @@ require_once("model.php");
 
 // Annotation methods and their associated labels.
 $validMethods = [
-    "manual"        => "", 
-    "booknlp"       => "BookNLP v1",
-    "unannotated"   => "Blank slate"
+    "manual"             => ["automatic" => false, "root_only" => false], 
+    "unannotated"        => ["automatic" => false, "root_only" => false],
+    "tie-window"         => ["automatic" => true,  "root_only" => false],
+    "booknlp"            => ["automatic" => true,  "root_only" => true],
+    "booknlp+tie-window" => ["automatic" => true,  "root_only" => true]
 ];
+
+function generateAnnotationLabel($method, $args){
+    $label = "";
+    if($method == "manual")
+        $label = $args["label"];
+    elseif($method == "booknlp")
+        $label = "BookNLP v1";
+    elseif($method == "booknlp+tie-window")
+        $label = "BookNLP v1 + Window-based Ties v1 (n=". 
+            htmlentities($args["n"]) . ")";
+    elseif($method == "unannotated")
+        $label = "Blank slate";
+    return $label;
+}
+
+function generateAnnotationMethodMetadata($method, $args){
+    // $data = [];
+    if($method == "manual")
+        $data = [];
+    elseif($method == "booknlp")
+        $data = [
+            "entity_extraction" => ["BookNLP", "1.0"]
+        ];
+    elseif($method == "booknlp+tie-window")
+        $data = [
+            "entity_extraction" => [
+                "algorithm" => "BookNLP", 
+                "version" => "1.0",
+                "parameters" => []
+            ],
+            "tie_extraction" => [
+                "algorithm" => "Window", 
+                "version" => "1.0", 
+                "parameters" => [
+                    "n" => htmlentities($args["n"])
+                ]
+            ]
+        ];
+    elseif($method == "tie-window")
+        $data = [
+            "tie_extraction" => [
+                "algorithm" => "Window", 
+                "version" => "1.0", 
+                "parameters" => [
+                    "n" => $args["n"]
+                ]
+            ]
+        ];
+    elseif($method == "unannotated")
+        $data = [];
+    return json_encode($data, JSON_FORCE_OBJECT);
+}
+
 
 // Supported text/annotation processors.
 $validProcessors = [
     "booknlp" => 1,
-    "token"   => 1
+    "token"   => 1,
+    "tie-window" => 1
 ];
 
 

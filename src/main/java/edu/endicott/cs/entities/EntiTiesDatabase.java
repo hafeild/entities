@@ -3,12 +3,16 @@ package edu.endicott.cs.entities;
 import java.util.HashMap;
 import java.util.Date;
 
+import org.json.simple.parser.ParseException;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+
+import edu.endicott.cs.entities.annotations.Annotation;
 
 public class EntiTiesDatabase {
     public static enum IdStatus {SUCCESS, ID_NOT_PRESENT, ID_ALREADY_PROCESSED,
@@ -180,6 +184,34 @@ public class EntiTiesDatabase {
         statement.setInt(3, annotationId);
 
         return statement.executeUpdate() == 1;
+    }
+
+    /**
+     * Reads an annotation from the database and wraps it as an Annotation.
+     * 
+     * @param annotationId The id of the annotaiton to fetch.
+     * @return The Annotation with the specified id.
+     * @throws SQLException
+     */
+    public Annotation getAnnotation(int annotationId) throws SQLException, 
+            ParseException {
+        try{
+            PreparedStatement statement = dbh.prepareStatement(
+                "select annotation from annotations where id = ?");
+            statement.setInt(1, annotationId);
+
+            ResultSet result = statement.executeQuery();
+            if(!result.next()){
+                logger.log("No annotation with id "+ annotationId +" found.");
+                return null;
+            }
+
+            return new Annotation(result.getString(1));
+
+        } catch (SQLException e) {
+            logger.log(e.toString());
+            return null;
+        }
     }
 
     /**

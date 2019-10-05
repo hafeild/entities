@@ -59,7 +59,7 @@ public class EntiTiesDispatcher extends Thread {
     /**
      * Handles incoming requests. Each request should be in the format:
      * 
-     *      PROCESSOR\tARGUMENTS\n
+     *      PROCESSOR\tARGUMENTS::::PROCESSOR\tARGUMENTS...\n
      * 
      * where PROCESSOR is one of the following and ARGUMENTS are 0 or more
      * arguments to the processor in the format required by the processor.
@@ -67,9 +67,15 @@ public class EntiTiesDispatcher extends Thread {
      * Processors:
      *      - booknlp (see BookNLPProcessor for arguments)
      *      - token (see TokenProcessor for arguments)
+     *      - tie-window (see WindowTieProcessor for arguments)
      * 
      * Requests are sent to the specified processor's `processRequest` method
      * to handle interacting with the client, including parsing arguments.
+     * 
+     * Additional PROCESSOR\tARGUMENTS pairs will be processed in the order
+     * listed, but only if the previous processor completed successfully. This
+     * is helpful if you would like to chain processes together. For example,
+     * you could run booknlp followed by tie-window.
      */
     public void run() {
         PrintWriter out = null;
@@ -79,33 +85,61 @@ public class EntiTiesDispatcher extends Thread {
             socket.initialize();
 
             // Reads the incoming request.
+            boolean lastStageSucceeded = false;
             String request = socket.readLine();
-            int firstDelimiterIndex = request.indexOf('\t');
-            String processorName = request.substring(0, firstDelimiterIndex);
-            String processorArgs = request.substring(firstDelimiterIndex+1);
+
+            int firstDelimiterIndex, i;
+            String processorName, processorArgs;
+            String requestStages[] = request.split("::::");
+
             logger.log("EntiTiesDispatcher: Message received:\t"+ request);
 
-            requestLogger =  logger.createRequestLogger(
-                "client "+ clientNumber +"\t"+ processorName +"\t");
-            database = new EntiTiesDatabase(dbSettings, requestLogger);
+            for(i = 0; i < requestStages.length; i++){
+                firstDelimiterIndex = requestStages[i].indexOf('\t');
+                processorName = requestStages[i].substring(
+                    0, firstDelimiterIndex);
+                processorArgs = requestStages[i].substring(
+                    firstDelimiterIndex+1);
 
-            requestLogger.log("This is a test from EntTiesDispatcher...");
+                logger.log("EntiTiesDispatcher: Processing stage "+ (i+1) +" of "+ 
+                    requestStages.length +"\t"+ processorName +"\t"+ processorArgs);
 
-            // BookNLP processing.
-            if(processorName.equals("booknlp")) {
-                new BookNLPProcessor().processRequest(
-                    socket, processorArgs, requestLogger, database);
+                requestLogger =  logger.createRequestLogger(
+                    "client "+ clientNumber +"\t"+ processorName +"\t"+ 
+                    "stage "+ (i+1) +" of "+ requestStages.length +"\t");
+                database = new EntiTiesDatabase(dbSettings, requestLogger);
 
-            // Simple tokenization.
-            } else if(processorName.equals("token")) {
-                new TokenProcessor().processRequest(
-                    socket, processorArgs, requestLogger, database);
+                // BookNLP processing.
+                if(processorName.equals("booknlp")) {
+                    lastStageSucceeded = new BookNLPProcessor().processRequest(
+                        socket, processorArgs, requestLogger, database);
 
-            } else {
-                error(socket.out, "Error: Unrecognized processor '"+ processorName +
-                    "'. Valid processors: booknlp, token.");
-                return;
+                // Simple tokenization.
+                } else if(processorName.equals("token")) {
+                    lastStageSucceeded = new TokenProcessor().processRequest(
+                        socket, processorArgs, requestLogger, database);
+
+                // Window-base tie extraction.
+                } else if(processorName.equals("tie-window")) {
+                    lastStageSucceeded = new WindowTieProcessor().processRequest(
+                        socket, processorArgs, requestLogger, database);
+
+                } else {
+                    error(socket.out, "EntiTiesDispatcher: Error: "+
+                        "Unrecognized processor '"+ processorName +
+                        "'. Valid processors: booknlp, token.");
+                    lastStageSucceeded = false;
+                }
+
+                if(!lastStageSucceeded)
+                    break;
             }
+
+            if(!lastStageSucceeded)
+                error(socket.out, 
+                    "EntiTiesDispatcher: "+ i +" of "+ requestStages.length + 
+                    " stages successfully completed.");
+            
 
         } catch (Exception e) {
             if(!socket.socket.isOutputShutdown() && socket.out != null)
