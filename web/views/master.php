@@ -86,6 +86,15 @@ global $user;
         </li>
       </ul>
     </nav>
+    <nav class="context-menu-extend">
+        <ul class="context-menu_items">
+          <li class="context-menu__item">
+            <a href="#" class="context-menu__link">
+            </a>
+          </li>
+        </ul>
+    </nav>
+
 
 </body>
 </html>
