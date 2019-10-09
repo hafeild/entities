@@ -86,8 +86,8 @@ global $user;
         </li>
       </ul>
     </nav>
-    <nav class="context-menu-extend">
-        <ul class="context-menu_items">
+    <nav class="context-menu-hover">
+        <ul class="context-menu__items">
           <li class="context-menu__item">
             <a href="#" class="context-menu__link">
             </a>
@@ -95,6 +95,76 @@ global $user;
         </ul>
     </nav>
 
+
+    <!-- Group Name Change Modal -->
+      <div class="modal fade" id="changeGroupNameModal" role="dialog">
+        <div class="modal-dialog">
+        
+          <!-- Group Name Change Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" id="changeGroupNameModalClose" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Change Group Name</h4>
+            </div>
+            <div class="modal-body">
+              <input name="newGroupNameBox" placeholder="Enter a new group name" type="text" maxlength="512" id="newGroupNameBox"/>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="confirmGroupNameChange" data-dismiss="modal">Confirm</button>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+    <!-- Group Selector Modal -->
+      <div class="modal fade" id="groupSelectorModal" role="dialog">
+        <div class="modal-dialog">
+        
+          <!-- Group Selector Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" id="groupSelectorModalClose" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Move Entity to Group</h4>
+            </div>
+            <div class="modal-body" id="groupSelectorModal-body">
+              <ul id='groupSelectorChecklist'>
+              </ul>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="confirmGroupSelect" data-dismiss="modal">Confirm</button>
+            </div>
+          </div>
+          
+        </div>
+      </div>  
+
+    <!-- Tie Selector Modal -->
+      <div class="modal fade" id="tieSelectorModal" role="dialog">
+        <div class="modal-dialog">
+        
+          <!-- Tie Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Create a tie between two groups</h4>
+            </div>
+            <div class="modal-body" id="tieSelectorModal-body">
+              <!--
+                TODO
+              -->
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="confirmTieSelection" data-dismiss="modal">Confirm</button>
+            </div>
+          </div>
+          
+        </div>
+      </div>  
+
+      <!-- hidden buttons that allows for the bootstrap modal to open -->
+      <button class="hidden-modal-button" id="changeGroupnameModalOpener" data-toggle="modal" data-target="#changeGroupNameModal">
+      <button class="hidden-modal-button" id="groupSelectorModalOpener" data-toggle="modal" data-target="#groupSelectorModal">
 
 </body>
 </html>

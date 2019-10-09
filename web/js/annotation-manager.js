@@ -384,8 +384,8 @@ var AnnotationManager = function(annotation_data){
     /**
      * Alias for moveEntitiesToGroup([entityId], groupId, callback).
      */
-    this.moveEntityToGroup = function(entityId, groupId, callback){
-        this.moveEntitiesToGroup([entityId], groupId, callback);
+    this.moveEntityToGroup = function(entityId, group_id, callback){
+        this.moveEntitiesToGroup([entityId], group_id, callback);
     };
 
     /**
@@ -404,7 +404,7 @@ var AnnotationManager = function(annotation_data){
      *                                 * jqXHR
      *                                 * textStatus
      */
-    this.moveEntitiesToGroup = function(entityIds, groupId, callback){
+    this.moveEntitiesToGroup = function(entityIds, group_id, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var i, entityId, entity;
         var newGroup = this.groups[group_id];
@@ -428,7 +428,7 @@ var AnnotationManager = function(annotation_data){
             newGroup.entities[entityId] = entity;
 
             // Mark the change.
-            changes.entities[entityId].group_id = group_id;
+            changes.entities[entityId] = {group_id: group_id};
         }
 
         // Sync with server.

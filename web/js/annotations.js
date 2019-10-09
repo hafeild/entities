@@ -7,9 +7,11 @@ var annotationManager = null;
 var menuConfigData = {
 	textSpans: null,
 	newGroupId: null,
-    recentSelectedEntityId: null,
-    selectedEntities: [],
-    numSelectedEntities: 0,
+	recentSelectedEntityId: null,
+	recentSelectedEntity: null,
+	selectedEntities: [],
+	numSelectedEntities: 0,
+	selectedGroups: [],
 	numSelectedGroups: 0,
 };
 var menuOpen = 0;
@@ -17,56 +19,56 @@ var menu;
 var mouseClicked = 0;
 
 var getTexts = function(){
-    $.get({
-        url: 'json/texts',
-        success: function(data){
-            $('#response').html(JSON.stringify(data, null, 4));
+	$.get({
+		url: 'json/texts',
+		success: function(data){
+			$('#response').html(JSON.stringify(data, null, 4));
 
-            if(data.success){
-                var textListDiv = $('#text-list');
-                var textListElm = $('<ul>');
-                textListDiv.html('');
-                textListDiv.append(textListElm);
-                
-                var i;
-                for(i = 0; i < data.texts.length; i++){
-                    var text = data.texts[i];
-                    textListElm.append('<li>'+
-                        '<a href="#" class="onpage" data-id="'+ text.id +'">'+
-                        text.title +'</a> (processed: '+ 
-                        ((text.processed+'' == '1') ? 'yes' : 'no') +')'+
-                        '</li>');
-                }
-            }
-        }
-    });
+			if(data.success){
+				var textListDiv = $('#text-list');
+				var textListElm = $('<ul>');
+				textListDiv.html('');
+				textListDiv.append(textListElm);
+
+				var i;
+				for(i = 0; i < data.texts.length; i++){
+					var text = data.texts[i];
+					textListElm.append('<li>'+
+						'<a href="#" class="onpage" data-id="'+ text.id +'">'+
+						text.title +'</a> (processed: '+ 
+						((text.processed+'' == '1') ? 'yes' : 'no') +')'+
+						'</li>');
+				}
+			}
+		}
+	});
 };
 
 var upload = function(event){
-    console.log('Uploading form data...');
+	console.log('Uploading form data...');
 
-    $.post({
-        url: 'json/texts', 
-        data: new FormData($('#file-upload-form')[0]),
-        success: function(data){
-            $('#response').html(JSON.stringify(data, null, 4));
+	$.post({
+		url: 'json/texts', 
+		data: new FormData($('#file-upload-form')[0]),
+		success: function(data){
+			$('#response').html(JSON.stringify(data, null, 4));
 
-            console.log(data.success, data.additional_data.id !== undefined);
+			console.log(data.success, data.additional_data.id !== undefined);
             // Keep fetching info about the book until it says that
             // it's been processed.
             if(data.success || data.additional_data.id !== undefined){
-                pollTextStatus(data.additional_data.id);
+            	pollTextStatus(data.additional_data.id);
             }
         },
         error: function(jqXHR, textStatus, errorThrown){
-            $('#response').html('ERROR: '+ errorThrown);
+        	$('#response').html('ERROR: '+ errorThrown);
         },
         dataType: 'json',
         processData: false,
         contentType: false
     });
 
-    event.preventDefault();
+	event.preventDefault();
 };
 
 var displayAnnotation = function(){
@@ -77,37 +79,37 @@ var displayAnnotation = function(){
     var charListOuterElm = $('#entity-list');
     var charListElm = $('<ul class="groups">');
     charListOuterElm.html(
-        '<button id="group-selected">Group selected</button> ');
+    	'<button id="group-selected">Group selected</button> ');
     charListOuterElm.append(charListElm);
 
 
     for(groupId in annotationManager.groups){
-        var group = annotationManager.groups[groupId];
-        charListElm.append(makeGroupChecklist(groupId, group.entities));
+    	var group = annotationManager.groups[groupId];
+    	charListElm.append(makeGroupChecklist(groupId, group.entities));
     }
 };
 
 var size = function(obj){
-    var s = 0;
-    for(var x in obj) s++;
-    return s;
+	var s = 0;
+	for(var x in obj) s++;
+		return s;
 }
 
 var makeGroupChecklist = function(groupId, entities){
-    var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
-        entitiesSize = size(entities);
-    for(entityId in entities){
-        list += `<input type="checkbox" class="group-checkbox" data-id="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
-        if(i < entitiesSize-1){
-            list += ', ';
-        }
-        i++;
-    }
-    if(entitiesSize > 1){
-        list += ' <button class="select-all">[de]select all</button>';
-    }
-    list += '</li>';
-    return list;
+	var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
+	entitiesSize = size(entities);
+	for(entityId in entities){
+		list += `<input type="checkbox" class="group-checkbox" data-id="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
+		if(i < entitiesSize-1){
+			list += ', ';
+		}
+		i++;
+	}
+	if(entitiesSize > 1){
+		list += ' <button class="select-all">[de]select all</button>';
+	}
+	list += '</li>';
+	return list;
 };
 
 var groupSelected = function(){
@@ -117,7 +119,7 @@ var groupSelected = function(){
     var entityIds = []
     
     $('.groups input:checked').each(function(i, elm){
-        entityIds.push($(this).data('id'));
+    	entityIds.push($(this).data('id'));
     });
     
     annotationManager.groupEntities(entityIds);
@@ -129,74 +131,74 @@ var groupSelected = function(){
 
 
 var addAnnotation = function(){
-    if(currentTextId == null) return;
+	if(currentTextId == null) return;
 
-    console.log(`json/texts/${currentTextId}/annotations`);
+	console.log(`json/texts/${currentTextId}/annotations`);
 
-    $.post({
-        url: `json/texts/${currentTextId}/annotations`,
-        success: function(data){
-            console.log(data);
-            $('#response').html(JSON.stringify(data, null, 4));
-        },
-        error: function(jqXHR, textStatus, errorThrown){
-            console.log(errorThrown);
-            $('#response').html('ERROR: '+ errorThrown);
-        }
-    });
+	$.post({
+		url: `json/texts/${currentTextId}/annotations`,
+		success: function(data){
+			console.log(data);
+			$('#response').html(JSON.stringify(data, null, 4));
+		},
+		error: function(jqXHR, textStatus, errorThrown){
+			console.log(errorThrown);
+			$('#response').html('ERROR: '+ errorThrown);
+		}
+	});
 };
 
 var getAnnotations = function(){
-    console.log(`json/annotations`);
+	console.log(`json/annotations`);
 
-    $.get({
-        url: `json/annotations`,
-        success: function(data){
-            console.log(data);
-            $('#response').html(JSON.stringify(data, null, 4));
-            $('#annotation-list').html('');
-            var annotationList = $('<ul>');
-            annotationList.appendTo('#annotation-list');
-            if(data.success){
-                var i;
-                for(i = 0; i < data.annotations.length; i++){
-                    var a = data.annotations[i];
-                    $(`<li>(${a.annotation_id}) ${a.title} annotated by `+
-                      `${a.username} <button class="get-annotation" `+
-                      `data-id="${a.annotation_id}">load `+
-                      `annotation</button></li>`).appendTo(annotationList);
-                }
-            }
+	$.get({
+		url: `json/annotations`,
+		success: function(data){
+			console.log(data);
+			$('#response').html(JSON.stringify(data, null, 4));
+			$('#annotation-list').html('');
+			var annotationList = $('<ul>');
+			annotationList.appendTo('#annotation-list');
+			if(data.success){
+				var i;
+				for(i = 0; i < data.annotations.length; i++){
+					var a = data.annotations[i];
+					$(`<li>(${a.annotation_id}) ${a.title} annotated by `+
+						`${a.username} <button class="get-annotation" `+
+						`data-id="${a.annotation_id}">load `+
+						`annotation</button></li>`).appendTo(annotationList);
+				}
+			}
 
-        },
-        error: function(jqXHR, textStatus, errorThrown){
-            console.log(errorThrown);
-            $('#response').html('ERROR: '+ errorThrown);
-        }
-    });
+		},
+		error: function(jqXHR, textStatus, errorThrown){
+			console.log(errorThrown);
+			$('#response').html('ERROR: '+ errorThrown);
+		}
+	});
 };
 
 
 var selectAllInGroup = function(){
-    if($(this).siblings('input:checked').length > 0){
-        $(this).siblings('input').prop('checked', false);
-    } else {
-        $(this).siblings('input').prop('checked', true);
-    }
+	if($(this).siblings('input:checked').length > 0){
+		$(this).siblings('input').prop('checked', false);
+	} else {
+		$(this).siblings('input').prop('checked', true);
+	}
 };
 
 var loadText = function(){
-    pollTextStatus($(this).data('id'));
+	pollTextStatus($(this).data('id'));
 };
 
 var showPage = function(){
-    var page = window.location.hash;
-    if(page == "" || page == "#"){
-        page = "#texts";
-    }
+	var page = window.location.hash;
+	if(page == "" || page == "#"){
+		page = "#texts";
+	}
 
-    $('.page').hide();
-    $(`${page}.page`).show();
+	$('.page').hide();
+	$(`${page}.page`).show();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,7 +235,7 @@ var locationsByPages = [];
  *
  * Places listeners for when the content is scrolled and new content is needed.
  */
-var initializeTokenizedContent = function(){
+ var initializeTokenizedContent = function(){
     // Split into pages.
     contentPages = [];
     var pageStart = 0;
@@ -241,10 +243,10 @@ var initializeTokenizedContent = function(){
     var locationKey, i;
 
     while(tokenIndex < tokens.length){
-        if(tokenIndex === tokens.length-1 || 
-                tokens[tokenIndex][1].indexOf("\n") != -1) {
+    	if(tokenIndex === tokens.length-1 || 
+    		tokens[tokenIndex][1].indexOf("\n") != -1) {
 
-            contentPages.push([pageStart, tokenIndex, false]);
+    		contentPages.push([pageStart, tokenIndex, false]);
             // Initialize the list of locations for this page.
             locationsByPages.push([]); 
 
@@ -252,7 +254,7 @@ var initializeTokenizedContent = function(){
             tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
 
         } else if(tokenIndex === (pageStart + PAGE_SIZE + TOKEN_MARGIN)){
-            contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
+        	contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
             // Initialize the list of locations for this page.
             locationsByPages.push([]);
 
@@ -260,7 +262,7 @@ var initializeTokenizedContent = function(){
             tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
 
         } else {
-            tokenIndex++;
+        	tokenIndex++;
         }
     }
 
@@ -272,20 +274,20 @@ var initializeTokenizedContent = function(){
 
         // If a page isn't found, skip the location.
         if(pageIndexes[0] == -1 && pageIndexes[1] == -1){
-            continue;
+        	continue;
         }
 
         // Add the location key to each page that the location spans.
         for(i = pageIndexes[0]; i <= pageIndexes[1]; i++){
-                locationsByPages[i].push(locationKey);
+        	locationsByPages[i].push(locationKey);
         }
     }
 
     // Set listeners for when the end of a page is reached.
     $('#text-panel').on('scroll', null, (event)=>{
-        elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
-            appendContentPage(currentPage+1);
-        });
+    	elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
+    		appendContentPage(currentPage+1);
+    	});
     });
 
     // Display the first page.
@@ -303,38 +305,38 @@ var initializeTokenizedContent = function(){
  * @return A 2-tuple containing the starting and ending indexes of the pages the
  *         given location spans, inclusive. If not found, [-1,-1] is returned.
  */
-var findPageWithLocation = function(location) {
-    var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
-    var firstPage, lastPage;
+ var findPageWithLocation = function(location) {
+ 	var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
+ 	var firstPage, lastPage;
 
-    while(max >= min && contentPages[mid] !== undefined){
-        var pageStart = contentPages[mid][START], 
-            pageEnd = contentPages[mid][END];
+ 	while(max >= min && contentPages[mid] !== undefined){
+ 		var pageStart = contentPages[mid][START], 
+ 		pageEnd = contentPages[mid][END];
 
-        if(location.start >= pageStart && location.start <= pageEnd ||
-           location.end >= pageStart && location.end <= pageEnd){
-        
-            firstPage = mid;
-            while(firstPage >= 0 && location.start >= contentPages[firstPage][START]){
-                firstPage--;
-            }
-            lastPage = mid;
-            while(lastPage < contentPages.length && location.end >= contentPages[lastPage][START]){
-                lastPage++;
-            }
+ 		if(location.start >= pageStart && location.start <= pageEnd ||
+ 			location.end >= pageStart && location.end <= pageEnd){
 
-            return [firstPage+1, lastPage-1];
-            
-        } else if(location.start > pageEnd) {
-            min = mid+1;
-            mid = Math.floor((min+max)/2);
-        } else {
-            max = mid-1;
-            mid = Math.floor((min+max)/2);
-        }
-    }
+ 			firstPage = mid;
+ 		while(firstPage >= 0 && location.start >= contentPages[firstPage][START]){
+ 			firstPage--;
+ 		}
+ 		lastPage = mid;
+ 		while(lastPage < contentPages.length && location.end >= contentPages[lastPage][START]){
+ 			lastPage++;
+ 		}
 
-    return [-1,-1];
+ 		return [firstPage+1, lastPage-1];
+
+ 	} else if(location.start > pageEnd) {
+ 		min = mid+1;
+ 		mid = Math.floor((min+max)/2);
+ 	} else {
+ 		max = mid-1;
+ 		mid = Math.floor((min+max)/2);
+ 	}
+ }
+
+ return [-1,-1];
 };
 
 /**
@@ -343,20 +345,20 @@ var findPageWithLocation = function(location) {
  * 
  * @param {integer} pageIndex The index of the page to append to the #text-panel.
  */
-var appendContentPage = function(pageIndex) {
-    if(contentPages[pageIndex][IS_DISPLAYED]) return;
+ var appendContentPage = function(pageIndex) {
+ 	if(contentPages[pageIndex][IS_DISPLAYED]) return;
 
-    var html = `<span data-page="${pageIndex}" class="content-page">`+ 
-        tokensToHTML(contentPages[pageIndex][START], 
-                     contentPages[pageIndex][END]
-        ) +'</span>';
-    contentPages[pageIndex][IS_DISPLAYED] = true;
+ 	var html = `<span data-page="${pageIndex}" class="content-page">`+ 
+ 	tokensToHTML(contentPages[pageIndex][START], 
+ 		contentPages[pageIndex][END]
+ 		) +'</span>';
+ 	contentPages[pageIndex][IS_DISPLAYED] = true;
 
-    currentPage = pageIndex;
+ 	currentPage = pageIndex;
 
-    var $newPageElm = $(html);
-    $('#end-marker').before($newPageElm);
-    
+ 	var $newPageElm = $(html);
+ 	$('#end-marker').before($newPageElm);
+
     // Highlight locations for this page.
     highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
 }
@@ -371,17 +373,17 @@ var appendContentPage = function(pageIndex) {
  * @param {integer} endIndex The index of the token at the end of the range.
  * @return The HTML of tokens in the given range.
  */
-var tokensToHTML = function(startIndex, endIndex) {
-    var html = "";
-    for(var i = startIndex; i <= endIndex; i++){
-        html += `<span data-token="${i}">`+ 
-            tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
-                         replace("<", "&lt;").
-                         replace(">", "&gt;") +
-            '</span>'+ tokens[i][WHITESPACE_AFTER];
-    }
-    return html;
-};
+ var tokensToHTML = function(startIndex, endIndex) {
+ 	var html = "";
+ 	for(var i = startIndex; i <= endIndex; i++){
+ 		html += `<span data-token="${i}">`+ 
+ 		tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
+ 		replace("<", "&lt;").
+ 		replace(">", "&gt;") +
+ 		'</span>'+ tokens[i][WHITESPACE_AFTER];
+ 	}
+ 	return html;
+ };
 
 /**
  * Tests if the given element is visible in the #text-panel element.
@@ -392,16 +394,16 @@ var tokensToHTML = function(startIndex, endIndex) {
  *                                   element is found. Should take a jQuery
  *                                   element (the match) as its only argument.
  */
-var elementIsVisibleInTextPanel = function(event, $element, onMatch){
-    var textPanelTop = 0;
-    var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
-    var elmScrollTop = $element.position().top;
-    var elmScrollBottom = elmScrollTop + $element.height();
-    if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
-        (elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
+ var elementIsVisibleInTextPanel = function(event, $element, onMatch){
+ 	var textPanelTop = 0;
+ 	var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
+ 	var elmScrollTop = $element.position().top;
+ 	var elmScrollBottom = elmScrollTop + $element.height();
+ 	if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
+ 		(elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
 
-        onMatch($element);
-    }
+ 		onMatch($element);
+ }
 }
 
 /**
@@ -412,67 +414,67 @@ var elementIsVisibleInTextPanel = function(event, $element, onMatch){
  *
  * @param {jQuery Element} The element to highlight entities in.
  */
-var highlightEntitiesInContent = function(locationKeys, $element){
+ var highlightEntitiesInContent = function(locationKeys, $element){
     // TODO
 
     // This is just to test things quick and dirty.
     var i, j, location;
     for(i = 0; i < locationKeys.length; i++){
-        location = annotation_data.annotation.locations[locationKeys[i]];
-        if (annotation_data.annotation.entities[location.entity_id] !== undefined) {
-            var entityGroupId = annotation_data.annotation.entities[location.entity_id].group_id;
-            for(j = location.start; j <= location.end; j++){
-                $element.find(`[data-token=${j}]`).
-                    addClass(`g${entityGroupId}`). 
-                    addClass('entity').
-                    attr({
-                        'data-entity-id': location.entity_id,
-                        'data-group-id': entityGroupId
-                    }).
+    	location = annotation_data.annotation.locations[locationKeys[i]];
+    	var entityGroupId = annotation_data.annotation.entities[location.entity_id].group_id;
+    	for(j = location.start; j <= location.end; j++){
+    		$element.find(`[data-token=${j}]`).
+    		addClass(`g${entityGroupId}`). 
+    		addClass('entity').
+    		attr({
+    			'data-entity-id': location.entity_id,
+    			'data-group-id': entityGroupId
+    		}).
                     // Wrap all entities in an invisible button
                     // Note: simply adding "onClick" to text is an ugly solution, hence the button wrap
                     wrap("<button class='annotated-entity'></button>");
-            }
         }
-    }
+   }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// MANUAL ANNOTATION MANIPULATION FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+
 var existingEntityClicked = function(event) {
-    var clickedEntity = $(this).find('.entity');
-    var entityId = clickedEntity.attr('data-entity-id');
+	var clickedEntity = $(this).find('.entity');
+	var entityId = clickedEntity.attr('data-entity-id');
+	var groupId = clickedEntity.attr('data-group-id');
 
-    menuConfigData.recentSelectedEntityId = null;
+	if (clickedEntity.hasClass('selectedEntity')) {
+		deselectEntity(entityId);
+		menuConfigData.selectedGroups.splice(menuConfigData.selectedGroups.indexOf(groupId), 1);
 
-    if (clickedEntity.hasClass('selectedEntity')) {
-        deselectEntity(entityId);
-
-        $('[data-id=' + entityId + ']').filter('li').click();
         // Uncheck the checkbox
-        $('[data-id=' + entityId + ']').filter('li').find('input').prop('checked', 0);
+        $('[data-id=' + groupId + ']').filter('li').find('input').filter('[data-id=' + entityId + ']').prop('checked', 0);
 
         return;
     }
 
     selectEntity(entityId);
+    menuConfigData.selectedGroups.push(groupId);
 
-    //  Find entity in group list
-    $('[data-id=' + entityId + ']').filter('li').click();
+    // Find entity in group list
     // Check the checkbox
-    $('[data-id=' + entityId + ']').filter('li').find('input').prop('checked', 1);
+    $('[data-id=' + groupId + ']').filter('li').find('input').filter('[data-id=' + entityId + ']').prop('checked', 1);
 
     var contextMenuOptions = [];
     var optionNumber = 0;
 
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link deleteEntityOption'><i>Delete Entity</i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisMentionHover'><a class='context-menu__link'><i>This Mention \></i></a></li>";
+	contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisEntityHover'><a class='context-menu__link'><i>This Entity \></i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisGroupHover'><a class='context-menu__link'><i>This Group \></i></a></li>";
     if (menuConfigData.numSelectedEntities > 1) {
-        contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link deletedSelectedEntitiesOption'><i>Delete Selected Entities</i></a></li>";
+		contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option selectedHover'><a class='context-menu__link'><i>Selected \></i></a></li>";
     }
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link deleteGroupOption'><i>Delete Group</i></a></li>";
-    if (menuConfigData.numSelectedGroups > 1) {
-    	contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link combineSelectedGroupsOption'><i>Combine Selected Groups</i></a></li>";
-    }
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link combineGroupsOption'><i>Combine Group with \></i></a></li>";
-
+	
     openContextMenu(contextMenuOptions, clickedEntity);
 }
 
@@ -488,7 +490,7 @@ var checkSelectedText = function(event) {
 	} 
 
     // get unused group ID
-	var newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
+    var newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
 
     var contextMenuOptions = [];
     var optionNumber = 0;
@@ -499,7 +501,7 @@ var checkSelectedText = function(event) {
     // MAKE MODULAR - SHOW LIST OF GROUPS TO MAKE TIE TO
     // END TODO
 
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addTieOption'><i>Add Tie \></i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addTieOption'><i>Add Tie</i></a></li>";
 
     menuConfigData.textSpans = textSpans;
     menuConfigData.newGroupID = newGroupID;
@@ -513,53 +515,54 @@ function getSelectedSpans() {
 	var spans = [];
 	var spanCount = 0;
 
-    sel = window.getSelection();
+	sel = window.getSelection();
+	console.log(sel.anchorNode.parentElement);
 
-    if (sel.anchorNode.nodeValue.trim() == "") {
-        console.log("anchor");
-        startSpan = sel.anchorNode.previousSibling;
-    } else {
-        startSpan = sel.anchorNode.parentElement;
-    }
-    if (sel.focusNode.nodeValue.trim() == "") {
-        console.log("focus");
-        endSpan = sel.focusNode.previousSibling;
-    } else {
-        endSpan = sel.focusNode.parentElement;
-    }
+	if (sel.anchorNode.nodeValue.trim() == "") {
+		console.log("anchor");
+		startSpan = sel.anchorNode.previousSibling;
+	} else {
+		startSpan = sel.anchorNode.parentElement;
+	}
+	if (sel.focusNode.nodeValue.trim() == "") {
+		console.log("focus");
+		endSpan = sel.focusNode.previousSibling;
+	} else {
+		endSpan = sel.focusNode.parentElement;
+	}
 
-    if (Number($(startSpan).attr('data-token')) > Number($(endSpan).attr('data-token'))) {
+	if (Number($(startSpan).attr('data-token')) > Number($(endSpan).attr('data-token'))) {
 
-    	var temp = startSpan;
-    	startSpan = endSpan;
-    	endSpan = temp;
-    } 
+		var temp = startSpan;
+		startSpan = endSpan;
+		endSpan = temp;
+	} 
 
-    var current;
+	var current;
     // for every <span> in text area
     $('.content-page').children('span').each(function() {
     	current = $(this)[0];
     	// if still searching for starting span
-		if (spanCount == 0) {
-			if (current === startSpan) {
+    	if (spanCount == 0) {
+    		if (current === startSpan) {
 				// add starting span
 				spans[spanCount] = startSpan;
 				spanCount++;
 			}
 		// if starting span has already been found
-		} else {
+	} else {
 			// if current is not last span selected
-    		if (!(current === endSpan)) {
-    			spans[spanCount] = current;
-    			spanCount++;
-    		}
+			if (!(current === endSpan)) {
+				spans[spanCount] = current;
+				spanCount++;
+			}
     		// if current IS last span selected
     		else {
     			spans[spanCount] = endSpan;
     			// quit each loop
     			return false;
     		}
-		}
+    	}
     });
 
     return spans;
@@ -571,35 +574,35 @@ var deselectAllText = function() {
 }
 
 var groupListCheckboxClicked = function() {
-    if ($(this).is(":checked")) {
-        selectEntity($(this).attr("data-id"));
-    } else {
-        deselectEntity($(this).attr("data-id"));
-    }
+	if ($(this).is(":checked")) {
+		selectEntity($(this).attr("data-id"));
+	} else {
+		deselectEntity($(this).attr("data-id"));
+	}
 }
 
 var openContextMenu = function(options, clickedEntity) {
-    if (options == null) return;
+	if (options == null) return;
 
-    var active = "context-menu--active";
+	var active = "context-menu--active";
 
-    $('.context-menu__items').empty();
-    var contextMenu = $('.context-menu__items');
+	$('.context-menu__items').empty();
+	var contextMenu = $('.context-menu__items');
 
     // add menu options to menu
     options.forEach(function(entry) {
-        contextMenu.html(contextMenu.html() + entry);
+    	contextMenu.html(contextMenu.html() + entry);
     });
 
     if (menuOpen !== 1) {
-        menuOpen = 1;
-        menu.classList.add(active);
-    
-        if (clickedEntity == null) {
-            var menuPosition = getPositionForMenu(event);
-        } else {
-            var menuPosition = getPositionForMenu(event, clickedEntity);
-        }
+    	menuOpen = 1;
+    	menu.classList.add(active);
+
+    	if (clickedEntity == null) {
+    		var menuPosition = getPositionForMenu(event);
+    	} else {
+    		var menuPosition = getPositionForMenu(event, clickedEntity);
+    	}
 
         // Coordinates
         menu.style.left = menuPosition.x + "px";
@@ -611,27 +614,77 @@ var openContextMenu = function(options, clickedEntity) {
 
         return false;
     } else {
-        closeContextMenu();
-        return;
+    	closeContextMenu();
+    	return;
     }
 }
 
 var closeContextMenu = function() {
 	if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
-									   !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
+		!($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
 		menuOpen = 0;
 		menu.classList.remove("context-menu--active");
 
-	    $('.context-menu__items').html("");
+		$('.context-menu__items').html("");
+
+		closeHoverMenu();
 	}
+}
+
+var openHoverMenu = function(e) {
+	var hoverOption = $(event.target).parent();
+	var hoverMenu = $('.context-menu-hover');
+	var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
+	var options = [];
+	var optionNumber = 0;
+
+	if (hoverOption.hasClass('thisMentionHover')) {
+	    options[optionNumber++] = "<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+	}
+	else if (hoverOption.hasClass('thisEntityHover')) {
+		options[optionNumber++] = "<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+		options[optionNumber++] = "<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>";
+	}
+	else if (hoverOption.hasClass('thisGroupHover')) {
+		options[optionNumber++] = "<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+		options[optionNumber++] = "<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>";
+	}
+	else if (hoverOption.hasClass('selectedHover')) {
+		if (menuConfigData.numSelectedEntities > 1) {
+			options[optionNumber++] = "<li class='context-menu__item groupEntitiesOption'><a class='context-menu__link'><i>Group Entites</i></a></li>";
+		}
+		if (menuConfigData.selectedGroups.length > 1) {
+			options[optionNumber++] = "<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i>Combine Groups Here</i></a></li>";
+		}
+	}
+
+	hoverMenuItems.empty();
+	options.forEach(function(entry) {
+		hoverMenuItems.html(hoverMenuItems.html() + entry);
+	});
+
+	// Coordinates
+	hoverMenu.css('left', parseInt(menu.style.left) + parseInt($(menu).css('width')));
+	hoverMenu.css('top', menu.style.top);
+
+	hoverMenu.addClass("context-menu--active");
+}
+
+var closeHoverMenu = function(e) {
+	var hoverMenu = $('.context-menu-hover');
+	var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
+
+	hoverMenuItems.empty();
+
+	hoverMenu.removeClass("context-menu--active");
 }
 
 function getPositionForMenu(e, clickedEntity) {
 	if (clickedEntity == null) {
 		// mouse position
 		return {
-		    y: e.clientY,
-		    x: e.clientX
+			y: e.clientY,
+			x: e.clientX
 		}
 	}
 
@@ -645,16 +698,15 @@ function getPositionForMenu(e, clickedEntity) {
 }
 
 function selectEntity(entityId) {
-    menuConfigData.numSelectedEntities++;
-    menuConfigData.recentSelectedEntityId = entityId;
-    menuConfigData.selectedEntities.push(entityId);
-
+	menuConfigData.numSelectedEntities++;
+	menuConfigData.recentSelectedEntityId = entityId;
+	menuConfigData.selectedEntities.push(entityId);
 
     // Function to find every token in entity
     $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
         // Cannot use JQuery selector because entity isn't the only class
         if ($(this).hasClass('entity')) {
-            $(this).addClass('selectedEntity');
+        	$(this).addClass('selectedEntity');
         }
     })
 }
@@ -663,42 +715,45 @@ function deselectEntity(entityId) {
     // Remove entity from selection list
     menuConfigData.numSelectedEntities--;
     menuConfigData.selectedEntities.splice(menuConfigData.selectedEntities.indexOf(entityId), 1);
+    menuConfigData.recentSelectedEntity = null;
+    menuConfigData.recentSelectedEntityId = null;
+
     $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
         // Cannot use JQuery selector because entity isn't the only class
         if ($(this).hasClass('entity')) {
-            $(this).removeClass('selectedEntity');
+        	$(this).removeClass('selectedEntity');
         }
-    })
-
-    menuConfigData.recentSelectedEntityId = null;
+    }) 
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// MANUAL ANNOTATION MANIPULATION FUNCTIONS
-////////////////////////////////////////////////////////////////////////////////
 
 var addEntityFromSelection = function() {
 	closeContextMenu();
 	console.log("In addEntityFromSelection");
 
 	var spans = menuConfigData.textSpans;
-    var name = "";
+	var name = "";
 
-    spans.forEach(s => {
-        name += s.innerHTML + " ";
-    })
-    name -= " ";
+	spans.forEach(s => {
+		name += s.innerHTML + " ";
+	})
+	name -= " ";
 
 	// addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
 	var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null, null);
 
-    menuConfigData.textSpans = null;
+	menuConfigData.textSpans = null;
 
-    window.location.reload(true);
+	window.location.reload(true);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// CONTEXT MENU FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
 
 var addTieFromSelection = function() {
 	console.log("In addTieFromSelection");
+
+
 }
 
 var combineSelectedEntities = function() {
@@ -706,45 +761,134 @@ var combineSelectedEntities = function() {
 }
 
 var combineSelectedGroups = function() {
-	console.log("in combineSelectedGroups");
+	console.log("In combineSelectedGroups");
+
+	if (menuConfigData.selectedGroups.length < 2) {
+		return;
+	}
+
+	var entities = [];
+	menuConfigData.selectedGroups.forEach(g => {
+		Object.keys(annotation_data.annotation.groups[g].entities).forEach(e => {
+			entities.push(e);
+		});
+	});
+
+	annotationManager.moveEntitiesToGroup(entities, menuConfigData.selectedGroups.pop(), null);
+
+	menuConfigData.selectedGroups = [];
+
+	// TEMPORARY
+	window.location.reload(true);
 }
 
 var deleteSelectedEntity = function() {
-	console.log("in deleteSelectedEntity");
+	console.log("In deleteSelectedEntity");
 
-    var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, null);
-    menuConfigData.recentSelectedEntityId = null;
-    menuConfigData.numSelectedEntities--;
+	var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, null);
+	menuConfigData.recentSelectedEntityId = null;
+	menuConfigData.numSelectedEntities--;
 
-    window.location.reload(true);
+	// TEMPORARY
+	window.location.reload(true);
 }
 
 var deleteSelectedEntities = function() {
-    console.log("in deleteSelectedEntities");
+	console.log("in deleteSelectedEntities");
 
     // Get entity ids without the "ID-1" or "ID-2"
+
+    //////////
+    // TEMPORARY
+    //////////
+
     menuConfigData.selectedEntities.forEach(s => {
-        if (s.includes('-')) {
-            s = s.match(/.+?(?=-)/)[0];
-        }        
-        s = Number(s);
-        console.log(s);
+    	if (s.includes('-')) {
+    		s = s.match(/.+?(?=-)/)[0];
+    	}        
+    	s = Number(s);
     });
 
     var entityId = annotationManager.removeEntities(menuConfigData.selectedEntities, null);
-    menuConfigData.selectedEntity = null;
-    menuConfigData.selectedEntities = [];
-    menuConfigData.numSelectedEntities--;
 
+    menuConfigData.recentSelectedEntityId = null;
+    menuConfigData.selectedEntities = [];
+    menuConfigData.numSelectedEntities = 0;
+
+    // TEMPORARY
     window.location.reload(true);
 }
 
 var deleteSelectedGroup = function() {
 	console.log("In deleteSelectedGroup");
+
+	// removeEntities(entityIds, callback);
+	annotationManager.removeEntities(Object.keys(annotation_data.annotation.groups[$(menuConfigData.recentSelectedEntity).attr('data-group-id')].entities), null);
+
+	// TEMPORARY
+	window.location.reload(true);
 }
 
 var deleteSelectedTie = function() {
 	console.log("In deleteSelectedTie");
+}
+
+var groupSelectedEntities = function() {
+	console.log("In groupSelectedEntities");
+
+	// groupEntities(entityIds, callback);
+	annotationManager.groupEntities(menuConfigData.selectedEntities, null);
+
+	menuConfigData.recentSelectedEntityId = null;
+	menuConfigData.selectedEntities = [];
+	menuConfigData.numSelectedEntities = 0;
+
+	// TEMPORARY
+	window.location.reload(true);
+}
+
+var openGroupSelectorModal = function() {
+	$('#groupSelectorChecklist').empty();
+	$('#groupSelectorModalOpener').click();
+
+	var groupRadios = "";
+	for(groupId in annotationManager.groups){
+		var list = `<li class="group unselectable" data-id="${groupId}">`;
+		list += `<input type="radio" name="groupChoices" class="group-checkbox" data-id="${groupId}" value="${groupId}"> <span class="g${groupId} unselectable">${annotationManager.groups[groupId].name}</span>`;
+		list += '</li>';
+
+		groupRadios += list;
+	}
+
+	$('#groupSelectorChecklist').append(groupRadios);
+}
+
+var confirmMoveEntityToGroup = function() {
+	console.log("In confirmMoveEntityToGroup");
+
+	if ($("input:radio[name='groupChoices']:checked").val() === undefined) {
+		return;
+	}
+
+	// moveEntityToGroup(entityId, groupId, callback);
+	annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, $("input:radio[name='groupChoices']:checked").val(), null);
+
+	// TEMPORARY
+	window.location.reload(true);
+}
+
+var openGroupNameChangeModal = function() {
+	$('#changeGroupnameModalOpener').click();
+}
+
+var confirmGroupNameChange = function() {
+	console.log("In confirmGroupNameChange");
+
+	// changeGroupName(groupId, name, callback);
+	annotationManager.changeGroupName($(menuConfigData.recentSelectedEntity).attr('data-group-id'), $('#newGroupNameBox').val(), null);
+
+	// TEMPORARY
+	window.location.reload(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -752,57 +896,57 @@ var deleteSelectedTie = function() {
 ////////////////////////////////////////////////////////////////////////////////
 
 var findTies = function(n){
-    console.log('Finding ties...');
-    mentions = [];
-    var i, j;
+	console.log('Finding ties...');
+	mentions = [];
+	var i, j;
 
-    function insertMention(locationId){
-        var location = annotation_data.annotation.locations[locationId];
-        var min = 0, max = mentions.length-1, mid = Math.floor((min+max)/2);
-        var insertIndex = 0;
+	function insertMention(locationId){
+		var location = annotation_data.annotation.locations[locationId];
+		var min = 0, max = mentions.length-1, mid = Math.floor((min+max)/2);
+		var insertIndex = 0;
 
-        while(min <= max){
-            insertIndex = mid;
+		while(min <= max){
+			insertIndex = mid;
 
-            if(mentions[mid][0] === location.start){
-                break;
-            } else if(mentions[mid][0] > location.start) {
-                max = mid-1;
-                mid = Math.floor((min+max)/2);
-            } else {
-                min = mid+1;
-                mid = Math.floor((min+max)/2);
-            }
-        }
-        if(insertIndex < mentions.length && 
-            mentions[insertIndex][0] < location.start){
-            insertIndex++;
-        }
+			if(mentions[mid][0] === location.start){
+				break;
+			} else if(mentions[mid][0] > location.start) {
+				max = mid-1;
+				mid = Math.floor((min+max)/2);
+			} else {
+				min = mid+1;
+				mid = Math.floor((min+max)/2);
+			}
+		}
+		if(insertIndex < mentions.length && 
+			mentions[insertIndex][0] < location.start){
+			insertIndex++;
+	}
 
-        mentions.splice(insertIndex, 0, 
-            [location.start, locationId, location.entity_id]);
-    }
+	mentions.splice(insertIndex, 0, 
+		[location.start, locationId, location.entity_id]);
+}
 
-    for(locationId in annotation_data.annotation.locations){
-        insertMention(locationId);
-    }
+for(locationId in annotation_data.annotation.locations){
+	insertMention(locationId);
+}
 
-    for(i = 0; i < mentions.length; i++){
-        for(j = i+1; j < mentions.length; j++){
-            if(mentions[j][0]-mentions[i][0] > n || 
-                annotation_data.annotation.entities[mentions[i][2]].group_id ===
-                annotation_data.annotation.entities[mentions[j][2]].group_id){
-                break;
-            }
-            annotation_data.annotation.ties.push({
-                weight: 1,
-                source_entity: {location_id: mentions[i][1]},
-                target_entity: {entity_id: mentions[j][2]}
-            });
-        }
-    }
+for(i = 0; i < mentions.length; i++){
+	for(j = i+1; j < mentions.length; j++){
+		if(mentions[j][0]-mentions[i][0] > n || 
+			annotation_data.annotation.entities[mentions[i][2]].group_id ===
+			annotation_data.annotation.entities[mentions[j][2]].group_id){
+			break;
+	}
+	annotation_data.annotation.ties.push({
+		weight: 1,
+		source_entity: {location_id: mentions[i][1]},
+		target_entity: {entity_id: mentions[j][2]}
+	});
+}
+}
 
-    console.log(`Found ${annotation_data.annotation.ties.length} ties!`);
+console.log(`Found ${annotation_data.annotation.ties.length} ties!`);
 };
 
 
@@ -825,7 +969,7 @@ $(document).ready(function(){
     $(document).on('click', '.group .select-all', selectAllInGroup);
     $(document).on('click', '#group-selected', groupSelected);
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
-    $(document).on('click', 'input.group-checkbox', groupListCheckboxClicked);
+    $(document).on('click', "#entity-list > ul.groups > li > input.group-checkbox", groupListCheckboxClicked);
 
     
     // Manual Annotation
@@ -851,18 +995,25 @@ $(document).ready(function(){
 
 
     // Context Menu Options
-    $('body').on('click', '.addEntityOption', addEntityFromSelection);
-    $('body').on('click', '.deleteEntityOption', deleteSelectedEntity);
-    $('body').on('click', '.deletedSelectedEntitiesOption', deleteSelectedEntities);
-    $('body').on('click', '.deleteGroupOption', deleteSelectedGroup);
+    $(document).on('click', '.addEntityOption', addEntityFromSelection);
+    $(document).on('click', '.deleteEntityOption', deleteSelectedEntity);
+    $(document).on('click', '.deletedSelectedEntitiesOption', deleteSelectedEntities);
+    $(document).on('click', '.deleteGroupOption', deleteSelectedGroup);
+    $(document).on('click', '.groupEntitiesOption', groupSelectedEntities);
+    $(document).on('click', '.combineSelectedGroupsOption', combineSelectedGroups);
+    $(document).on('click', '.changeGroupNameOption', openGroupNameChangeModal);
+    $(document).on('click', '#confirmGroupNameChange', confirmGroupNameChange);
+    $(document).on('click', '.moveEntityToGroupOption', openGroupSelectorModal)
+    $(document).on('click', '#confirmGroupSelect', confirmMoveEntityToGroup)
 
-    $('body').on('click', '.addTieOption', addTieFromSelection);
+    $(document).on('click', '.addTieOption', addTieFromSelection);
+
+    $(document).on('mouseenter', '.thisMentionHover', openHoverMenu);
+    $(document).on('mouseenter', '.thisEntityHover', openHoverMenu);
+    $(document).on('mouseenter', '.thisGroupHover', openHoverMenu);
+    $(document).on('mouseenter', '.selectedHover', openHoverMenu);
 
 
     // Autofocus the first input of a modal.
     $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
-
-
-
-
 });
