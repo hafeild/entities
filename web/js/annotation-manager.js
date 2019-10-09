@@ -73,7 +73,7 @@ var AnnotationManager = function(annotation_data){
     this.removeEntities = function(entityIds, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var i, tieId, tie, locationId, nodeEntity, node, 
-            nodes = ['source_entity', 'target_entity'];
+            nodes = {source_entity: 1, target_entity: 1};
 
         for(i = 0; i < entityIds.length; i++){
             var entityId = entityIds[i];
@@ -120,6 +120,8 @@ var AnnotationManager = function(annotation_data){
             delete this.entities[entityId];
             changes.entities[entityId] = "DELETE";
         }
+
+        console.log(changes);
 
         // Sync with the server.
         sendChangesToServer(changes, callback);
@@ -521,7 +523,7 @@ var AnnotationManager = function(annotation_data){
     this.removeMention = function(locationId){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var location, nodeEntity, node, 
-            nodes = ['source_entity', 'target_entity'];
+            nodes = {source_entity: 1, target_entity: 1};
 
         location = this.locations[locationId];
 
@@ -578,7 +580,7 @@ var AnnotationManager = function(annotation_data){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var fields = ['start', 'end', 'entity_id'],field;
         var location = this.locations[locationId];
-        var nodes = ['source_entity', 'target_entity'], node, nodeEntity;
+        var nodes = {source_entity: 1, target_entity: 1}, node, nodeEntity;
 
         // Update the fields.
         for(field in fields){
@@ -691,7 +693,7 @@ var AnnotationManager = function(annotation_data){
      */
     this.updateTie = function(tieId, updatedTie, callback, changes){
         var basicFields = ['start', 'end', 'label', 'weight', 'directed'],field;
-        var nodes = ['source_entity', 'target_entity'], node;
+        var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = this.ties[tieId];
 
         if(changes === undefined){
@@ -762,7 +764,7 @@ var AnnotationManager = function(annotation_data){
         var changes = {
             entities: {}, groups: {}, locations: {}, ties: {tieId: "DELETE"}
         };
-        var nodes = ['source_entity', 'target_entity'], node;
+        var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = this.ties[tieId];
 
         // Update the *_entity fields.
@@ -879,13 +881,16 @@ var AnnotationManager = function(annotation_data){
      * Adds a map of ties to corresponding location and entity entries.
      */
     var linkTiesToLocationsAndEntities = function(){
-        var tieId, nodes = ['source_entity', 'target_entity'];
+        var tieId, nodes = {source_entity: 1, target_entity: 1};
 
         for(tieId in this.ties){
             var tie = this.ties[tieId];
 
             for(node in nodes){
                 // Add the tie to the specified location's tie list.
+                if(tie[node] === undefined){
+                    console.log(tie);
+                }
                 if(tie[node].location_id !== undefined){
                     var location = this.locations[tie[node].location_id];
                     if(!location.ties){
@@ -919,6 +924,8 @@ var AnnotationManager = function(annotation_data){
      */
     var init = function(){
         linkEntitiesToGroups();
+        linkLocationsToEntities();
+        linkTiesToLocationsAndEntities();
     };
 
     init();
