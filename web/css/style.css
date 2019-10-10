@@ -311,14 +311,22 @@ button.annotated-entity {
 
 span.selectedEntity {
     border: 3px dashed #21303b;
-
-    /* don't ask */
-    margin-left: -1px;
-    margin-right: -1px;
+    border-left: none;
+    border-right: none;
 
     box-sizing:border-box;
     -moz-box-sizing:border-box;
     -webkit-box-sizing:border-box;
+}
+
+span.selectedEntity.start-token {
+    border-left: 3px dashed #21303b;
+    margin-left: -3px;
+}
+
+span.selectedEntity.end-token {
+    border-right: 3px dashed #21303b;
+    margin-right: -3px;
 }
 
 /* CONTEXT MENU */
@@ -404,4 +412,8 @@ span.selectedEntity {
 
 #newGroupNameBox {
     width: 100%;    
+}
+
+#text-panel .entity {
+    cursor: pointer;
 }

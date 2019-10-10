@@ -5,70 +5,70 @@ var annotationManager = null;
 
 // Context Menu
 var menuConfigData = {
-	textSpans: null,
-	newGroupId: null,
-	recentSelectedEntityId: null,
-	recentSelectedEntity: null,
-	selectedEntities: [],
-	numSelectedEntities: 0,
-	selectedGroups: [],
-	numSelectedGroups: 0,
+    textSpans: null,
+    newGroupId: null,
+    recentSelectedEntityId: null,
+    recentSelectedEntity: null,
+    selectedEntities: [],
+    numSelectedEntities: 0,
+    selectedGroups: [],
+    numSelectedGroups: 0,
 };
 var menuOpen = 0;
 var menu;
 var mouseClicked = 0;
 
 var getTexts = function(){
-	$.get({
-		url: 'json/texts',
-		success: function(data){
-			$('#response').html(JSON.stringify(data, null, 4));
+    $.get({
+        url: 'json/texts',
+        success: function(data){
+            $('#response').html(JSON.stringify(data, null, 4));
 
-			if(data.success){
-				var textListDiv = $('#text-list');
-				var textListElm = $('<ul>');
-				textListDiv.html('');
-				textListDiv.append(textListElm);
+            if(data.success){
+                var textListDiv = $('#text-list');
+                var textListElm = $('<ul>');
+                textListDiv.html('');
+                textListDiv.append(textListElm);
 
-				var i;
-				for(i = 0; i < data.texts.length; i++){
-					var text = data.texts[i];
-					textListElm.append('<li>'+
-						'<a href="#" class="onpage" data-id="'+ text.id +'">'+
-						text.title +'</a> (processed: '+ 
-						((text.processed+'' == '1') ? 'yes' : 'no') +')'+
-						'</li>');
-				}
-			}
-		}
-	});
+                var i;
+                for(i = 0; i < data.texts.length; i++){
+                    var text = data.texts[i];
+                    textListElm.append('<li>'+
+                        '<a href="#" class="onpage" data-id="'+ text.id +'">'+
+                        text.title +'</a> (processed: '+ 
+                        ((text.processed+'' == '1') ? 'yes' : 'no') +')'+
+                        '</li>');
+                }
+            }
+        }
+    });
 };
 
 var upload = function(event){
-	console.log('Uploading form data...');
+    console.log('Uploading form data...');
 
-	$.post({
-		url: 'json/texts', 
-		data: new FormData($('#file-upload-form')[0]),
-		success: function(data){
-			$('#response').html(JSON.stringify(data, null, 4));
+    $.post({
+        url: 'json/texts', 
+        data: new FormData($('#file-upload-form')[0]),
+        success: function(data){
+            $('#response').html(JSON.stringify(data, null, 4));
 
-			console.log(data.success, data.additional_data.id !== undefined);
+            console.log(data.success, data.additional_data.id !== undefined);
             // Keep fetching info about the book until it says that
             // it's been processed.
             if(data.success || data.additional_data.id !== undefined){
-            	pollTextStatus(data.additional_data.id);
+                pollTextStatus(data.additional_data.id);
             }
         },
         error: function(jqXHR, textStatus, errorThrown){
-        	$('#response').html('ERROR: '+ errorThrown);
+            $('#response').html('ERROR: '+ errorThrown);
         },
         dataType: 'json',
         processData: false,
         contentType: false
     });
 
-	event.preventDefault();
+    event.preventDefault();
 };
 
 var displayAnnotation = function(){
@@ -79,37 +79,37 @@ var displayAnnotation = function(){
     var charListOuterElm = $('#entity-list');
     var charListElm = $('<ul class="groups">');
     charListOuterElm.html(
-    	'<button id="group-selected">Group selected</button> ');
+        '<button id="group-selected">Group selected</button> ');
     charListOuterElm.append(charListElm);
 
 
     for(groupId in annotationManager.groups){
-    	var group = annotationManager.groups[groupId];
-    	charListElm.append(makeGroupChecklist(groupId, group.entities));
+        var group = annotationManager.groups[groupId];
+        charListElm.append(makeGroupChecklist(groupId, group.entities));
     }
 };
 
 var size = function(obj){
-	var s = 0;
-	for(var x in obj) s++;
-		return s;
+    var s = 0;
+    for(var x in obj) s++;
+        return s;
 }
 
 var makeGroupChecklist = function(groupId, entities){
-	var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
-	entitiesSize = size(entities);
-	for(entityId in entities){
-		list += `<input type="checkbox" class="group-checkbox" data-id="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
-		if(i < entitiesSize-1){
-			list += ', ';
-		}
-		i++;
-	}
-	if(entitiesSize > 1){
-		list += ' <button class="select-all">[de]select all</button>';
-	}
-	list += '</li>';
-	return list;
+    var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
+    entitiesSize = size(entities);
+    for(entityId in entities){
+        list += `<input type="checkbox" class="group-checkbox" data-id="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
+        if(i < entitiesSize-1){
+            list += ', ';
+        }
+        i++;
+    }
+    if(entitiesSize > 1){
+        list += ' <button class="select-all">[de]select all</button>';
+    }
+    list += '</li>';
+    return list;
 };
 
 var groupSelected = function(){
@@ -119,7 +119,7 @@ var groupSelected = function(){
     var entityIds = []
     
     $('.groups input:checked').each(function(i, elm){
-    	entityIds.push($(this).data('id'));
+        entityIds.push($(this).data('id'));
     });
     
     annotationManager.groupEntities(entityIds);
@@ -131,74 +131,74 @@ var groupSelected = function(){
 
 
 var addAnnotation = function(){
-	if(currentTextId == null) return;
+    if(currentTextId == null) return;
 
-	console.log(`json/texts/${currentTextId}/annotations`);
+    console.log(`json/texts/${currentTextId}/annotations`);
 
-	$.post({
-		url: `json/texts/${currentTextId}/annotations`,
-		success: function(data){
-			console.log(data);
-			$('#response').html(JSON.stringify(data, null, 4));
-		},
-		error: function(jqXHR, textStatus, errorThrown){
-			console.log(errorThrown);
-			$('#response').html('ERROR: '+ errorThrown);
-		}
-	});
+    $.post({
+        url: `json/texts/${currentTextId}/annotations`,
+        success: function(data){
+            console.log(data);
+            $('#response').html(JSON.stringify(data, null, 4));
+        },
+        error: function(jqXHR, textStatus, errorThrown){
+            console.log(errorThrown);
+            $('#response').html('ERROR: '+ errorThrown);
+        }
+    });
 };
 
 var getAnnotations = function(){
-	console.log(`json/annotations`);
+    console.log(`json/annotations`);
 
-	$.get({
-		url: `json/annotations`,
-		success: function(data){
-			console.log(data);
-			$('#response').html(JSON.stringify(data, null, 4));
-			$('#annotation-list').html('');
-			var annotationList = $('<ul>');
-			annotationList.appendTo('#annotation-list');
-			if(data.success){
-				var i;
-				for(i = 0; i < data.annotations.length; i++){
-					var a = data.annotations[i];
-					$(`<li>(${a.annotation_id}) ${a.title} annotated by `+
-						`${a.username} <button class="get-annotation" `+
-						`data-id="${a.annotation_id}">load `+
-						`annotation</button></li>`).appendTo(annotationList);
-				}
-			}
+    $.get({
+        url: `json/annotations`,
+        success: function(data){
+            console.log(data);
+            $('#response').html(JSON.stringify(data, null, 4));
+            $('#annotation-list').html('');
+            var annotationList = $('<ul>');
+            annotationList.appendTo('#annotation-list');
+            if(data.success){
+                var i;
+                for(i = 0; i < data.annotations.length; i++){
+                    var a = data.annotations[i];
+                    $(`<li>(${a.annotation_id}) ${a.title} annotated by `+
+                        `${a.username} <button class="get-annotation" `+
+                        `data-id="${a.annotation_id}">load `+
+                        `annotation</button></li>`).appendTo(annotationList);
+                }
+            }
 
-		},
-		error: function(jqXHR, textStatus, errorThrown){
-			console.log(errorThrown);
-			$('#response').html('ERROR: '+ errorThrown);
-		}
-	});
+        },
+        error: function(jqXHR, textStatus, errorThrown){
+            console.log(errorThrown);
+            $('#response').html('ERROR: '+ errorThrown);
+        }
+    });
 };
 
 
 var selectAllInGroup = function(){
-	if($(this).siblings('input:checked').length > 0){
-		$(this).siblings('input').prop('checked', false);
-	} else {
-		$(this).siblings('input').prop('checked', true);
-	}
+    if($(this).siblings('input:checked').length > 0){
+        $(this).siblings('input').prop('checked', false);
+    } else {
+        $(this).siblings('input').prop('checked', true);
+    }
 };
 
 var loadText = function(){
-	pollTextStatus($(this).data('id'));
+    pollTextStatus($(this).data('id'));
 };
 
 var showPage = function(){
-	var page = window.location.hash;
-	if(page == "" || page == "#"){
-		page = "#texts";
-	}
+    var page = window.location.hash;
+    if(page == "" || page == "#"){
+        page = "#texts";
+    }
 
-	$('.page').hide();
-	$(`${page}.page`).show();
+    $('.page').hide();
+    $(`${page}.page`).show();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -243,10 +243,10 @@ var locationsByPages = [];
     var locationKey, i;
 
     while(tokenIndex < tokens.length){
-    	if(tokenIndex === tokens.length-1 || 
-    		tokens[tokenIndex][1].indexOf("\n") != -1) {
+        if(tokenIndex === tokens.length-1 || 
+            tokens[tokenIndex][1].indexOf("\n") != -1) {
 
-    		contentPages.push([pageStart, tokenIndex, false]);
+            contentPages.push([pageStart, tokenIndex, false]);
             // Initialize the list of locations for this page.
             locationsByPages.push([]); 
 
@@ -254,7 +254,7 @@ var locationsByPages = [];
             tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
 
         } else if(tokenIndex === (pageStart + PAGE_SIZE + TOKEN_MARGIN)){
-        	contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
+            contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
             // Initialize the list of locations for this page.
             locationsByPages.push([]);
 
@@ -262,7 +262,7 @@ var locationsByPages = [];
             tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
 
         } else {
-        	tokenIndex++;
+            tokenIndex++;
         }
     }
 
@@ -274,20 +274,20 @@ var locationsByPages = [];
 
         // If a page isn't found, skip the location.
         if(pageIndexes[0] == -1 && pageIndexes[1] == -1){
-        	continue;
+            continue;
         }
 
         // Add the location key to each page that the location spans.
         for(i = pageIndexes[0]; i <= pageIndexes[1]; i++){
-        	locationsByPages[i].push(locationKey);
+            locationsByPages[i].push(locationKey);
         }
     }
 
     // Set listeners for when the end of a page is reached.
     $('#text-panel').on('scroll', null, (event)=>{
-    	elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
-    		appendContentPage(currentPage+1);
-    	});
+        elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
+            appendContentPage(currentPage+1);
+        });
     });
 
     // Display the first page.
@@ -306,34 +306,34 @@ var locationsByPages = [];
  *         given location spans, inclusive. If not found, [-1,-1] is returned.
  */
  var findPageWithLocation = function(location) {
- 	var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
- 	var firstPage, lastPage;
+     var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
+     var firstPage, lastPage;
 
- 	while(max >= min && contentPages[mid] !== undefined){
- 		var pageStart = contentPages[mid][START], 
- 		pageEnd = contentPages[mid][END];
+     while(max >= min && contentPages[mid] !== undefined){
+         var pageStart = contentPages[mid][START], 
+         pageEnd = contentPages[mid][END];
 
- 		if(location.start >= pageStart && location.start <= pageEnd ||
- 			location.end >= pageStart && location.end <= pageEnd){
+         if(location.start >= pageStart && location.start <= pageEnd ||
+             location.end >= pageStart && location.end <= pageEnd){
 
- 			firstPage = mid;
- 		while(firstPage >= 0 && location.start >= contentPages[firstPage][START]){
- 			firstPage--;
- 		}
- 		lastPage = mid;
- 		while(lastPage < contentPages.length && location.end >= contentPages[lastPage][START]){
- 			lastPage++;
- 		}
+             firstPage = mid;
+         while(firstPage >= 0 && location.start >= contentPages[firstPage][START]){
+             firstPage--;
+         }
+         lastPage = mid;
+         while(lastPage < contentPages.length && location.end >= contentPages[lastPage][START]){
+             lastPage++;
+         }
 
- 		return [firstPage+1, lastPage-1];
+         return [firstPage+1, lastPage-1];
 
- 	} else if(location.start > pageEnd) {
- 		min = mid+1;
- 		mid = Math.floor((min+max)/2);
- 	} else {
- 		max = mid-1;
- 		mid = Math.floor((min+max)/2);
- 	}
+     } else if(location.start > pageEnd) {
+         min = mid+1;
+         mid = Math.floor((min+max)/2);
+     } else {
+         max = mid-1;
+         mid = Math.floor((min+max)/2);
+     }
  }
 
  return [-1,-1];
@@ -346,18 +346,18 @@ var locationsByPages = [];
  * @param {integer} pageIndex The index of the page to append to the #text-panel.
  */
  var appendContentPage = function(pageIndex) {
- 	if(contentPages[pageIndex][IS_DISPLAYED]) return;
+     if(contentPages[pageIndex][IS_DISPLAYED]) return;
 
- 	var html = `<span data-page="${pageIndex}" class="content-page">`+ 
- 	tokensToHTML(contentPages[pageIndex][START], 
- 		contentPages[pageIndex][END]
- 		) +'</span>';
- 	contentPages[pageIndex][IS_DISPLAYED] = true;
+     var html = `<span data-page="${pageIndex}" class="content-page">`+ 
+     tokensToHTML(contentPages[pageIndex][START], 
+         contentPages[pageIndex][END]
+         ) +'</span>';
+     contentPages[pageIndex][IS_DISPLAYED] = true;
 
- 	currentPage = pageIndex;
+     currentPage = pageIndex;
 
- 	var $newPageElm = $(html);
- 	$('#end-marker').before($newPageElm);
+     var $newPageElm = $(html);
+     $('#end-marker').before($newPageElm);
 
     // Highlight locations for this page.
     highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
@@ -374,15 +374,15 @@ var locationsByPages = [];
  * @return The HTML of tokens in the given range.
  */
  var tokensToHTML = function(startIndex, endIndex) {
- 	var html = "";
- 	for(var i = startIndex; i <= endIndex; i++){
- 		html += `<span data-token="${i}">`+ 
- 		tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
- 		replace("<", "&lt;").
- 		replace(">", "&gt;") +
- 		'</span>'+ tokens[i][WHITESPACE_AFTER];
- 	}
- 	return html;
+     var html = "";
+     for(var i = startIndex; i <= endIndex; i++){
+         html += `<span data-token="${i}">`+ 
+         tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
+         replace("<", "&lt;").
+         replace(">", "&gt;") +
+         '</span><span>'+ tokens[i][WHITESPACE_AFTER] +"</span>";
+     }
+     return html;
  };
 
 /**
@@ -395,14 +395,14 @@ var locationsByPages = [];
  *                                   element (the match) as its only argument.
  */
  var elementIsVisibleInTextPanel = function(event, $element, onMatch){
- 	var textPanelTop = 0;
- 	var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
- 	var elmScrollTop = $element.position().top;
- 	var elmScrollBottom = elmScrollTop + $element.height();
- 	if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
- 		(elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
+     var textPanelTop = 0;
+     var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
+     var elmScrollTop = $element.position().top;
+     var elmScrollBottom = elmScrollTop + $element.height();
+     if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
+         (elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
 
- 		onMatch($element);
+         onMatch($element);
  }
 }
 
@@ -415,24 +415,44 @@ var locationsByPages = [];
  * @param {jQuery Element} The element to highlight entities in.
  */
  var highlightEntitiesInContent = function(locationKeys, $element){
-    // TODO
-
     // This is just to test things quick and dirty.
-    var i, j, location;
+    var i, j, location, $token, tokenId, prevTokenId;
     for(i = 0; i < locationKeys.length; i++){
-    	location = annotation_data.annotation.locations[locationKeys[i]];
-    	var entityGroupId = annotation_data.annotation.entities[location.entity_id].group_id;
-    	for(j = location.start; j <= location.end; j++){
-    		$element.find(`[data-token=${j}]`).
-    		addClass(`g${entityGroupId}`). 
-    		addClass('entity').
-    		attr({
-    			'data-entity-id': location.entity_id,
-    			'data-group-id': entityGroupId
-    		}).
-                    // Wrap all entities in an invisible button
-                    // Note: simply adding "onClick" to text is an ugly solution, hence the button wrap
-                    wrap("<button class='annotated-entity'></button>");
+        location = annotation_data.annotation.locations[locationKeys[i]];
+        var entityGroupId = annotation_data.annotation.
+            entities[location.entity_id].group_id;
+        
+        $token = $element.find(`[data-token=${location.start}]`);
+        tokenId = parseInt($token.attr('data-token'));
+        prefTokenId = tokenId;
+
+        // Moves down each token in the location, including the spaces.
+        while($token.length > 0 && 
+            (($token.attr('data-token') === undefined && prevTokenId != location.end) || 
+            (tokenId >= location.start && tokenId <= location.end))){
+
+            $token.
+                addClass(`g${entityGroupId}`). 
+                addClass('entity').
+                addClass('annotated-entity').
+                attr({
+                    'data-entity-id': location.entity_id,
+                    'data-group-id': entityGroupId,
+                    'data-location-id': locationKeys[i]  
+                });
+
+            // Special treatment for the first and last tokens.
+            if(tokenId == location.start){
+                $token.addClass('start-token');
+            }
+            if(tokenId == location.end){
+                $token.addClass('end-token');j
+            }
+
+            $token = $($token[0].nextSibling);
+            prevTokenId = tokenId;
+            tokenId = parseInt($token.attr('data-token'));
+
         }
    }
 }
@@ -444,13 +464,14 @@ var locationsByPages = [];
 
 
 var existingEntityClicked = function(event) {
-	var clickedEntity = $(this).find('.entity');
-	var entityId = clickedEntity.attr('data-entity-id');
-	var groupId = clickedEntity.attr('data-group-id');
+    // var clickedEntity = $(this).find('.entity');
+    var clickedEntity = $(this);
+    var entityId = clickedEntity.attr('data-entity-id');
+    var groupId = clickedEntity.attr('data-group-id');
 
-	if (clickedEntity.hasClass('selectedEntity')) {
-		deselectEntity(entityId);
-		menuConfigData.selectedGroups.splice(menuConfigData.selectedGroups.indexOf(groupId), 1);
+    if (clickedEntity.hasClass('selectedEntity')) {
+        deselectEntity(entityId);
+        menuConfigData.selectedGroups.splice(menuConfigData.selectedGroups.indexOf(groupId), 1);
 
         // Uncheck the checkbox
         $('[data-id=' + groupId + ']').filter('li').find('input').filter('[data-id=' + entityId + ']').prop('checked', 0);
@@ -469,25 +490,25 @@ var existingEntityClicked = function(event) {
     var optionNumber = 0;
 
     contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisMentionHover'><a class='context-menu__link'><i>This Mention \></i></a></li>";
-	contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisEntityHover'><a class='context-menu__link'><i>This Entity \></i></a></li>";
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisEntityHover'><a class='context-menu__link'><i>This Entity \></i></a></li>";
     contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisGroupHover'><a class='context-menu__link'><i>This Group \></i></a></li>";
     if (menuConfigData.numSelectedEntities > 1) {
-		contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option selectedHover'><a class='context-menu__link'><i>Selected \></i></a></li>";
+        contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option selectedHover'><a class='context-menu__link'><i>Selected \></i></a></li>";
     }
-	
+    
     openContextMenu(contextMenuOptions, clickedEntity);
 }
 
 var checkSelectedText = function(event) {
-	// if nothing is selected, return
-	if (window.getSelection().toString() == "") return;
+    // if nothing is selected, return
+    if (window.getSelection().toString() == "") return;
 
-	var textSpans = [];
-	var textSpans = getSelectedSpans();
+    var textSpans = [];
+    var textSpans = getSelectedSpans();
 
-	if (textSpans === []) {
-		return;
-	} 
+    if (textSpans === []) {
+        return;
+    } 
 
     // get unused group ID
     var newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
@@ -510,103 +531,106 @@ var checkSelectedText = function(event) {
 }
 
 function getSelectedSpans() {
-	var startSpan;
-	var endSpan;
-	var spans = [];
-	var spanCount = 0;
+    var startSpan;
+    var endSpan;
+    var spans = [];
+    var spanCount = 0;
 
-	sel = window.getSelection();
-	console.log(sel.anchorNode.parentElement);
+    sel = window.getSelection();
+    console.log(sel.anchorNode.parentElement);
 
-	if (sel.anchorNode.nodeValue.trim() == "") {
-		console.log("anchor");
-		startSpan = sel.anchorNode.previousSibling;
-	} else {
-		startSpan = sel.anchorNode.parentElement;
-	}
-	if (sel.focusNode.nodeValue.trim() == "") {
-		console.log("focus");
-		endSpan = sel.focusNode.previousSibling;
-	} else {
-		endSpan = sel.focusNode.parentElement;
-	}
+    if (sel.anchorNode.nodeValue.trim() == "") {
+        console.log("anchor");
+        startSpan = sel.anchorNode.previousSibling;
+    } else {
+        startSpan = sel.anchorNode.parentElement;
+    }
+    if (sel.focusNode.nodeValue.trim() == "") {
+        console.log("focus");
+        endSpan = sel.focusNode.previousSibling;
+    } else {
+        endSpan = sel.focusNode.parentElement;
+    }
 
-	if (Number($(startSpan).attr('data-token')) > Number($(endSpan).attr('data-token'))) {
+    if (Number($(startSpan).attr('data-token')) > Number($(endSpan).attr('data-token'))) {
 
-		var temp = startSpan;
-		startSpan = endSpan;
-		endSpan = temp;
-	} 
+        var temp = startSpan;
+        startSpan = endSpan;
+        endSpan = temp;
+    } 
 
-	var current;
+    var current;
     // for every <span> in text area
     $('.content-page').children('span').each(function() {
-    	current = $(this)[0];
-    	// if still searching for starting span
-    	if (spanCount == 0) {
-    		if (current === startSpan) {
-				// add starting span
-				spans[spanCount] = startSpan;
-				spanCount++;
-			}
-		// if starting span has already been found
-	} else {
-			// if current is not last span selected
-			if (!(current === endSpan)) {
-				spans[spanCount] = current;
-				spanCount++;
-			}
-    		// if current IS last span selected
-    		else {
-    			spans[spanCount] = endSpan;
-    			// quit each loop
-    			return false;
-    		}
-    	}
+        current = $(this)[0];
+        // if still searching for starting span
+        if (spanCount == 0) {
+            if (current === startSpan) {
+                // add starting span
+                spans[spanCount] = startSpan;
+                spanCount++;
+            }
+        // if starting span has already been found
+    } else {
+            // if current is not last span selected
+            if (!(current === endSpan)) {
+                spans[spanCount] = current;
+                spanCount++;
+            }
+            // if current IS last span selected
+            else {
+                spans[spanCount] = endSpan;
+                // quit each loop
+                return false;
+            }
+        }
     });
 
     return spans;
 }
 
 var deselectAllText = function() {
-	window.getSelection().removeAllRanges();
-	// maybe do some more stuff here later
+    window.getSelection().removeAllRanges();
+    // maybe do some more stuff here later
 }
 
 var groupListCheckboxClicked = function() {
-	if ($(this).is(":checked")) {
-		selectEntity($(this).attr("data-id"));
-	} else {
-		deselectEntity($(this).attr("data-id"));
-	}
+    if ($(this).is(":checked")) {
+        selectEntity($(this).attr("data-id"));
+    } else {
+        deselectEntity($(this).attr("data-id"));
+    }
 }
 
 var openContextMenu = function(options, clickedEntity) {
-	if (options == null) return;
+    if (options == null) return;
 
-	var active = "context-menu--active";
+    var active = "context-menu--active";
 
-	$('.context-menu__items').empty();
-	var contextMenu = $('.context-menu__items');
+    $('.context-menu__items').empty();
+    var contextMenu = $('.context-menu__items');
 
     // add menu options to menu
     options.forEach(function(entry) {
-    	contextMenu.html(contextMenu.html() + entry);
+        contextMenu.html(contextMenu.html() + entry);
     });
 
     if (menuOpen !== 1) {
-    	menuOpen = 1;
-    	menu.classList.add(active);
+        menuOpen = 1;
+        menu.classList.add(active);
 
-    	if (clickedEntity == null) {
-    		var menuPosition = getPositionForMenu(event);
-    	} else {
-    		var menuPosition = getPositionForMenu(event, clickedEntity);
-    	}
+        if (clickedEntity == null) {
+            var menuPosition = getPositionForMenu(event);
+        } else {
+            var menuPosition = getPositionForMenu(event, clickedEntity);
+        }
 
         // Coordinates
         menu.style.left = menuPosition.x + "px";
         menu.style.top = menuPosition.y + "px";
+
+        console.log('Menu coords:', menu.style.left, menu.style.top);
+        console.log(menu);
 
         // Dimensions
         var menuWidth = menu.offsetWidth;
@@ -614,99 +638,98 @@ var openContextMenu = function(options, clickedEntity) {
 
         return false;
     } else {
-    	closeContextMenu();
-    	return;
+        closeContextMenu();
+        return;
     }
 }
 
 var closeContextMenu = function() {
-	if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
-		!($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
-		menuOpen = 0;
-		menu.classList.remove("context-menu--active");
+    if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
+        !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
+        menuOpen = 0;
+        menu.classList.remove("context-menu--active");
 
-		$('.context-menu__items').html("");
+        $('.context-menu__items').html("");
 
-		closeHoverMenu();
-	}
+        closeHoverMenu();
+    }
 }
 
 var openHoverMenu = function(e) {
-	var hoverOption = $(event.target).parent();
-	var hoverMenu = $('.context-menu-hover');
-	var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
-	var options = [];
-	var optionNumber = 0;
+    var hoverOption = $(event.target).parent();
+    var hoverMenu = $('.context-menu-hover');
+    var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
+    var options = [];
+    var optionNumber = 0;
 
-	if (hoverOption.hasClass('thisMentionHover')) {
-	    options[optionNumber++] = "<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>";
-	}
-	else if (hoverOption.hasClass('thisEntityHover')) {
-		options[optionNumber++] = "<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>";
-		options[optionNumber++] = "<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>";
-	}
-	else if (hoverOption.hasClass('thisGroupHover')) {
-		options[optionNumber++] = "<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>";
-		options[optionNumber++] = "<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>";
-	}
-	else if (hoverOption.hasClass('selectedHover')) {
-		if (menuConfigData.numSelectedEntities > 1) {
-			options[optionNumber++] = "<li class='context-menu__item groupEntitiesOption'><a class='context-menu__link'><i>Group Entites</i></a></li>";
-		}
-		if (menuConfigData.selectedGroups.length > 1) {
-			options[optionNumber++] = "<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i>Combine Groups Here</i></a></li>";
-		}
-	}
+    if (hoverOption.hasClass('thisMentionHover')) {
+        options[optionNumber++] = "<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+    }
+    else if (hoverOption.hasClass('thisEntityHover')) {
+        options[optionNumber++] = "<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+        options[optionNumber++] = "<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>";
+    }
+    else if (hoverOption.hasClass('thisGroupHover')) {
+        options[optionNumber++] = "<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+        options[optionNumber++] = "<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>";
+    }
+    else if (hoverOption.hasClass('selectedHover')) {
+        if (menuConfigData.numSelectedEntities > 1) {
+            options[optionNumber++] = "<li class='context-menu__item groupEntitiesOption'><a class='context-menu__link'><i>Group Entites</i></a></li>";
+        }
+        if (menuConfigData.selectedGroups.length > 1) {
+            options[optionNumber++] = "<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i>Combine Groups Here</i></a></li>";
+        }
+    }
 
-	hoverMenuItems.empty();
-	options.forEach(function(entry) {
-		hoverMenuItems.html(hoverMenuItems.html() + entry);
-	});
+    hoverMenuItems.empty();
+    options.forEach(function(entry) {
+        hoverMenuItems.html(hoverMenuItems.html() + entry);
+    });
 
-	// Coordinates
-	hoverMenu.css('left', parseInt(menu.style.left) + parseInt($(menu).css('width')));
-	hoverMenu.css('top', menu.style.top);
+    // Coordinates
+    hoverMenu.css('left', parseInt(menu.style.left) + parseInt($(menu).css('width')));
+    hoverMenu.css('top', menu.style.top);
 
-	hoverMenu.addClass("context-menu--active");
+    hoverMenu.addClass("context-menu--active");
 }
 
 var closeHoverMenu = function(e) {
-	var hoverMenu = $('.context-menu-hover');
-	var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
+    var hoverMenu = $('.context-menu-hover');
+    var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
 
-	hoverMenuItems.empty();
+    hoverMenuItems.empty();
 
-	hoverMenu.removeClass("context-menu--active");
+    hoverMenu.removeClass("context-menu--active");
 }
 
 function getPositionForMenu(e, clickedEntity) {
-	if (clickedEntity == null) {
-		// mouse position
-		return {
-			y: e.clientY,
-			x: e.clientX
-		}
-	}
+    if (clickedEntity == null) {
+        // mouse position
+        return {
+            y: e.clientY,
+            x: e.clientX
+        }
+    }
 
-	var offset = clickedEntity.parent().offset();
+    var offset =  clickedEntity.offset();
 
-	// entity position
-	return {
-		y: offset.top + clickedEntity.parent().height(),
-		x: offset.left + clickedEntity.parent().width()
-	}
+    return {
+        x: offset.left + clickedEntity.width(),
+        y: offset.top + clickedEntity.height()
+    };
 }
 
 function selectEntity(entityId) {
-	menuConfigData.numSelectedEntities++;
-	menuConfigData.recentSelectedEntityId = entityId;
-	menuConfigData.selectedEntities.push(entityId);
+    menuConfigData.numSelectedEntities++;
+    menuConfigData.recentSelectedEntityId = entityId;
+    menuConfigData.selectedEntities.push(entityId);
 
     // Function to find every token in entity
     $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
         // Cannot use JQuery selector because entity isn't the only class
         if ($(this).hasClass('entity')) {
-        	$(this).addClass('selectedEntity');
+            $(this).addClass('selectedEntity');
         }
     })
 }
@@ -721,29 +744,29 @@ function deselectEntity(entityId) {
     $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
         // Cannot use JQuery selector because entity isn't the only class
         if ($(this).hasClass('entity')) {
-        	$(this).removeClass('selectedEntity');
+            $(this).removeClass('selectedEntity');
         }
     }) 
 }
 
 var addEntityFromSelection = function() {
-	closeContextMenu();
-	console.log("In addEntityFromSelection");
+    closeContextMenu();
+    console.log("In addEntityFromSelection");
 
-	var spans = menuConfigData.textSpans;
-	var name = "";
+    var spans = menuConfigData.textSpans;
+    var name = "";
 
-	spans.forEach(s => {
-		name += s.innerHTML + " ";
-	})
-	name -= " ";
+    spans.forEach(s => {
+        name += s.innerHTML + " ";
+    })
+    name -= " ";
 
-	// addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
-	var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null, null);
+    // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
+    var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null, null);
 
-	menuConfigData.textSpans = null;
+    menuConfigData.textSpans = null;
 
-	window.location.reload(true);
+    window.location.reload(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -751,50 +774,50 @@ var addEntityFromSelection = function() {
 ////////////////////////////////////////////////////////////////////////////////
 
 var addTieFromSelection = function() {
-	console.log("In addTieFromSelection");
+    console.log("In addTieFromSelection");
 
 
 }
 
 var combineSelectedEntities = function() {
-	console.log("In combineSelectedEntities");
+    console.log("In combineSelectedEntities");
 }
 
 var combineSelectedGroups = function() {
-	console.log("In combineSelectedGroups");
+    console.log("In combineSelectedGroups");
 
-	if (menuConfigData.selectedGroups.length < 2) {
-		return;
-	}
+    if (menuConfigData.selectedGroups.length < 2) {
+        return;
+    }
 
-	var entities = [];
-	menuConfigData.selectedGroups.forEach(g => {
-		Object.keys(annotation_data.annotation.groups[g].entities).forEach(e => {
-			entities.push(e);
-		});
-	});
+    var entities = [];
+    menuConfigData.selectedGroups.forEach(g => {
+        Object.keys(annotation_data.annotation.groups[g].entities).forEach(e => {
+            entities.push(e);
+        });
+    });
 
-	annotationManager.moveEntitiesToGroup(entities, menuConfigData.selectedGroups.pop(), null);
+    annotationManager.moveEntitiesToGroup(entities, menuConfigData.selectedGroups.pop(), null);
 
-	menuConfigData.selectedGroups = [];
+    menuConfigData.selectedGroups = [];
 
-	// TEMPORARY
-	window.location.reload(true);
+    // TEMPORARY
+    window.location.reload(true);
 }
 
 var deleteSelectedEntity = function() {
-	console.log("In deleteSelectedEntity");
+    console.log("In deleteSelectedEntity");
 
-	var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, null);
-	menuConfigData.recentSelectedEntityId = null;
-	menuConfigData.numSelectedEntities--;
+    var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, null);
+    menuConfigData.recentSelectedEntityId = null;
+    menuConfigData.numSelectedEntities--;
 
-	// TEMPORARY
-	window.location.reload(true);
+    // TEMPORARY
+    window.location.reload(true);
 }
 
 var deleteSelectedEntities = function() {
-	console.log("in deleteSelectedEntities");
+    console.log("in deleteSelectedEntities");
 
     // Get entity ids without the "ID-1" or "ID-2"
 
@@ -803,10 +826,10 @@ var deleteSelectedEntities = function() {
     //////////
 
     menuConfigData.selectedEntities.forEach(s => {
-    	if (s.includes('-')) {
-    		s = s.match(/.+?(?=-)/)[0];
-    	}        
-    	s = Number(s);
+        if (s.includes('-')) {
+            s = s.match(/.+?(?=-)/)[0];
+        }        
+        s = Number(s);
     });
 
     var entityId = annotationManager.removeEntities(menuConfigData.selectedEntities, null);
@@ -820,75 +843,75 @@ var deleteSelectedEntities = function() {
 }
 
 var deleteSelectedGroup = function() {
-	console.log("In deleteSelectedGroup");
+    console.log("In deleteSelectedGroup");
 
-	// removeEntities(entityIds, callback);
-	annotationManager.removeEntities(Object.keys(annotation_data.annotation.groups[$(menuConfigData.recentSelectedEntity).attr('data-group-id')].entities), null);
+    // removeEntities(entityIds, callback);
+    annotationManager.removeEntities(Object.keys(annotation_data.annotation.groups[$(menuConfigData.recentSelectedEntity).attr('data-group-id')].entities), null);
 
-	// TEMPORARY
-	window.location.reload(true);
+    // TEMPORARY
+    window.location.reload(true);
 }
 
 var deleteSelectedTie = function() {
-	console.log("In deleteSelectedTie");
+    console.log("In deleteSelectedTie");
 }
 
 var groupSelectedEntities = function() {
-	console.log("In groupSelectedEntities");
+    console.log("In groupSelectedEntities");
 
-	// groupEntities(entityIds, callback);
-	annotationManager.groupEntities(menuConfigData.selectedEntities, null);
+    // groupEntities(entityIds, callback);
+    annotationManager.groupEntities(menuConfigData.selectedEntities, null);
 
-	menuConfigData.recentSelectedEntityId = null;
-	menuConfigData.selectedEntities = [];
-	menuConfigData.numSelectedEntities = 0;
+    menuConfigData.recentSelectedEntityId = null;
+    menuConfigData.selectedEntities = [];
+    menuConfigData.numSelectedEntities = 0;
 
-	// TEMPORARY
-	window.location.reload(true);
+    // TEMPORARY
+    window.location.reload(true);
 }
 
 var openGroupSelectorModal = function() {
-	$('#groupSelectorChecklist').empty();
-	$('#groupSelectorModalOpener').click();
+    $('#groupSelectorChecklist').empty();
+    $('#groupSelectorModalOpener').click();
 
-	var groupRadios = "";
-	for(groupId in annotationManager.groups){
-		var list = `<li class="group unselectable" data-id="${groupId}">`;
-		list += `<input type="radio" name="groupChoices" class="group-checkbox" data-id="${groupId}" value="${groupId}"> <span class="g${groupId} unselectable">${annotationManager.groups[groupId].name}</span>`;
-		list += '</li>';
+    var groupRadios = "";
+    for(groupId in annotationManager.groups){
+        var list = `<li class="group unselectable" data-id="${groupId}">`;
+        list += `<input type="radio" name="groupChoices" class="group-checkbox" data-id="${groupId}" value="${groupId}"> <span class="g${groupId} unselectable">${annotationManager.groups[groupId].name}</span>`;
+        list += '</li>';
 
-		groupRadios += list;
-	}
+        groupRadios += list;
+    }
 
-	$('#groupSelectorChecklist').append(groupRadios);
+    $('#groupSelectorChecklist').append(groupRadios);
 }
 
 var confirmMoveEntityToGroup = function() {
-	console.log("In confirmMoveEntityToGroup");
+    console.log("In confirmMoveEntityToGroup");
 
-	if ($("input:radio[name='groupChoices']:checked").val() === undefined) {
-		return;
-	}
+    if ($("input:radio[name='groupChoices']:checked").val() === undefined) {
+        return;
+    }
 
-	// moveEntityToGroup(entityId, groupId, callback);
-	annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, $("input:radio[name='groupChoices']:checked").val(), null);
+    // moveEntityToGroup(entityId, groupId, callback);
+    annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, $("input:radio[name='groupChoices']:checked").val(), null);
 
-	// TEMPORARY
-	window.location.reload(true);
+    // TEMPORARY
+    window.location.reload(true);
 }
 
 var openGroupNameChangeModal = function() {
-	$('#changeGroupnameModalOpener').click();
+    $('#changeGroupnameModalOpener').click();
 }
 
 var confirmGroupNameChange = function() {
-	console.log("In confirmGroupNameChange");
+    console.log("In confirmGroupNameChange");
 
-	// changeGroupName(groupId, name, callback);
-	annotationManager.changeGroupName($(menuConfigData.recentSelectedEntity).attr('data-group-id'), $('#newGroupNameBox').val(), null);
+    // changeGroupName(groupId, name, callback);
+    annotationManager.changeGroupName($(menuConfigData.recentSelectedEntity).attr('data-group-id'), $('#newGroupNameBox').val(), null);
 
-	// TEMPORARY
-	window.location.reload(true);
+    // TEMPORARY
+    window.location.reload(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -896,53 +919,53 @@ var confirmGroupNameChange = function() {
 ////////////////////////////////////////////////////////////////////////////////
 
 var findTies = function(n){
-	console.log('Finding ties...');
-	mentions = [];
-	var i, j;
+    console.log('Finding ties...');
+    mentions = [];
+    var i, j;
 
-	function insertMention(locationId){
-		var location = annotation_data.annotation.locations[locationId];
-		var min = 0, max = mentions.length-1, mid = Math.floor((min+max)/2);
-		var insertIndex = 0;
+    function insertMention(locationId){
+        var location = annotation_data.annotation.locations[locationId];
+        var min = 0, max = mentions.length-1, mid = Math.floor((min+max)/2);
+        var insertIndex = 0;
 
-		while(min <= max){
-			insertIndex = mid;
+        while(min <= max){
+            insertIndex = mid;
 
-			if(mentions[mid][0] === location.start){
-				break;
-			} else if(mentions[mid][0] > location.start) {
-				max = mid-1;
-				mid = Math.floor((min+max)/2);
-			} else {
-				min = mid+1;
-				mid = Math.floor((min+max)/2);
-			}
-		}
-		if(insertIndex < mentions.length && 
-			mentions[insertIndex][0] < location.start){
-			insertIndex++;
-	}
+            if(mentions[mid][0] === location.start){
+                break;
+            } else if(mentions[mid][0] > location.start) {
+                max = mid-1;
+                mid = Math.floor((min+max)/2);
+            } else {
+                min = mid+1;
+                mid = Math.floor((min+max)/2);
+            }
+        }
+        if(insertIndex < mentions.length && 
+            mentions[insertIndex][0] < location.start){
+            insertIndex++;
+    }
 
-	mentions.splice(insertIndex, 0, 
-		[location.start, locationId, location.entity_id]);
+    mentions.splice(insertIndex, 0, 
+        [location.start, locationId, location.entity_id]);
 }
 
 for(locationId in annotation_data.annotation.locations){
-	insertMention(locationId);
+    insertMention(locationId);
 }
 
 for(i = 0; i < mentions.length; i++){
-	for(j = i+1; j < mentions.length; j++){
-		if(mentions[j][0]-mentions[i][0] > n || 
-			annotation_data.annotation.entities[mentions[i][2]].group_id ===
-			annotation_data.annotation.entities[mentions[j][2]].group_id){
-			break;
-	}
-	annotation_data.annotation.ties.push({
-		weight: 1,
-		source_entity: {location_id: mentions[i][1]},
-		target_entity: {entity_id: mentions[j][2]}
-	});
+    for(j = i+1; j < mentions.length; j++){
+        if(mentions[j][0]-mentions[i][0] > n || 
+            annotation_data.annotation.entities[mentions[i][2]].group_id ===
+            annotation_data.annotation.entities[mentions[j][2]].group_id){
+            break;
+    }
+    annotation_data.annotation.ties.push({
+        weight: 1,
+        source_entity: {location_id: mentions[i][1]},
+        target_entity: {entity_id: mentions[j][2]}
+    });
 }
 }
 
@@ -985,12 +1008,12 @@ $(document).ready(function(){
     $(window).on('resize', closeContextMenu);
     // Close context menu on text are scroll
     $("span").scroll(function() {
-    	deselectAllText();
-    	closeContextMenu();
+        deselectAllText();
+        closeContextMenu();
     });
     $("div").scroll(function() {
-    	deselectAllText();
-    	closeContextMenu();
+        deselectAllText();
+        closeContextMenu();
     });
 
 
