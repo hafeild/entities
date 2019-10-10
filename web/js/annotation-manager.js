@@ -454,14 +454,46 @@ var AnnotationManager = function(annotation_data){
      *                                 * jqXHR
      *                                 * textStatus
      */
-    this.changeGroupName = function(groupId, name, callback){
+    self.changeGroupName = function(groupId, name, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
 
-        this.groups[groupId].name = name;
+        self.groups[groupId].name = name;
         changes.groups[groupId] = {name: name};        
 
         // Sync with server.
         sendChangesToServer(changes, callback);
+    };
+
+    /**
+     * Alias for removeGroup([groupId], callback).
+     */
+    self.removeGroup = function(groupId, callback) {
+        self.removeGroups([groupId], callback);
+    };
+
+    /**
+     * Removes all of the entities associated with the given list of group ids.
+     * 
+     * @param {string[]} groupIds The list of ids of groups to remove.
+     * @param {function} callback (Optional) A callback to invoke after sending
+     *                            changes to the server. Should take a single 
+     *                            object as a paramter with these fields: 
+     *                              - success (boolean)
+     *                              - data (response data, only if successful)
+     *                              - error (only if unsuccessful)
+     *                              - extra (only if unsuccessful)
+     *                                 * jqXHR
+     *                                 * textStatus
+     */
+    self.removeGroups = function(groupIds, callback) {
+        var entityIds = [];
+        var i, entityId;
+        for(i = 0; i < groupIds.length; i++){
+            for(entityId in self.groups[groupIds[i]].entities){
+                entityIds.push(entityId);
+            }
+        }
+        self.removeEntities(entityIds, callback);
     };
 
     ////////////////////////////////////////////////////////////////////////////
