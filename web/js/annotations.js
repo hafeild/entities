@@ -629,9 +629,6 @@ var openContextMenu = function(options, clickedEntity) {
         menu.style.left = menuPosition.x + "px";
         menu.style.top = menuPosition.y + "px";
 
-        console.log('Menu coords:', menu.style.left, menu.style.top);
-        console.log(menu);
-
         // Dimensions
         var menuWidth = menu.offsetWidth;
         var menuHeight = menu.offsetHeight;
