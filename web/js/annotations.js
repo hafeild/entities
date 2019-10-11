@@ -518,11 +518,7 @@ var checkSelectedText = function(event) {
     var optionNumber = 0;
 
     contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i>Add Entity</i></a></li>";
-    // Add Tie menu HTML
-    // TODO
-    // MAKE MODULAR - SHOW LIST OF GROUPS TO MAKE TIE TO
-    // END TODO
-
+    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i>Add Mention</i></a></li>";
     contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addTieOption'><i>Add Tie</i></a></li>";
 
     menuConfigData.textSpans = textSpans;
@@ -761,6 +757,55 @@ function deselectEntity(entityId) {
     }) 
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// CONTEXT MENU FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+var openAddMentionModal = function() {
+    $('#entitySelectorChecklist').empty();
+
+    var makeEntityChecklist = function(groupId, entities) {
+        var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
+        entitiesSize = size(entities);
+        for(entityId in entities){
+            list += `<input type="radio" name="addMentionEntityRadioOption" class="group-checkbox" data-id="${entityId}" value="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
+            if(i < entitiesSize-1){
+                list += ', ';
+            }
+            i++;
+        }
+        list += '</li>';
+        return list;
+    }
+
+    for(groupId in annotationManager.groups){
+        var group = annotationManager.groups[groupId];
+        $('#entitySelectorChecklist').append(makeEntityChecklist(groupId, group.entities));
+    }
+
+    $('#addMentionModalOpener').click();
+}
+
+var confirmAddMention = function() {
+    console.log("In confirmAddMention");
+
+    var selectedEntity = $("input:radio[name='addMentionEntityRadioOption']:checked").val();
+
+    if (selectedEntity === undefined) {
+        return;
+    }
+
+    var spans = menuConfigData.textSpans;
+    console.log(spans);
+
+    // addMention(entityId, startingOffset, endingOffset, callback);
+    annotationManager.addMention(selectedEntity, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null);
+
+    // TEMPORARY
+    window.location.reload(true);
+}
+
+
 var addEntityFromSelection = function() {
     closeContextMenu();
     console.log("In addEntityFromSelection");
@@ -776,14 +821,11 @@ var addEntityFromSelection = function() {
     // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
     var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null, null);
 
-    menuConfigData.textSpans = null;
+    resetMenuConfigData();
 
+    // TEMPORARY
     window.location.reload(true);
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// CONTEXT MENU FUNCTIONS
-////////////////////////////////////////////////////////////////////////////////
 
 var addTieFromSelection = function() {
     console.log("In addTieFromSelection");
@@ -914,7 +956,6 @@ var groupSelectedEntities = function() {
 
 var openGroupSelectorModal = function() {
     $('#groupSelectorChecklist').empty();
-    $('#groupSelectorModalOpener').click();
 
     var groupRadios = "";
     for(groupId in annotationManager.groups){
@@ -926,17 +967,20 @@ var openGroupSelectorModal = function() {
     }
 
     $('#groupSelectorChecklist').append(groupRadios);
+    $('#groupSelectorModalOpener').click();
 }
 
 var confirmMoveEntityToGroup = function() {
     console.log("In confirmMoveEntityToGroup");
 
-    if ($("input:radio[name='groupChoices']:checked").val() === undefined) {
+    var selectedGroup = $("input:radio[name='groupChoices']:checked").val();
+
+    if (selectedGroup === undefined) {
         return;
     }
 
     // moveEntityToGroup(entityId, groupId, callback);
-    annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, $("input:radio[name='groupChoices']:checked").val(), null);
+    annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, selectedGroup, null);
 
     resetMenuConfigData();
 
@@ -1079,6 +1123,8 @@ $(document).ready(function(){
 
 
     // Context Menu Options
+    $(document).on('click', '.addMentionOption', openAddMentionModal);
+    $(document).on('click', '#confirmAddMention', confirmAddMention);
     $(document).on('click', '.addEntityOption', addEntityFromSelection);
     $(document).on('click', '.deleteMentionOption', deleteSelectedMention);
     $(document).on('click', '.deleteEntityOption', deleteSelectedEntity);

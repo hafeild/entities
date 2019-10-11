@@ -526,7 +526,7 @@ var AnnotationManager = function(annotation_data){
         };
 
         // Add convenience link from the entity to the mention.
-        var entity = self.entities[entity_id];
+        var entity = self.entities[entityId];
         if(entity.locations === undefined){
             entity.locations = {};
         }
