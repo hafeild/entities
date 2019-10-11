@@ -954,7 +954,7 @@ var groupSelectedEntities = function() {
     console.log("In groupSelectedEntities");
 
     // groupEntities(entityIds, callback);
-    console.log(menuConfigData.selectedEntities, null);
+    console.log(menuConfigData.selectedEntities);
     annotationManager.groupEntities(menuConfigData.selectedEntities, null);
 
     resetMenuConfigData();

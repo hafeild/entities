@@ -219,7 +219,7 @@ var AnnotationManager = function(annotation_data){
         if(groupId === undefined || groupId === null){
             groupId = (++annotation.last_group_id)+'';
             self.groups[groupId] = {
-                name: self.entities[entityId].name,
+                name: name,
                 entities: {entityId: self.entities[entityId]}
             };
 
@@ -282,7 +282,7 @@ var AnnotationManager = function(annotation_data){
      */
     self.groupEntities = function(entityIds, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var newGroupId = ++annotation.last_group_id;
+        var newGroupId = (++annotation.last_group_id).toString();
         var selectedEntities = {};
         var selectedGroups = {};
         var groupId, entityId;
@@ -321,6 +321,10 @@ var AnnotationManager = function(annotation_data){
             // Update group id.
             changes.last_group_id = newGroupId;
 
+            changes.groups[newGroupId] = {
+                name: null,
+                entities: {}
+            };
             self.groups[newGroupId] = {
                 name: null,
                 entities: {}
@@ -340,9 +344,9 @@ var AnnotationManager = function(annotation_data){
 
                 // Use this entity's name for the group name if not already set.
                 if(self.groups[newGroupId].name == null){
-                    self.groups[newGroupId] = {name:  
-                        self.entities[entityId].name};
                     self.groups[newGroupId].name = 
+                        self.entities[entityId].name;
+                    changes.groups[newGroupId].name =
                         self.entities[entityId].name;
                 }
             }   
@@ -885,8 +889,10 @@ var AnnotationManager = function(annotation_data){
      */
     var linkEntitiesToGroups = function(){
         var entityId;
+        console.log(self);
         for(entityId in self.entities){
             var entity = self.entities[entityId];
+            console.log(entity.group_id);
             var group = self.groups[entity.group_id];
             if(!group.entities){
                 group.entities = {};
