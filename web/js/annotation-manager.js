@@ -81,7 +81,7 @@ var AnnotationManager = function(annotation_data){
             var entity = self.entities[entityId];
 
             // Remove from groups.
-            group = SVGDefsElement.groups[entity.group_id];
+            group = self.groups[entity.group_id];
             if(size(group.entities) === 1 && 
                 group.entities[entityId] !== undefined){
 
@@ -219,7 +219,7 @@ var AnnotationManager = function(annotation_data){
         if(groupId === undefined || groupId === null){
             groupId = (++annotation.last_group_id)+'';
             self.groups[groupId] = {
-                name: name,
+                name: self.entities[entityId].name,
                 entities: {entityId: self.entities[entityId]}
             };
 

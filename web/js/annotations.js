@@ -123,7 +123,6 @@ var groupSelected = function(){
     
     annotationManager.groupEntities(entityIds);
 
-
     displayAnnotation();
 };
 
@@ -808,6 +807,8 @@ var confirmAddMention = function() {
     // addMention(entityId, startingOffset, endingOffset, callback);
     annotationManager.addMention(selectedEntity, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null);
 
+    resetMenuConfigData();
+
     // TEMPORARY
     window.location.reload(true);
 }
@@ -822,8 +823,9 @@ var addEntityFromSelection = function() {
 
     spans.forEach(s => {
         name += s.innerHTML + " ";
+        name += " ";
     })
-    name -= " ";
+    name = name.trim();
 
     // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
     var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null, null);
@@ -882,6 +884,8 @@ var deleteSelectedMention = function() {
 var deleteSelectedEntity = function() {
     console.log("In deleteSelectedEntity");
 
+    console.log(menuConfigData.recentSelectedEntityId);
+
     var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, null);
     
     resetMenuConfigData();
@@ -894,7 +898,6 @@ var deleteSelectedEntities = function() {
     console.log("in deleteSelectedEntities");
 
     // Get entity ids without the "ID-1" or "ID-2"
-
     //////////
     // TEMPORARY
     //////////
