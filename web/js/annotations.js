@@ -113,8 +113,6 @@ var makeGroupChecklist = function(groupId, entities){
 };
 
 var groupSelected = function(){
-
-
     //var selectedCheckboxes = 
     var entityIds = []
     
@@ -537,17 +535,16 @@ function getSelectedSpans() {
     var spanCount = 0;
 
     sel = window.getSelection();
-    console.log(sel.anchorNode.parentElement);
 
     if (sel.anchorNode.nodeValue.trim() == "") {
         console.log("anchor");
-        startSpan = sel.anchorNode.previousSibling;
+        startSpan = $(sel.anchorNode.parentElement).prev()[0];
     } else {
         startSpan = sel.anchorNode.parentElement;
     }
     if (sel.focusNode.nodeValue.trim() == "") {
         console.log("focus");
-        endSpan = sel.focusNode.previousSibling;
+        endSpan = $(sel.focusNode.parentElement).prev()[0];
     } else {
         endSpan = sel.focusNode.parentElement;
     }
@@ -843,7 +840,10 @@ var deleteSelectedGroup = function() {
     console.log("In deleteSelectedGroup");
 
     // removeEntities(entityIds, callback);
-    annotationManager.removeEntities(Object.keys(annotation_data.annotation.groups[$(menuConfigData.recentSelectedEntity).attr('data-group-id')].entities), null);
+    // annotationManager.removeEntities(Object.keys(annotation_data.annotation.groups[$(menuConfigData.recentSelectedEntity).attr('data-group-id')].entities), null);
+
+    // removewGroup(groupId, callback);
+    annotationManager.removeGroup($(menuConfigData.recentSelectedEntity).attr('data-group-id'));
 
     // TEMPORARY
     window.location.reload(true);
