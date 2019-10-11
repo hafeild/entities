@@ -506,6 +506,7 @@ var checkSelectedText = function(event) {
 
     var textSpans = [];
     var textSpans = getSelectedSpans();
+    console.log(textSpans);
 
     if (textSpans === []) {
         return;
@@ -554,6 +555,12 @@ function getSelectedSpans() {
         startSpan = endSpan;
         endSpan = temp;
     } 
+
+    if (startSpan === endSpan) {
+        spans = [];
+        spans.push(startSpan);
+        return spans;
+    }
 
     var current;
     // for every <span> in text area
@@ -864,8 +871,6 @@ var combineSelectedGroups = function() {
 var deleteSelectedMention = function() {
     console.log("In deleteSelectedMention");
 
-    console.log(menuConfigData.selectedMentions[menuConfigData.selectedMentions.length-1]);
-
     annotationManager.removeMention(menuConfigData.selectedMentions[menuConfigData.selectedMentions.length-1], null);
 
     resetMenuConfigData();
@@ -946,6 +951,7 @@ var groupSelectedEntities = function() {
     console.log("In groupSelectedEntities");
 
     // groupEntities(entityIds, callback);
+    console.log(menuConfigData.selectedEntities, null);
     annotationManager.groupEntities(menuConfigData.selectedEntities, null);
 
     resetMenuConfigData();
