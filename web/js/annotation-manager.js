@@ -553,7 +553,7 @@ var AnnotationManager = function(annotation_data){
      *                                 * jqXHR
      *                                 * textStatus
      */
-    self.removeMention = function(locationId){
+    self.removeMention = function(locationId, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var location, nodeEntity, node, 
             nodes = {source_entity: 1, target_entity: 1};

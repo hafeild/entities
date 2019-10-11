@@ -7,6 +7,7 @@ var annotationManager = null;
 var menuConfigData = {
     textSpans: null,
     newGroupId: null,
+    selectedMentions: [],
     recentSelectedEntityId: null,
     recentSelectedEntity: null,
     selectedEntities: [],
@@ -470,6 +471,7 @@ var existingEntityClicked = function(event) {
     if (clickedEntity.hasClass('selectedEntity')) {
         deselectEntity(entityId);
         menuConfigData.selectedGroups.splice(menuConfigData.selectedGroups.indexOf(groupId), 1);
+        menuConfigData.selectedMentions.splice(menuConfigData.selectedMentions.indexOf(clickedEntity.attr('data-location-id')), 1);
 
         // Uncheck the checkbox
         $('[data-id=' + groupId + ']').filter('li').find('input').filter('[data-id=' + entityId + ']').prop('checked', 0);
@@ -479,6 +481,7 @@ var existingEntityClicked = function(event) {
 
     selectEntity(entityId);
     menuConfigData.selectedGroups.push(groupId);
+    menuConfigData.selectedMentions.push(clickedEntity.attr('data-location-id'));
 
     // Find entity in group list
     // Check the checkbox
@@ -655,17 +658,24 @@ var openHoverMenu = function(e) {
     var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
     var options = [];
     var optionNumber = 0;
+    var locationMultiplier = 1;
 
     if (hoverOption.hasClass('thisMentionHover')) {
         options[optionNumber++] = "<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+
+        locationMultiplier = 1;
     }
     else if (hoverOption.hasClass('thisEntityHover')) {
         options[optionNumber++] = "<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>";
         options[optionNumber++] = "<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>";
+
+        locationMultiplier = 2;
     }
     else if (hoverOption.hasClass('thisGroupHover')) {
         options[optionNumber++] = "<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>";
         options[optionNumber++] = "<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>";
+
+        locationMultiplier = 3;
     }
     else if (hoverOption.hasClass('selectedHover')) {
         if (menuConfigData.numSelectedEntities > 1) {
@@ -673,7 +683,10 @@ var openHoverMenu = function(e) {
         }
         if (menuConfigData.selectedGroups.length > 1) {
             options[optionNumber++] = "<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i>Combine Groups Here</i></a></li>";
+            options[optionNumber++] = "<li class='context-menu__item deleteSelectedGroupsOption'><a class='context-menu__link'><i>Delete Selected Groups</i></a></li>";
         }
+
+        locationMultiplier = 4;
     }
 
     hoverMenuItems.empty();
@@ -683,7 +696,12 @@ var openHoverMenu = function(e) {
 
     // Coordinates
     hoverMenu.css('left', parseInt(menu.style.left) + parseInt($(menu).css('width')));
-    hoverMenu.css('top', menu.style.top);
+    if (locationMultiplier === 1) {
+        hoverMenu.css('top', parseInt(menu.style.top));
+    } else {
+        var heightOffset = $('.context-menu').height() / $('.context-menu > .context-menu__items > .context-menu__item').length;
+        hoverMenu.css('top', parseInt(menu.style.top) + (heightOffset * locationMultiplier) - parseInt($('.context-menu').css('padding-top')) - parseInt($('.context-menu > .context-menu__items > .context-menu__item').css('margin-bottom')));
+    }
 
     hoverMenu.addClass("context-menu--active");
 }
@@ -770,11 +788,13 @@ var addEntityFromSelection = function() {
 var addTieFromSelection = function() {
     console.log("In addTieFromSelection");
 
-
+    resetMenuConfigData();
 }
 
 var combineSelectedEntities = function() {
     console.log("In combineSelectedEntities");
+
+    resetMenuConfigData();
 }
 
 var combineSelectedGroups = function() {
@@ -793,7 +813,20 @@ var combineSelectedGroups = function() {
 
     annotationManager.moveEntitiesToGroup(entities, menuConfigData.selectedGroups.pop(), null);
 
-    menuConfigData.selectedGroups = [];
+    resetMenuConfigData();
+
+    // TEMPORARY
+    window.location.reload(true);
+}
+
+var deleteSelectedMention = function() {
+    console.log("In deleteSelectedMention");
+
+    console.log(menuConfigData.selectedMentions[menuConfigData.selectedMentions.length-1]);
+
+    annotationManager.removeMention(menuConfigData.selectedMentions[menuConfigData.selectedMentions.length-1], null);
+
+    resetMenuConfigData();
 
     // TEMPORARY
     window.location.reload(true);
@@ -803,8 +836,8 @@ var deleteSelectedEntity = function() {
     console.log("In deleteSelectedEntity");
 
     var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, null);
-    menuConfigData.recentSelectedEntityId = null;
-    menuConfigData.numSelectedEntities--;
+    
+    resetMenuConfigData();
 
     // TEMPORARY
     window.location.reload(true);
@@ -828,9 +861,7 @@ var deleteSelectedEntities = function() {
 
     var entityId = annotationManager.removeEntities(menuConfigData.selectedEntities, null);
 
-    menuConfigData.recentSelectedEntityId = null;
-    menuConfigData.selectedEntities = [];
-    menuConfigData.numSelectedEntities = 0;
+    resetMenuConfigData();
 
     // TEMPORARY
     window.location.reload(true);
@@ -842,8 +873,22 @@ var deleteSelectedGroup = function() {
     // removeEntities(entityIds, callback);
     // annotationManager.removeEntities(Object.keys(annotation_data.annotation.groups[$(menuConfigData.recentSelectedEntity).attr('data-group-id')].entities), null);
 
-    // removewGroup(groupId, callback);
-    annotationManager.removeGroup($(menuConfigData.recentSelectedEntity).attr('data-group-id'));
+    // removeGroup(groupId, callback);
+    annotationManager.removeGroup($(menuConfigData.recentSelectedEntity).attr('data-group-id'), null);
+
+    resetMenuConfigData();
+
+    // TEMPORARY
+    window.location.reload(true);
+}
+
+var deleteSelectedGroups = function() {
+    console.log("In deleteSelectedGroups");
+
+    // removeGroups(groupIds, callback);
+    annotationManager.removeGroups(menuConfigData.selectedGroups, null);
+
+    resetMenuConfigData();
 
     // TEMPORARY
     window.location.reload(true);
@@ -851,6 +896,8 @@ var deleteSelectedGroup = function() {
 
 var deleteSelectedTie = function() {
     console.log("In deleteSelectedTie");
+
+    resetMenuConfigData();
 }
 
 var groupSelectedEntities = function() {
@@ -859,9 +906,7 @@ var groupSelectedEntities = function() {
     // groupEntities(entityIds, callback);
     annotationManager.groupEntities(menuConfigData.selectedEntities, null);
 
-    menuConfigData.recentSelectedEntityId = null;
-    menuConfigData.selectedEntities = [];
-    menuConfigData.numSelectedEntities = 0;
+    resetMenuConfigData();
 
     // TEMPORARY
     window.location.reload(true);
@@ -893,6 +938,8 @@ var confirmMoveEntityToGroup = function() {
     // moveEntityToGroup(entityId, groupId, callback);
     annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, $("input:radio[name='groupChoices']:checked").val(), null);
 
+    resetMenuConfigData();
+
     // TEMPORARY
     window.location.reload(true);
 }
@@ -907,8 +954,25 @@ var confirmGroupNameChange = function() {
     // changeGroupName(groupId, name, callback);
     annotationManager.changeGroupName($(menuConfigData.recentSelectedEntity).attr('data-group-id'), $('#newGroupNameBox').val(), null);
 
+    resetMenuConfigData();
+
     // TEMPORARY
     window.location.reload(true);
+
+}
+
+var resetMenuConfigData = function() {
+    menuConfigData = {
+        textSpans: null,
+        newGroupId: null,
+        selectedMentions: [],
+        recentSelectedEntityId: null,
+        recentSelectedEntity: null,
+        selectedEntities: [],
+        numSelectedEntities: 0,
+        selectedGroups: [],
+        numSelectedGroups: 0,
+    };
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1016,9 +1080,11 @@ $(document).ready(function(){
 
     // Context Menu Options
     $(document).on('click', '.addEntityOption', addEntityFromSelection);
+    $(document).on('click', '.deleteMentionOption', deleteSelectedMention);
     $(document).on('click', '.deleteEntityOption', deleteSelectedEntity);
     $(document).on('click', '.deletedSelectedEntitiesOption', deleteSelectedEntities);
     $(document).on('click', '.deleteGroupOption', deleteSelectedGroup);
+    $(document).on('click', '.deleteSelectedGroupsOption', deleteSelectedGroups);
     $(document).on('click', '.groupEntitiesOption', groupSelectedEntities);
     $(document).on('click', '.combineSelectedGroupsOption', combineSelectedGroups);
     $(document).on('click', '.changeGroupNameOption', openGroupNameChangeModal);
