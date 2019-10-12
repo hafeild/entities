@@ -664,6 +664,7 @@ var openHoverMenu = function(e) {
 
     if (hoverOption.hasClass('thisMentionHover')) {
         options[optionNumber++] = "<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>";
+        options[optionNumber++] = "<li class='context-menu__item reassignMentionOption'><a class='context-menu__link'><i>Reassign</i></a></li>";
 
         locationMultiplier = 1;
     }
@@ -767,26 +768,26 @@ function deselectEntity(entityId) {
 // CONTEXT MENU FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
-var openAddMentionModal = function() {
-    $('#entitySelectorChecklist').empty();
-
-    var makeEntityChecklist = function(groupId, entities) {
-        var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
-        entitiesSize = size(entities);
-        for(entityId in entities){
-            list += `<input type="radio" name="addMentionEntityRadioOption" class="group-checkbox" data-id="${entityId}" value="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
-            if(i < entitiesSize-1){
-                list += ', ';
-            }
-            i++;
+var makeEntityModalChecklist = function(groupId, entities, radioOptionName) {
+    var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
+    entitiesSize = size(entities);
+    for(entityId in entities){
+        list += `<input type="radio" name="${radioOptionName}" class="group-checkbox" data-id="${entityId}" value="${entityId}"> <span class="g${groupId} unselectable">${entities[entityId].name}</span>`;
+        if(i < entitiesSize-1){
+            list += ', ';
         }
-        list += '</li>';
-        return list;
+        i++;
     }
+    list += '</li>';
+    return list;
+}
+
+var openAddMentionModal = function() {
+    $('#addMentionEntitySelectorChecklist').empty();
 
     for(groupId in annotationManager.groups){
         var group = annotationManager.groups[groupId];
-        $('#entitySelectorChecklist').append(makeEntityChecklist(groupId, group.entities));
+        $('#addMentionEntitySelectorChecklist').append(makeEntityModalChecklist(groupId, group.entities, 'addMentionEntityRadioOption'));
     }
 
     $('#addMentionModalOpener').click();
@@ -813,6 +814,44 @@ var confirmAddMention = function() {
     window.location.reload(true);
 }
 
+var openReassignMentionModal = function() {
+    $('#reassignMentionEntityChecklist').empty();
+
+    for(groupId in annotationManager.groups){
+        var group = annotationManager.groups[groupId];
+        $('#reassignMentionEntitySelectorChecklist').append(makeEntityModalChecklist(groupId, group.entities, 'reassignMentionEntityRadioOption'));
+    }
+
+    $('#reassignMentionModalOpener').click();
+}
+
+//////////
+//   TODO
+//   FIX THIS
+//////////
+var confirmReassignMention = function() {
+    console.log("In confirmReassignMention");
+
+    var selectedEntity = $("input:radio[name='reassignMentionEntityRadioOption']:checked").val();
+
+    if (selectedEntity === undefined) {
+        return;
+    }
+
+    var selectedMention = menuConfigData.selectedMentions[menuConfigData.selectedMentions.length-1];
+
+    // updateMention(locationId, {start: start, end: end, entity_id: entityId}, callback);
+    annotationManager.updateMention(selectedMention, {
+        start: annotation_data.annotation.locations[selectedMention].start,
+        end: annotation_data.annotation.locations[selectedMention].end,
+        entity_id: selectedEntity
+    }, null);
+
+    resetMenuConfigData();
+
+    // TEMPORARY
+    window.location.reload(true);
+}
 
 var addEntityFromSelection = function() {
     closeContextMenu();
@@ -836,10 +875,17 @@ var addEntityFromSelection = function() {
     window.location.reload(true);
 }
 
-var addTieFromSelection = function() {
-    console.log("In addTieFromSelection");
+var openAddTieModal = function() {
+    // TODO
+    // POPULATE DROPDOWNS
 
-    resetMenuConfigData();
+    $('#addTieModalOpener').click();
+}
+
+var confirmAddTie = function() {
+    console.log("In confirmAddTie");
+
+    // DO
 }
 
 var combineSelectedEntities = function() {
@@ -1134,6 +1180,8 @@ $(document).ready(function(){
     // Context Menu Options
     $(document).on('click', '.addMentionOption', openAddMentionModal);
     $(document).on('click', '#confirmAddMention', confirmAddMention);
+    $(document).on('click', '.reassignMentionOption', openReassignMentionModal);
+    $(document).on('click', '#confirmReassignMention', confirmReassignMention);
     $(document).on('click', '.addEntityOption', addEntityFromSelection);
     $(document).on('click', '.deleteMentionOption', deleteSelectedMention);
     $(document).on('click', '.deleteEntityOption', deleteSelectedEntity);
@@ -1147,7 +1195,8 @@ $(document).ready(function(){
     $(document).on('click', '.moveEntityToGroupOption', openGroupSelectorModal)
     $(document).on('click', '#confirmGroupSelect', confirmMoveEntityToGroup)
 
-    $(document).on('click', '.addTieOption', addTieFromSelection);
+    $(document).on('click', '.addTieOption', openAddTieModal);
+    $(document).on('click', '#confirmAddTie', confirmAddTie);
 
     $(document).on('mouseenter', '.thisMentionHover', openHoverMenu);
     $(document).on('mouseenter', '.thisEntityHover', openHoverMenu);

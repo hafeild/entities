@@ -615,12 +615,12 @@ var AnnotationManager = function(annotation_data){
      */
     self.updateMention = function(locationId, updatedMention, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var fields = ['start', 'end', 'entity_id'],field;
+        var fields = ['start', 'end', 'entity_id'];
         var location = self.locations[locationId];
         var nodes = {source_entity: 1, target_entity: 1}, node, nodeEntity;
 
         // Update the fields.
-        for(field in fields){
+        fields.forEach(field => {
             if(updatedMention[field] !== undefined){
                 // If this is the entity_id field, update the old and new 
                 // entity.
@@ -635,7 +635,7 @@ var AnnotationManager = function(annotation_data){
                 // Mark change.
                 changes.locations[field] = location[field];
             }
-        }
+        });
 
         // Sync with server.
         sendChangesToServer(changes, callback);
@@ -889,10 +889,8 @@ var AnnotationManager = function(annotation_data){
      */
     var linkEntitiesToGroups = function(){
         var entityId;
-        console.log(self);
         for(entityId in self.entities){
             var entity = self.entities[entityId];
-            console.log(entity.group_id);
             var group = self.groups[entity.group_id];
             if(!group.entities){
                 group.entities = {};
