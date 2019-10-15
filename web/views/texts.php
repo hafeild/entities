@@ -1,4 +1,6 @@
 <?php
+global $PERMISSIONS;
+
 /**
  * Returns the appropriate CSS classes for the given text.
  */
@@ -101,10 +103,11 @@ function displayTextListItem($text){ ?>
         $textsPrinted = 0;
         for($i = 0; $i < count($texts); $i++){
             $text = $texts[$i];
-            if($text["uploaded_by"] == $user["id"]){ 
+            if(intval($text["permission"]) == $PERMISSIONS["OWNER"]){
                 $textsPrinted++;
                 displayTextListItem($text);
             }
+            
         } 
         if($textsPrinted == 0){ ?>
             <p>No texts found :( 
@@ -119,11 +122,15 @@ function displayTextListItem($text){ ?>
     <div id="text-list">
         <ul>
         <?php 
+        $displayed = 0;
         for($i = 0; $i < count($texts); $i++){
             $text = $texts[$i]; 
-            displayTextListItem($text);
+            if($text["is_public"] == "1" || intval($text["permission"]) >= $PERMISSIONS["READ"] ){ 
+                displayTextListItem($text);
+                $displayed++;
+            }
         }
-        if(count($texts) == 0){ ?>
+        if($displayed == 0){ ?>
             <p>No texts found :(</p>
         <?php } ?>
         </ul>

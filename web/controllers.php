@@ -21,6 +21,7 @@ class Controllers {
  *      * annotation_count
  *      * tokenization_in_progress
  *      * tokenization_error
+ *      * is_public
  * 
  * @param path Ignored.
  * @param matches Ignored.
@@ -38,7 +39,8 @@ class Controllers {
  *         outlines above; otherwise, returns nothing.
  */
 public static function getTexts($path, $matches, $params, $format,
-    $data = [],  $errors = [], $messages = []){
+        $data = [],  $errors = [], $messages = []){
+    global $user;
 
     $startID = getWithDefault($params, "start_id", 1);
     $endID = getWithDefault($params, "end_id", -1);
@@ -64,22 +66,32 @@ public static function getTexts($path, $matches, $params, $format,
     try {
         if($endID >= 1){
             $statement = $dbh->prepare(
-                "select texts.*, annotation_count from texts ". 
+                "select texts.*, annotation_count, permission from texts ". 
                 "join (select text_id,count(text_id) as annotation_count ". 
                 "from texts join annotations on text_id = texts.id group by ". 
-                "text_id) as A on texts.id = text_id ".
+                "text_id) as A on texts.id = A.text_id ".
+                "left join (select text_id, permission from text_permissions ". 
+                "where user_id = :user_id) as B on B.text_id = texts.id ".
                 "where texts.id between :start_id and :end_id");
-            $statement->execute(array(":start_id" => $startID, 
-                ":end_id" => $endID));
+            $statement->execute([
+                ":start_id" => $startID, 
+                ":end_id" => $endID,
+                ":user_id" => ($user ==  null ? null : $user.id)
+            ]);
         } else {
             $statement = $dbh->prepare(
                 // "select * from texts where id >= :start_id");
-                "select texts.*, annotation_count from texts ". 
+                "select texts.*, annotation_count, permission from texts ". 
                 "join (select text_id,count(text_id) as annotation_count ". 
                 "from texts join annotations on text_id = texts.id group by ". 
-                "text_id) as A ".
-                "on texts.id = text_id where texts.id >= :start_id");
-            $statement->execute(array(":start_id" => $startID));
+                "text_id) as A on texts.id = A.text_id ". 
+                "left join (select text_id, permission from text_permissions ". 
+                "where user_id = :user_id) as B on B.text_id = texts.id ".
+                "where texts.id >= :start_id");
+            $statement->execute([
+                ":start_id" => $startID, 
+                ":user_id" => ($user ==  null ? null : $user["id"])
+            ]);
         }
     } catch(Exception $e){
         error("Error getting list of texts: ". $e->getMessage());
@@ -120,6 +132,7 @@ public static function getTexts($path, $matches, $params, $format,
  *      * created_at
  *      * processed_at
  *      * uploaded_by
+ *      * is_public
  *  - annotation
  *      * entities
  *      * groups
@@ -572,6 +585,7 @@ public static function postAnnotation($path, $matches, $params, $format){
  *      * created_at
  *      * uploaded_by
  *      * uploaded_by_username
+ *      * is_public
  *     
  * If 'json', the returned 
  * object looks like this:

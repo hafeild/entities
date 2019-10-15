@@ -8,6 +8,7 @@ require_once("controllers.php");
 require_once("init.php");
 require_once("model.php");
 require_once("model-annotations-sql.php");
+require_once("permissions.php");
 
 
 // Extracts the requested path. Assumes the URI is in the format: 

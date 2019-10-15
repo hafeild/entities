@@ -83,6 +83,7 @@ function connectToDB(){
  *      * processed_at
  *      * uploaded_by
  *      * uploaded_by_username
+ *      * is_public
  */
 function getTextMetadata($id){
     $dbh = connectToDB();
@@ -334,4 +335,35 @@ function setUserAuthToken($userId, $authToken){
     } catch(PDOException $e){
         die("There was an error updating the database: ". $e->getMessage());
     }
+}
+
+
+/**
+ * Extracts the permission data for the given user and text. 
+ * 
+ * @param userId The id of the user.
+ * @param textId The id of the text.
+ * @return An associative array of book metadata with these fields:
+ *      * user_id
+ *      * text_id
+ *      * permission
+ *      * created_at
+ */
+function getTextPermission($userId, $textId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select * from text_permissions ". 
+            "where text_id = :text_id and user_id = :user_id");
+        $statement->execute([
+            ":text_id" => $textId,
+            ":user_id" => $userId
+        ]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        die("There was an error retrieving permissions on the given text: ". 
+            $e->getMessage());
+    }
+
 }
