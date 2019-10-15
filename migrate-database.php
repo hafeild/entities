@@ -21,7 +21,8 @@ $PERMISSIONS = [
 $migrations = [
     "makeUsersTextsAnnotationsTables",
     "updateTextsAnnotationsTables",
-    "addPermissionsTables"
+    "addPermissionsTables",
+    "addStudyTables"
 ];
 
 
@@ -423,5 +424,143 @@ function addPermissionsTables($dbh, $direction="up"){
 }
 
 
+function addStudyTables($dbh, $direction="up"){
+    global $isPostgres;
 
+    // Add tables.
+    if($direction === "up"){
+        // Create studies table.
+        print "Creating studies table...\n";
+        $dbh->exec("create table studies(".
+                ($isPostgres ? "id serial primary key," 
+                             : "id integer primary key autoincrement,").
+                ($isPostgres ? "begin_at timestamp," 
+                             : "begin_at datetime,").
+                ($isPostgres ? "end_at timestamp," 
+                             : "end_at datetime,").
+                "name text,".
+                ($isPostgres ? "created_at timestamp" 
+                             : "created_at datetime").
+            ")"
+        );
+
+        // Create study_groups table.
+        print "Creating study_groups table...\n";
+        $dbh->exec("create table study_groups(".
+                ($isPostgres ? "id serial primary key," 
+                             : "id integer primary key autoincrement,").
+                "study_id integer,".
+                "user_id integer,".
+                "label varchar(255),".
+                ($isPostgres ? "created_at timestamp," 
+                             : "created_at datetime,").
+                "foreign key(study_id) references studies(id)".
+            ")"
+        );
+
+        // Create study_steps table.
+        print "Creating study_steps table...\n";
+        $dbh->exec("create table study_steps(".
+                ($isPostgres ? "id serial primary key," 
+                             : "id integer primary key autoincrement,").
+                "group_id integer,".
+                "base_annotation_id integer,".
+                "label varchar(255),".
+                ($isPostgres ? "created_at timestamp," 
+                             : "created_at datetime,").
+                "foreign key(group_id) references study_groups(id),".
+                "foreign key(base_annotation_id) references annotations(id)".
+            ")"
+        );
+
+        // Create study_step_orderings table.
+        print "Creating study_step_orderings table...\n";
+        $dbh->exec("create table study_step_orderings(".
+                "group_id integer,".
+                "step_id integer,".
+                "ordering integer,".
+                ($isPostgres ? "created_at timestamp," 
+                             : "created_at datetime,").
+                "primary key(group_id, step_id),".
+                "foreign key(group_id) references study_groups(id),".
+                "foreign key(step_id) references study_steps(id)".
+            ")"
+        );
+
+        // Create study_participants table.
+        print "Creating study_participants table...\n";
+        $dbh->exec("create table study_participants(".
+                "study_id integer,".
+                "user_id integer,".
+                "group_id integer,".
+                ($isPostgres ? "created_at timestamp," 
+                             : "created_at datetime,").
+                "primary key(study_id, user_id),".
+                "foreign key(study_id) references studies(id),".
+                "foreign key(user_id) references users(id),".
+                "foreign key(group_id) references study_groups(id)".
+            ")"
+        );
+
+        // Create study_participant_progress table.
+        print "Creating study_participant_progress table...\n";
+        $dbh->exec("create table study_participant_progress(".
+                "user_id integer,".
+                "step_id integer,".
+                ($isPostgres ? "completed_at timestamp default NULL," 
+                             : "completed_at datetime default NULL,").
+                ($isPostgres ? "created_at timestamp," 
+                             : "created_at datetime,").
+                "primary key(user_id, step_id),".
+                "foreign key(user_id) references users(id),".
+                "foreign key(step_id) references study_steps(id)".
+            ")"
+        );
+
+        // Create study_data table.
+        print "Creating study_data table...\n";
+        $dbh->exec("create table study_data(".
+                ($isPostgres ? "id serial primary key," 
+                             : "id integer primary key autoincrement,").
+                "user_id integer,".
+                "step_id integer,".
+                ($isPostgres ? "created_at timestamp," 
+                             : "created_at datetime,").
+                "data text,".
+                "foreign key(user_id) references users(id),".
+                "foreign key(step_id) references study_steps(id)".
+            ")"
+        );
+
+    // Tear down.
+    } else {
+        // Delete study_data table.
+        print "Removing study_data table...\n";
+        $dbh->exec("drop table study_data");
+
+        // Delete study_participant_progress table.
+        print "Removing study_participant_progress table...\n";
+        $dbh->exec("drop table study_participant_progress");
+
+        // Delete study_participants table.
+        print "Removing study_participants table...\n";
+        $dbh->exec("drop table study_participants");
+
+        // Delete study_step_orderings table.
+        print "Removing study_step_orderings table...\n";
+        $dbh->exec("drop table study_step_orderings");
+
+        // Delete study_steps table.
+        print "Removing study_steps table...\n";
+        $dbh->exec("drop table study_steps");
+
+        // Delete study_groups table.
+        print "Removing study_groups table...\n";
+        $dbh->exec("drop table study_groups");
+
+        // Delete studies table.
+        print "Removing studies table...\n";
+        $dbh->exec("drop table studies");
+    }
+}
 
