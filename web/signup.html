@@ -11,7 +11,7 @@
 
         <!-- Bootstrap core CSS -->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="css/style.css">
         <script src="js/messages.js"></script>
     </head>
 
@@ -42,25 +42,40 @@
             </div>
         </nav>
 
-        <div class="center">
-            <form method="post" action="/account.php">
+        <div class="center container">
+            <form method="post" action="/account.php" class="signup-form">
                 <input type="hidden" name="action" value="signup">
 
-                <div id="errors" class="alert alert-danger errors" style="display: none" role="alert">
+                <div id="errors" class="alert alert-danger errors" 
+                    style="display: none" role="alert">
                 </div>
     
-                <div id="messages" class="alert alert-success messages" style="display: none" role="alert">
+                <div id="messages" class="alert alert-success messages" 
+                    style="display: none" role="alert">
                 </div>
 
                 <h1 class="h3 mb-3 font-weight-normal">Please sign up</h1>
-                <label for="inputUsername" class="sr-only">Username</label>
-                <input type="text" id="inputUsername" name="username" class="form-control top" placeholder="Username" required autofocus>
-                <label for="inputPassword" class="sr-only">Password</label>
-                <input type="password" name="password" id="inputPassword" class="form-control middle" placeholder="Password" required>
-                <label for="inputPassword2" class="sr-only">Password (again)</label>
-                <input type="password" name="password2" id="inputPassword2" class="form-control bottom" placeholder="Password (again)" required>
-                <div class="checkbox mb-3">
-                </div>
+                <!-- <div class="form-group"> -->
+                    <label for="inputUsername" class="sr-only">Username</label>
+                    <input type="text" id="inputUsername" name="username" 
+                        class="form-control top" placeholder="Username" 
+                        required autofocus>
+                <!-- </div> -->
+                <!-- <div class="form-group"> -->
+                    <label for="inputPassword" class="sr-only">Password</label>
+                    <input type="password" name="password" id="inputPassword" 
+                        class="form-control middle" placeholder="Password" 
+                        required>
+                <!-- </div> -->
+                <div class="form-group">
+                    <label for="inputPassword2" class="sr-only"
+                        >Password (again)</label>
+                    <input type="password" name="password2" id="inputPassword2"
+                        class="form-control bottom" 
+                        placeholder="Password (again)" required>
+                    <div class="checkbox mb-3">
+                    </div>
+                <!-- </div> -->
                 <button class="btn btn-lg btn-primary btn-block" type="submit">Sign up</button>
             </form>
 

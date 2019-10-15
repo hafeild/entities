@@ -1,6 +1,7 @@
 {
     // This file should be standard JSON exect for comments. Comments must
-    // be on their own line and start with two slashes.
+    // be on their own line and start with two slashes (leading whitespace is
+    // stripped).
 
     // Where on the filesystem you want raw texts to be stored.
     "text_storage": "/path/to/text/storage",
@@ -8,8 +9,12 @@
     // The port that the book-nlp java server will listen on.
     "text_processing_port": "5858",
 
-    // An example for MySQL.
-    "dsn": "mysql:dbname=adatabase;host=localhost",
+    // An example for PostgreSQL.
+    "dsn": "pgsql:dbname=adatabase;host=localhost;port=1111",
+    // Some database drivers are different for php and Java; use dsn_java for 
+    // the java-specific one. EntiTiesDatabase will fallback to dsn if dsn_java
+    // isn't present.
+    "dsn_java": "postgresql://localhost:1111/adatabase",
     "authentication": true,
     "username": "ausername",
     "password": "apassword",

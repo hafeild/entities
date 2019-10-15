@@ -205,10 +205,12 @@ public class EntiTiesDispatcher extends Thread {
             (JSONObject) parser.parse(settingsRaw);
 
         settings.put("dsn", (String) settingsJSON.get("dsn"));
+        if(settingsJSON.containsKey("java_dsn"))
+            settings.put("java_dsn", (String) settingsJSON.get("java_dsn"));
         settings.put("authentication", ""+ settingsJSON.get("authentication"));
 
         if(settings.get("authentication").equals("true")){
-            settings.put("usernmae", (String) settingsJSON.get("username"));
+            settings.put("username", (String) settingsJSON.get("username"));
             settings.put("password", (String) settingsJSON.get("password"));
         }
         
@@ -277,9 +279,12 @@ public class EntiTiesDispatcher extends Thread {
             port = Integer.parseInt(dbSettings.get("text_processing_port"));
         }
 
-        System.out.println("dsn: "+ dbSettings.get("dsn"));
-        System.out.println("authentication: "+ 
-            dbSettings.get("authentication"));
+        if(dbSettings.containsKey("java_dsn")){
+            System.out.println("dsn: jdbc:"+ dbSettings.get("java_dsn"));
+        } else {
+            System.out.println("dsn: jdbc:"+ dbSettings.get("dsn"));
+        }
+        System.out.println("authentication: "+dbSettings.get("authentication"));
         
         logger = new EntiTiesLogger();
 

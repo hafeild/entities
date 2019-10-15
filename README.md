@@ -21,13 +21,23 @@ higher installed.
 ## Step 2. 
 Copy `conf-EXAMPLE.json` to `conf.json` and edit it. Note that you must
 choose where to store original texts (must be writable by the apache user) and
-what database to use to store metadata. Any database that can be used with PHP
-Data Objects is okay to use. 
+what database to use to store metadata. Currently supported databases:
+
+  * sqlite
+  * PostgreSQL
 
 No property should be defined more than once; for any repeated property, the 
 last value set is used. You may use `//` to comment out lines.
 
 ## Step 3.
+Run the database migrations:
+
+    php migrate-database.php up
+
+See [Database Migrations](#database-migrations) for details on migrations and 
+troubleshooting.
+
+## Step 4.
 Install https://github.com/dbamman/book-nlp with the supporting models in the
 `entities` directory:
 
@@ -41,18 +51,18 @@ Install https://github.com/dbamman/book-nlp with the supporting models in the
     cd ..
     
 
-## Step 4. 
+## Step 5. 
 Make a copy or symlink to the `book-nlp/files/` directory in the 
 `entities` directory. E.g.,
 
     ln -s book-nlp/files .
 
-## Step 5.
+## Step 6.
 Download remaining dependencies and compile the Java side of things by running:
 
     ./make.sh
 
-## Step 6.
+## Step 7.
 Start the BookNLPServer by running the `run-java-server.sh` script:
 
     ./run-java-server.sh
@@ -136,6 +146,43 @@ su entities
 ## Supposing your sqlite3 database is in data/database.sqlite3
 sudo chmod g+w data/database.sqlite3
 ```
+
+# Database Migrations
+
+The `migrate-database.php` script contains the code to create and modify 
+database tables. It allows adapting existing tables (e.g., due to new 
+development) without losing data. It also allows for down migration—tearing down
+tables and removing columns. This is helpful if you want to start over, 
+usually while developing.
+
+To perform a normal up migration, run:
+
+    php migrate-database.php up [<num-migrations>]
+
+`<num-migrations>` is an optional argument and should include the number of
+migrations to perform. If omitted, all migrations are performed. 
+
+To undo all migrations, run:
+
+    php migrate-database.php down <num-migrations>
+
+`<num-migrations>` is required for down migration; use -1 for "all". To rollback
+to the previous migration, do:
+
+    php migraiton-database.php down 1
+
+You'll be asked to confirm before a down migration (which will result in the
+loss of data) is performed. 
+
+If you plan to develop EntiTies and you need to add new columns or tables, 
+create a new function at the bottom of `migrate-database.php`, then add the
+function name as a string to the end of the `$migrations` array near the top of
+the file.
+
+If you are encountering an error while running `migrate-database.php`, here are
+a few things to know. The id of the current migration of the database is stored
+in `.entities-migration`. If you've manually removed your database or changed
+databases, remove this file before running `migrate-database.php`.
 
 
 # Annotation storage format

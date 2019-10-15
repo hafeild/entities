@@ -31,6 +31,10 @@ if [ ! -f "activation-1.1.1.jar" ]  ; then
     curl https://repo1.maven.org/maven2/javax/activation/activation/1.1.1/activation-1.1.1.jar -O
 fi 
 
+if [ ! -f "postgresql-42.2.8.jar" ]; then
+    curl https://search.maven.org/remotecontent?filepath=org/postgresql/postgresql/42.2.8/postgresql-42.2.8.jar -O
+fi
+
 cd ..
 
 

@@ -16,7 +16,7 @@ class Controllers {
  *      * id
  *      * title
  *      * md5sum
- *      * uploaded_at
+ *      * created_at
  *      * uploaded_by
  *      * annotation_count
  *      * tokenization_in_progress
@@ -61,22 +61,29 @@ public static function getTexts($path, $matches, $params, $format,
     $statement->execute();
     $results["upload_count"] = $statement->fetch()[0];
 
-    if($endID >= 1){
-        $statement = $dbh->prepare(
-            "select text.*, count(text_id) as annotation_count from texts ". 
-            "join annotations where text.id between :start_id and :end_id and ". 
-            "text_id = text.id group by text_id");
-        $statement->execute(array(":start_id" => $startID, 
-            ":end_id" => $endID));
-    } else {
-        $statement = $dbh->prepare(
-            // "select * from texts where id >= :start_id");
-            "select texts.*, count(text_id) as annotation_count from texts ". 
-            "join annotations where texts.id >= :start_id and ". 
-            "text_id = texts.id group by text_id");
-        $statement->execute(array(":start_id" => $startID));
+    try {
+        if($endID >= 1){
+            $statement = $dbh->prepare(
+                "select texts.*, annotation_count from texts ". 
+                "join (select text_id,count(text_id) as annotation_count ". 
+                "from texts join annotations on text_id = texts.id group by ". 
+                "text_id) as A on texts.id = text_id ".
+                "where texts.id between :start_id and :end_id");
+            $statement->execute(array(":start_id" => $startID, 
+                ":end_id" => $endID));
+        } else {
+            $statement = $dbh->prepare(
+                // "select * from texts where id >= :start_id");
+                "select texts.*, annotation_count from texts ". 
+                "join (select text_id,count(text_id) as annotation_count ". 
+                "from texts join annotations on text_id = texts.id group by ". 
+                "text_id) as A ".
+                "on texts.id = text_id where texts.id >= :start_id");
+            $statement->execute(array(":start_id" => $startID));
+        }
+    } catch(Exception $e){
+        error("Error getting list of texts: ". $e->getMessage());
     }
-    checkForStatementError($dbh,$statement,"Error getting texts.");
 
     while(($count == -1 || $rowsReturned < $count) 
             && $row = $statement->fetch(\PDO::FETCH_ASSOC)){
@@ -110,7 +117,7 @@ public static function getTexts($path, $matches, $params, $format,
  *      * md5sum
  *      * tokenization_in_progress
  *      * tokenization_error
- *      * uploaded_at
+ *      * created_at
  *      * processed_at
  *      * uploaded_by
  *  - annotation
@@ -562,7 +569,7 @@ public static function postAnnotation($path, $matches, $params, $format){
  *      * md5sum
  *      * tokenization_in_progress
  *      * tokenization_error
- *      * uploaded_at
+ *      * created_at
  *      * uploaded_by
  *      * uploaded_by_username
  *     

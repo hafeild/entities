@@ -4,10 +4,10 @@
 // Date: 2019-05-23 (modified from Sep 2018)
 // Purpose: Routes all JSON and HTML traffic.
 
+require_once("controllers.php");
 require_once("init.php");
 require_once("model.php");
 require_once("model-annotations-sql.php");
-require_once("controllers.php");
 
 
 // Extracts the requested path. Assumes the URI is in the format: 

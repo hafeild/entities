@@ -12,24 +12,6 @@ require_once("model.php");
 function connectToAnnotationDB(){
     try{
         $dbh = connectToDB();
-
-        $status = $dbh->exec("create table if not exists annotations(".
-            "id integer primary key autoincrement,".
-            "text_id integer,".
-            "created_by integer,".
-            "annotation text,".
-            "parent_annotation_id integer,".
-            "method text,".
-            "method_metadata text,". // Versioning, parameters, etc.
-            "label text,".
-            "created_at datetime,".
-            "updated_at datetime,".
-            "automated_method_in_progress boolean default FALSE,". 
-            "automated_method_error boolean default FALSE,".
-            "foreign key(created_by) references users(id),".
-            "foreign key(text_id) references texts(id)".
-        ")");
-
         return $dbh;
     } catch(Exception $e){
         error("Failed to create annotation table ". $e->getMessage());
@@ -60,14 +42,13 @@ function connectToAnnotationDB(){
  * @param method_metadata A JSON string containing metadata information, such as
  *                        algorithm, version, parameters, etc.
  * @param label A descriptive name for the annotation, e.g. "BookNLP".
- * @param automatedMethodInProgress Optional (default is 0).
+ * @param automatedMethodInProgress Optional (default is false).
  * @return The id of the newly added annotation.
  */
 function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
-    $method, $method_metadata, $label, $automatedMethodInProgress=0){
+    $method, $method_metadata, $label, $automatedMethodInProgress=false){
 
     $dbh = connectToAnnotationDB();
-
     try{
         $statement = $dbh->prepare(
             "insert into annotations(" .
@@ -76,7 +57,7 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
                 "automated_method_in_progress) values(:text_id, :user_id, ". 
                 ":parent_annotation_id, :annotation, :method, ".
                 ":method_metadata, :label, ". 
-                "DATETIME('now'), DATETIME('now'), ". 
+                ":timestamp, :timestamp, ". 
                 ":automated_method_in_progress)");
         $statement->execute([
             ":text_id"             => $textId,
@@ -86,11 +67,25 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
             ":method"              => $method,
             ":method_metadata"     => $method_metadata,
             ":label"               => $label,
-            ":automated_method_in_progress" => $automatedMethodInProgress
+            ":automated_method_in_progress"
+                                   => boolToString($automatedMethodInProgress),
+            ":timestamp"           => curDateTime()
         ]);
         return $dbh->lastInsertId();
     } catch(Exception $e){
-        error("Error adding annotation: ". $e->getMessage());
+        error("Error adding annotation: ". $e->getMessage(), [
+            
+            ":text_id"             => $textId,
+            ":user_id"             => $userId,
+            ":parent_annotation_id"=> $parentAnnotationId,
+            ":annotation"          =>json_encode($annotation,JSON_FORCE_OBJECT),
+            ":method"              => $method,
+            ":method_metadata"     => $method_metadata,
+            ":label"               => $label,
+            ":automated_method_in_progress" 
+                                   => boolToString($automatedMethodInProgress),
+            ":timestamp"           => curDateTime()
+        ]);
     }
 }
 /**
@@ -119,7 +114,7 @@ function lookupAnnotations($textId = null){
 
     $filter = "";
     if($textId != null)
-        $filter = "and text_id = :text_id";
+        $filter = "where text_id = :text_id";
 
     try{
         $statement = $dbh->prepare(
@@ -129,13 +124,15 @@ function lookupAnnotations($textId = null){
                 "annotations.created_at, updated_at, ". 
                 "automated_method_in_progress, automated_method_error ". 
                 "from annotations ".
-                "join users join texts where text_id = texts.id and ".
-                "users.id = created_by $filter order by annotation_id");
+                "join users on users.id = created_by ". 
+                "join texts on text_id = texts.id ".
+                "$filter order by annotation_id");
         $statement->execute([':text_id' => $textId]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(Exception $e){
-        error("Error retrieving annotations: ". $e->getMessage());
+        error("Error retrieving annotations: ". $e->getMessage(),
+            ["In lookupAnnotations($textId)"]);
     }
 }
 
@@ -171,15 +168,16 @@ function lookupAnnotationsByUser($userId){
             "annotations.created_at, updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
-            "join users join texts where text_id = texts.id and ".
-            "users.id = created_by and created_by = :user_id");
+            "join users on users.id = created_by". 
+            "join texts on text_id = texts.id and created_by = :user_id");
         $statement->execute([
             ":user_id" => $userId,
         ]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(Exception $e){
-        error("Error retrieving annotation: ". $e->getMessage());
+        error("Error retrieving annotation: ". $e->getMessage(),
+            ["In lookupAnnotationsByUser($userId)"]);
     }
 }
 
@@ -214,15 +212,17 @@ function lookupAnnotationsByText($textId){
             "annotations.created_at, updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
-            "join users join texts where text_id = texts.id and ".
-                "users.id = created_by and text_id = :text_id");
+            "join users on users.id = created_by ". 
+            "join texts on text_id = texts.id and ".
+            "where text_id = :text_id");
         $statement->execute([
             ":text_id" => $textId,
         ]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(Exception $e){
-        error("Error retrieving annotation: ". $e->getMessage());
+        error("Error retrieving annotation: ". $e->getMessage(),
+            ["In lookupAnnotationsByText($textId)"]);
     }
 }
 
@@ -262,8 +262,9 @@ function lookupAnnotation($id){
             "annotations.created_at, updated_at, ". 
             "automated_method_in_progress, automated_method_error, annotation ". 
             "from annotations ".
-            "join users join texts where text_id = texts.id and ".
-            "users.id = created_by and annotations.id = :id");
+            "join users on users.id = created_by ". 
+            "join texts on text_id = texts.id ".
+            "where annotations.id = :id");
         $statement->execute([
             ":id" => $id,
         ]);
@@ -275,7 +276,8 @@ function lookupAnnotation($id){
         return $res;
 
     } catch(Exception $e){
-        error("Error retrieving annotation: ". $e->getMessage());
+        error("Error retrieving annotation: ". $e->getMessage(),
+            ["In lookupAnnotation($id)"]);
     }
 }
 
@@ -307,13 +309,15 @@ function updateAnnotation($annotationId, $userId, $updater){
                 "where id = :id");
         $statement->execute([
             ":id" => $annotationId,
-            ":annotation" => json_encode($updater($annotationData["annotation"]), true)
+            ":annotation" => json_encode(
+                $updater($annotationData["annotation"]), true)
         ]);
         $dbh->commit();
 
     } catch(Exception $e){
         $dbh->rollback();
-        error("Error updating annotation: ". $e->getMessage());
+        error("Error updating annotation: ". $e->getMessage(),
+            ["In updateAnnotation($annotationId, $userId, updater)"]);
     }
 }
 
@@ -335,11 +339,12 @@ function setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag) {
                 "where id = :id");
         $statement->execute([
             ":id"           => $annotationId,
-            ":in_progress"  => $inProgressFlag,
-            ":error"        => $errorFlag
+            ":in_progress"  => boolToString($inProgressFlag),
+            ":error"        => boolToString($errorFlag)
         ]);
 
     } catch(Exception $e){
-        error("Error updating annotation: ". $e->getMessage());
+        error("Error updating annotation: ". $e->getMessage(), 
+            ["In setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag)"]);
     }
 }

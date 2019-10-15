@@ -21,6 +21,7 @@ public class EntiTiesDatabase {
     HashMap<String, String> settings;
     private EntiTiesLogger.RequestLogger logger;
     private Connection dbh;
+    private boolean isPostgres;
 
     public EntiTiesDatabase(HashMap<String, String> settings, 
         EntiTiesLogger.RequestLogger logger){
@@ -37,13 +38,21 @@ public class EntiTiesDatabase {
      */
     public boolean openConnection() {
         String dsn = "jdbc:"+ settings.get("dsn");
-        if(settings.get("authentication").equals("true")){
-            dsn += "?user="+ settings.get("username") +
-                    "&password="+ settings.get("password");
+        if(settings.containsKey("java_dsn")){
+            dsn = "jdbc:"+ settings.get("java_dsn");
         }
+        logger.log("Using DSN "+ dsn);
+
+        isPostgres = dsn.startsWith("jdbc:postgresql");
 
         try {
-            dbh = DriverManager.getConnection(dsn);
+            if(settings.get("authentication").equals("true")){
+
+                dbh = DriverManager.getConnection(dsn, 
+                    settings.get("username"), settings.get("password"));
+            } else {
+                dbh = DriverManager.getConnection(dsn);
+            }
             return true;
         } catch (SQLException e) {
             logger.log(e.getMessage());
@@ -70,8 +79,8 @@ public class EntiTiesDatabase {
             if(!result.next())
                 return IdStatus.ID_NOT_PRESENT;
 
-            if(result.getInt("automated_method_in_progress") ==  0 &&
-                result.getInt("automated_method_error") == 0)
+            if(result.getBoolean("automated_method_in_progress") ==  false &&
+                result.getBoolean("automated_method_error") == false)
                 return IdStatus.ID_ALREADY_PROCESSED;
         } catch (SQLException e) {
             logger.log(e.toString());
@@ -125,7 +134,8 @@ public class EntiTiesDatabase {
     public boolean setTextTokenizationSuccessfulFlags(int id) throws SQLException {
         PreparedStatement statement = dbh.prepareStatement(
             "update texts set "+
-            "tokenization_in_progress = 0, tokenization_error = 0 where id = ?");
+            "tokenization_in_progress = FALSE, tokenization_error = FALSE "+
+            "where id = ?");
         statement.setInt(1, id);
         return statement.executeUpdate() == 1;
     }
@@ -149,7 +159,8 @@ public class EntiTiesDatabase {
     public boolean setTextTokenizationErrorFlag(int id) throws SQLException {
         PreparedStatement statement = dbh.prepareStatement(
             "update texts set "+
-            "tokenization_in_progress = 0, tokenization_error = 1 where id = ?");
+            "tokenization_in_progress = FALSE, tokenization_error = TRUE "+
+            "where id = ?");
         statement.setInt(1, id);
         return statement.executeUpdate() == 1;
     }
@@ -171,15 +182,19 @@ public class EntiTiesDatabase {
     public boolean postAnnotation(int annotationId, String annotation) 
         throws SQLException {
 
-        String curTime = new Timestamp(new Date().getTime()).toString();
+        Timestamp curTime = new Timestamp(new Date().getTime());
         PreparedStatement statement = dbh.prepareStatement(
             "update annotations set "+
             "updated_at = ?, "+
-            "automated_method_in_progress = 0, "+
-            "automated_method_error = 0, "+
+            "automated_method_in_progress = FALSE, "+
+            "automated_method_error = FALSE, "+
             "annotation = ? "+
             "where id = ?");
-        statement.setString(1, curTime);
+
+        // if(isPostgres)
+        //     statement.setString(1, curTime.toString());
+        // else 
+            statement.setTimestamp(1, curTime);
         statement.setString(2, annotation);
         statement.setInt(3, annotationId);
 
@@ -189,7 +204,7 @@ public class EntiTiesDatabase {
     /**
      * Reads an annotation from the database and wraps it as an Annotation.
      * 
-     * @param annotationId The id of the annotaiton to fetch.
+     * @param annotationId The id of the annotation to fetch.
      * @return The Annotation with the specified id.
      * @throws SQLException
      */

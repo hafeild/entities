@@ -9,7 +9,7 @@ $CONFIG_FILE = "../conf.json";
 $configFD = fopen($CONFIG_FILE, "r") or 
     error("Error reading configuration file.");
 // Strip out comments before parsing the config file.
-$CONFIG = json_decode(preg_replace("#([ \t]*//[^\n]*(\n|$))|(^\s*$)#", "\n", 
+$CONFIG = json_decode(preg_replace("#(^[ \t]*//.*$)|(^\s*$)#m", "\n", 
     fread($configFD,filesize($CONFIG_FILE))));
 fclose($configFD);
 

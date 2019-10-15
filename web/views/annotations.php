@@ -123,9 +123,9 @@ foreach($data["annotations"] as $annotation){
                     <?php
                     // TODO -- update this logic to indicate if the root annotation
                     // has been tokenized or not. That's needed to continue...
-                    if($annotation["automated_method_error"] === "1")
+                    if($annotation["automated_method_error"])
                         print " <span class=\"error\">(error processing)</span>";
-                    elseif($annotation["automated_method_in_progress"] === "1")
+                    elseif($annotation["automated_method_in_progress"])
                         print " <span class=\"note\">(processing...)</span>";
                     
                     // // Handle the case of the root not being ready yet.
