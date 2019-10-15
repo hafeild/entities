@@ -24,19 +24,25 @@ $PERMISSIONS = [
  */
 function hasTextPermission($textId, $permissionLevel, $userId=null){
     global $user, $PERMISSIONS;
+
+    // error_log("In hasTextPermission");
     if($userId == null && $user != null){
         $userId = $user["id"];
+        // error_log("userId set to null; using user['id']: ${user["id"]}");
     }
 
+    $text = getTextMetadata($textId);
+
     // Check if the resource is public.
-    if($permissionLevel == $PERMISSIONS["READ"]){
-        $text = getTextMetadata($textId);
+    if($userId == null && $permissionLevel == $PERMISSIONS["READ"]){
         return $text["is_public"] == "1";
 
     } else if($userId != null) {
         // Check if the user has the requested permissions.
         $permission = getTextPermission($userId, $textId);
-        return intval($permission["permission"]) >= $permissionLevel;
+        return intval($permission["permission"]) >= $permissionLevel || 
+                ($permissionLevel == $PERMISSIONS["READ"] && 
+                 $text["is_public"] == "1");
     }
 
     return false;

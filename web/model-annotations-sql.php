@@ -89,7 +89,8 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
     }
 }
 /**
- * Retrieves annotation metadata.
+ * Retrieves annotation metadata for all annotations a user has access to.
+ * Can be optionally filtered by text.
  * 
  * @param textId (OPTIONAL) If present, restricts the annotations returned to 
  *               just those associated with the given text id.
@@ -108,8 +109,10 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
  *      * updated_at
  *      * automated_method_in_progress
  *      * automated_method_error
+ *      * permission (of the current user)
  */
 function lookupAnnotations($textId = null){
+    global $user;
     $dbh = connectToAnnotationDB();
 
     $filter = "";
@@ -119,15 +122,21 @@ function lookupAnnotations($textId = null){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
-                "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
+                "md5sum as text_md5sum, text_id,username,users.id as user_id, ". 
                 "parent_annotation_id, method, method_metadata, label, ". 
                 "annotations.created_at, updated_at, ". 
-                "automated_method_in_progress, automated_method_error ". 
-                "from annotations ".
+                "automated_method_in_progress, automated_method_error, ". 
+                "permission from annotations ".
                 "join users on users.id = created_by ". 
                 "join texts on text_id = texts.id ".
+                "left join (select annotation_id, permission ". 
+                "from annotation_permissions where user_id = :user_id) as A ". 
+                "on A.annotation_id = annotations.id ".
                 "$filter order by annotation_id");
-        $statement->execute([':text_id' => $textId]);
+        $statement->execute([
+            ":text_id" => $textId,
+            ":user_id" => ($user == null ? null : $user["id"])
+        ]);
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(Exception $e){

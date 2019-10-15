@@ -343,7 +343,7 @@ function setUserAuthToken($userId, $authToken){
  * 
  * @param userId The id of the user.
  * @param textId The id of the text.
- * @return An associative array of book metadata with these fields:
+ * @return An associative array of permission data with these fields:
  *      * user_id
  *      * text_id
  *      * permission
@@ -365,5 +365,34 @@ function getTextPermission($userId, $textId){
         die("There was an error retrieving permissions on the given text: ". 
             $e->getMessage());
     }
+}
 
+/**
+ * Extracts the permission data for the given text. 
+ * 
+ * @param textId The id of the text.
+ * @return An list of associative arrays of permission data with these fields:
+ *      * user_id
+ *      * username
+ *      * text_id
+ *      * permission
+ *      * created_at
+ */
+function getTextPermissions($textId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select text_permissions.*, username ". 
+            "from text_permissions ". 
+            "join users on user_id = users.id ". 
+            "where text_id = :text_id");
+        $statement->execute([
+            ":text_id" => $textId
+        ]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        die("There was an error retrieving permissions on the given text: ". 
+            $e->getMessage());
+    }
 }

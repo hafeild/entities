@@ -119,8 +119,8 @@ public static function getTexts($path, $matches, $params, $format,
 
 
 /**
- * Displays the metadata for the texts that have been processed or are
- * currently in process. Returned fields include:
+ * Displays the metadata for the given text if the current user has permission 
+ * to view it. Returned fields include:
  * 
  *  - success (true/false)
  *  - text (objects of text metadata)
@@ -153,8 +153,11 @@ public static function getText($path, $matches, $params, $format){
     if(count($matches) < 2){
         error("Must include the id of the text in URI.");
     }
-
     $id = $matches[1];
+
+    if(!canViewText($id)){
+        error("You do not have permissions to view this text.");
+    }
 
     $results = getOriginalAnnotation($id);
     $results["success"] = true;
@@ -623,13 +626,17 @@ public static function getAnnotations($path, $matches, $params, $format){
         if($format == "html"){
             $text = getTextMetadata($matches[1]);
         }
+
+        // Ensure the user has permission to view this text.
+        if(!canViewText($matches[1])){
+            error("You do not have permission to view this text or its ". 
+                  "annotations.");
+        }
+
     } else {
         $annotations = lookupAnnotations();
         $text = null;
     }
-
-    // if($annotations == null)
-    //     $annotations = [];
 
     if($format == "json"){
         return [
