@@ -804,6 +804,114 @@ public static function editAnnotation($path, $matches, $params, $format){
         "success" => true
     ];
 }
+
+/**
+ * Adds a new permission for the given text. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data
+ *          * permission_id (id of newly added permission, if successful)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the text id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - username (string)
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function postTextPermission($path, $matches, $params, $format) {
+    // TODO
+}
+
+/**
+ * Updates an existing text permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the text id, the second the 
+ *                permission id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function patchTextPermission($path, $matches, $params, $format) {
+    // TODO
+}
+
+/**
+ * Removes an existing text permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the text id, the second the 
+ *                permission id.
+ * @param params Ignored.
+ */
+public static function deleteTextPermission($path, $matches, $params, $format) {
+    // TODO
+}
+
+
+/**
+ * Adds a new permission for the given annotation. Responds with the following 
+ * JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data
+ *          * permission_id (id of newly added permission, if successful)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotaiton id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - username (string)
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function postAnnotationPermission($path, $matches, $params, 
+                                                $format) {
+    // TODO
+}
+
+/**
+ * Updates an existing annotation permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id, the second the 
+ *                permission id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function patchAnnotationPermission($path, $matches, $params, 
+                                                 $format) {
+
+    // TODO
+}
+
+/**
+ * Removes an existing annotation permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id, the second the 
+ *                permission id.
+ * @param params Ignored.
+ */
+public static function deleteAnnotationPermission($path, $matches, $params, 
+                                                  $format) {
+    // TODO
+}
+
+
 /**
  * Generates a route map with three fields:
  *   - method
@@ -884,6 +992,7 @@ public static function redirectTo($url, $error=null, $message=null){
     header('Location: '.$url);
     die('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url='. $url .'"></head></html>');
 }
+
 
 }
 

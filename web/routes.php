@@ -91,7 +91,56 @@ $routes = [
     Controllers::generateRoute(
         "GET", 
         "#^texts/\d+/annotations/(\d+)/?$#", 
-        'Controllers::getAnnotation')
+        'Controllers::getAnnotation'),
+
+    //////////////////////////////////////////////
+    // Text permissions.
+    ///////////////
+    // Add a new permission.
+    Controllers::generateRoute(
+        "POST",
+        "#^texts/(\d+)/permissions#",
+        "Controllers::postTextPermission"
+    ),
+
+    // Modify an existing permission.
+    Controllers::generateRoute(
+        "PATCH",
+        "#^texts/(\d+)/permissions/(\d+)#",
+        "Controllers::patchTextPermission"
+    ),
+
+    // Delete a permission.
+    Controllers::generateRoute(
+        "DELETE",
+        "#^texts/(\d+)/permissions/(\d+)#",
+        "Controllers::deleteTextPermission"
+    ),
+
+    //////////////////////////////////////////////
+    // Annotation permissions.
+    ///////////////
+    // Add a new permission.
+    Controllers::generateRoute(
+        "POST",
+        "#^annotations/(\d+)/permissions#",
+        "Controllers::postAnnotationPermission"
+    ),
+
+    // Modify an existing permission.
+    Controllers::generateRoute(
+        "PATCH",
+        "#^annotations/(\d+)/permissions/(\d+)#",
+        "Controllers::patchAnnotationPermission"
+    ),
+
+    // Delete a permission.
+    Controllers::generateRoute(
+        "DELETE",
+        "#^annotations/(\d+)/permissions/(\d+)#",
+        "Controllers::deleteAnnotationPermission"
+    )
+
 
 #     "entities" => array("method" => "POST", "call" => addEntity),
 
@@ -114,7 +163,6 @@ if(preg_match("#^/json/#", $_SERVER['REQUEST_URI']) === 1){
     // header('Content-type: text/html; charset=utf-8');
     $format = "html";
 }
-
 
 // Valid requests:
 foreach($routes as $route){
