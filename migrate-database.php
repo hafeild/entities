@@ -20,6 +20,7 @@ $PERMISSIONS = [
 // function, list it's name at the end of this array.
 $migrations = [
     "makeUsersTextsAnnotationsTables",
+    "renameTextUploadedAtColumn",
     "updateTextsAnnotationsTables",
     "addPermissionsTables"
 ];
@@ -205,8 +206,8 @@ function makeUsersTextsAnnotationsTables($dbh, $direction="up"){
                              : "id integer primary key autoincrement,").
                 "title varchar(256),".
                 "md5sum char(32) unique,".
-                ($isPostgres ? "created_at timestamp," 
-                             : "created_at datetime,").
+                ($isPostgres ? "uploaded_at timestamp," 
+                             : "uploaded_at datetime,").
                 "uploaded_by integer, ".
                 "tokenization_in_progress boolean default '0', ".
                 "tokenization_error boolean default '0', ".
@@ -253,6 +254,73 @@ function makeUsersTextsAnnotationsTables($dbh, $direction="up"){
     }
 }
 
+function renameTextUploadedAtColumn($dbh, $direction="up"){
+    global $isSqlite, $isPostgres;
+
+    // Add new columns.
+    if($direction === "up"){
+        print "Renaming 'uploaded_at' column to 'created_at' in texts ". 
+              "table...\n";
+        if($isSqlite){
+            // Create texts metadata table.
+            $dbh->exec("alter table texts rename to _texts");
+            $dbh->exec("create table texts(".
+                    "id integer primary key autoincrement,".
+                    "title varchar(256),".
+                    "md5sum char(16) unique,".
+                    ($isPostgres ? "created_at timestamp," 
+                                 : "created_at datetime,").
+                    "uploaded_by integer, ".
+                    "tokenization_in_progress boolean default '0', ".
+                    "tokenization_error boolean default '0', ".
+                    "foreign key(uploaded_by) references users(id)".
+                ")"
+            );
+            $dbh->exec("insert into texts(id,title,md5sum,created_at,". 
+                "uploaded_by,tokenization_in_progress,tokenization_error) ".
+                "select id,title,md5sum,uploaded_at,uploaded_by,". 
+                "tokenization_in_progress,tokenization_error from _texts");
+            $dbh->exec("drop table _texts");
+
+        } else {
+            // Rename the column
+            $dbh->exec(
+                "alter table texts rename column uploaded_at to created_at");
+        }
+    // Remove columns.
+    } else {
+        print "Renaming 'created_at' column to 'uploaded_at' in texts ". 
+              "table...\n";
+        if($isSqlite){
+            // Create texts metadata table.
+            $dbh->exec("alter table texts rename to _texts");
+            $dbh->exec("create table texts(".
+                    "id integer primary key autoincrement,".
+                    "title varchar(256),".
+                    "md5sum char(16) unique,".
+                    ($isPostgres ? "uploaded_at timestamp," 
+                                 : "uploaded_at datetime,").
+                    "uploaded_by integer, ".
+                    "tokenization_in_progress boolean default '0', ".
+                    "tokenization_error boolean default '0', ".
+                    "foreign key(uploaded_by) references users(id)".
+                ")"
+            );
+            $dbh->exec("insert into texts(id,title,md5sum,uploaded_at,". 
+                "uploaded_by,tokenization_in_progress,tokenization_error) ".
+                "select id,title,md5sum,created_at,uploaded_by,". 
+                "tokenization_in_progress,tokenization_error from _texts");
+            $dbh->exec("drop table _texts");
+
+        } else {
+            // Rename the column
+            $dbh->exec(
+                "alter table texts rename column created_at to uploaded_at");
+        }
+
+    }
+}
+
 function updateTextsAnnotationsTables($dbh, $direction="up"){
     global $isSqlite, $isPostgres;
 
@@ -284,17 +352,17 @@ function updateTextsAnnotationsTables($dbh, $direction="up"){
                     "id integer primary key autoincrement,".
                     "title varchar(256),".
                     "md5sum char(16) unique,".
-                ($isPostgres ? "created_at timestamp," 
-                             : "created_at datetime,").
+                    ($isPostgres ? "created_at timestamp," 
+                                 : "created_at datetime,").
                     "uploaded_by integer, ".
                     "tokenization_in_progress boolean default '0', ".
                     "tokenization_error boolean default '0', ".
                     "foreign key(uploaded_by) references users(id)".
                 ")"
             );
-            $dbh->exec("insert into texts(id,title,md5sum,uploaded_at,". 
+            $dbh->exec("insert into texts(id,title,md5sum,created_at,". 
                 "uploaded_by,tokenization_in_progress,tokenization_error) ".
-                "select id,title,md5sum,uploaded_at,uploaded_by,". 
+                "select id,title,md5sum,created_at,uploaded_by,". 
                 "tokenization_in_progress,tokenization_error from _texts");
             $dbh->exec("drop table _texts");
 
@@ -351,12 +419,14 @@ function addPermissionsTables($dbh, $direction="up"){
         // Create text_permissions table.
         print "Creating text_permissions table...\n";
         $dbh->exec("create table text_permissions(".
+                ($isPostgres ? "id serial primary key," 
+                             : "id integer primary key autoincrement,").
                 "text_id integer,".
                 "user_id integer,".
                 "permission integer default 0,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
-                "primary key(text_id, user_id),".
+                "unique(text_id, user_id),".
                 "foreign key(text_id) references texts(id),".
                 "foreign key(user_id) references users(id)".
             ")"
@@ -382,12 +452,14 @@ function addPermissionsTables($dbh, $direction="up"){
         // Create annotation_permissions table.
         print "Creating annotation_permissions table...\n";
         $dbh->exec("create table annotation_permissions(".
+                ($isPostgres ? "id serial primary key," 
+                             : "id integer primary key autoincrement,").
                 "annotation_id integer,".
                 "user_id integer,".
                 "permission integer default 0,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
-                "primary key(annotation_id, user_id),".
+                "unique(annotation_id, user_id),".
                 "foreign key(annotation_id) references annotations(id),".
                 "foreign key(user_id) references users(id)".
             ")"
