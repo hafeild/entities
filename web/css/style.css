@@ -417,3 +417,8 @@ span.selectedEntity.end-token {
 #text-panel .entity {
     cursor: pointer;
 }
+
+.permission-username {
+    width: 40%;
+    display: inline-block;
+}

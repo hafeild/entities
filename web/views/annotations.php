@@ -1,7 +1,6 @@
 <div id="annotations" class="page">
     <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
 
-
 <?php
 // Put the annotations in a tree structure based on parent_annotation_id. 
 $annotationNodeLookup = [];
@@ -31,6 +30,109 @@ foreach($data["annotations"] as $annotation){
 
 
 <?php if($user != null){ // Begin logged-in user only section. ?>
+
+    <?php
+    // Sharing settings are only exposed to owners.
+    global $PERMISSIONS;
+    if(ownsText($data["text"]["id"])){ ?>
+    
+
+    <!-- Run annotation. -->
+    <!-- Button trigger modal -->
+    <button type="button" class="btn btn-primary btn-md sharing-button" 
+        data-toggle="modal" data-target="#sharing-modal">
+    Share text
+    </button>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="sharing-modal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close"
+                        ><span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Text sharing settings</h4>
+
+                </div>
+                <div class="modal-body">
+                    <p>
+                        Select the options below to specify who can see, modify,
+                        and manage this page. Sharing options for
+                        annotations must be managed per annotation. 
+                    </p>
+                    <!-- [ ] Anyone can view this page-->
+                    <div class="form-group">
+                        <label>Public settings</label><br/>
+                        <input type="checkbox" name="is-public" value="true">
+                            Anyone can view this page
+                    </div>
+                    <div class="form-group">
+                        <label>Add permissions for another EntiTies user</label>
+                        <br/>
+                        <input type="text" name="new-permission-username" 
+                            id="new-permission-username" 
+                            class="permission-username" placeholder="user1234">
+                        <select id="new-permission-level" name="new-permission-level">
+                            <option value="READ" selected>Can view this 
+                                page</option>
+                            <option value="WRITE">Can modify this page 
+                                (e.g., title, metadata)</option>
+                            <option value="OWNER">Can manage permissions on 
+                                this page</option>
+                        </select>
+                        <button type="button" aria-label="Add permission"
+                            class="btn btn-primary btn-xs" 
+                            id="add-new-permission"><span 
+                            class="glyphicon glyphicon-plus"</span></button>
+                    </div>
+                    <div class="form-group">
+                        <label>Existing user permission for this text</label><br/>
+                    <!-- List users with permission for this text here. -->
+                    <?php 
+                    $permissionsByUser = getTextPermissions($data["text"]["id"]); 
+
+                    foreach($permissionsByUser as $permissionUser){ ?>
+                        <div>
+                        <span class="permission-username"><?= $permissionUser["username"] ?></span>
+                        <select id="new-permission-level" name="new-permission-level"
+                            <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>>
+                            <option value="READ" <?= 
+                                $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
+                                "selected" : "" ?>>Can view this page</option>
+                            <option value="WRITE" <?= 
+                                $permissionUser["permission"] == $PERMISSIONS["WRITE"] ? 
+                                "selected" : "" ?>>Can modify this page 
+                                (e.g., title, metadata)</option>
+                            <option value="OWNER" <?= 
+                                $permissionUser["permission"] == $PERMISSIONS["OWNER"] ? 
+                                "selected" : "" ?>>Can manage permissions on 
+                                this page</option>
+                        </select>
+                        <?php if($permissionUser["user_id"] != $user["id"]) { ?>
+                        <button type="button" aria-label="Add permission"
+                            class="btn btn-danger btn-xs"
+                            id="remove-permission"><span 
+                            class="glyphicon glyphicon-trash"></span></button>
+                        <?php } ?>
+
+                        </div>
+                    <?php } ?>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" 
+                        data-dismiss="modal">Cancel</button>
+                    <input type="submit" class="btn btn-primary"
+                        value="Run"/>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+
+    <?php } ?>
+
 
     <h3>Creating a new annotation</h3>
     <p>
