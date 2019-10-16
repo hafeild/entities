@@ -1006,8 +1006,8 @@ var confirmAddTie = function() {
         }
     */
     var tieData = {
-        start: $(menuConfigData.textSpans[0]).attr('data-token'),
-        end: $(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr('data-token'),
+        start: parseInt($(menuConfigData.textSpans[0]).attr('data-token')),
+        end: parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr('data-token')),
         source_entity: null,
         target_entity: null,
         label: $('#tieNameBox').val()
