@@ -739,7 +739,7 @@ var AnnotationManager = function(annotation_data){
 
         // Update the simple fields.
         for(field in basicFields){
-            if(updatedMention[field] !== undefined){
+            if(updatedTie[field] !== undefined){
                 tie[field] = updatedTie[field];
                 // Mark change.
                 changes.ties[field] = location[field];
@@ -750,10 +750,12 @@ var AnnotationManager = function(annotation_data){
         for(node in nodes){
             if(updatedTie[node] !== undefined){
                 // Remove convenience links.
-                if(tie[node].location_id !== undefined){
-                    delete self.locations[tie[node].location_id].ties[tieId];
-                } else if(tie[node].entity_id !== undefined) {
-                    delete self.entities[tie[node].entity_id].ties[tieId];
+                if (Object.keys(tie).length > 0) {
+                    if(tie[node].location_id !== undefined){
+                        delete self.locations[tie[node].location_id].ties[tieId];
+                    } else if(tie[node].entity_id !== undefined) {
+                        delete self.entities[tie[node].entity_id].ties[tieId];
+                    }
                 }
 
                 // Add in new convenience links.

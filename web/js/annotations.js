@@ -14,6 +14,8 @@ var menuConfigData = {
     numSelectedEntities: 0,
     selectedGroups: [],
     numSelectedGroups: 0,
+    tieObjectOne: null,
+    tieObjectTwo: null
 };
 var menuOpen = 0;
 var menu;
@@ -876,16 +878,165 @@ var addEntityFromSelection = function() {
 }
 
 var openAddTieModal = function() {
-    // TODO
-    // POPULATE DROPDOWNS
+
+    if (menuConfigData.textSpans.length < 1) { return; }
+
+    tieModalTextArea = $('#tieModalTextArea');
+    dropdownOne = $('#tieObjectOneSelector');
+    dropdownTwo = $('#tieObjectTwoSelector');
+    tieNameBox = $('#tieNameBox');
+
+    tieModalTextArea.empty();
+    dropdownOne.empty();
+    dropdownTwo.empty();
+    tieNameBox.val("");
+    tieNameBox.attr('placeholder', "").blur();
+    $('#tieObjectOneDropdown').empty().html("Object One <span class='caret'></span>");
+    $('#tieObjectTwoDropdown').empty().html("Object One <span class='caret'></span>");
+    menuConfigData.tieObjectOne = null;
+    menuConfigData.tieObjectTwo = null;
+
+    var objectSearchWindowSize = 100;
+    var objects = "";
+    var spanList = [];
+    var startToken = parseInt($(menuConfigData.textSpans[0]).attr("data-token")) - objectSearchWindowSize/2;
+    var endToken = parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token")) + objectSearchWindowSize/2;
+    var curSpan = null;
+
+    for (var i = startToken; i <= endToken; i++) {
+        // TODO - KEEP TRACK OF LAST TOKEN ID IN ANNOTATION DATA AND STOP WHEN THAT IS REACHED
+        if (i < 1) { break; }
+        curSpan = $("span[data-token=" + i.toString() + "]").clone();
+        if (i >= parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && i <= parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token"))) {
+            curSpan.addClass('text-primary');
+            tieNameBox.attr('placeholder', tieNameBox.attr('placeholder') + curSpan.html() + " ").blur();
+        }
+        spanList.push(curSpan);
+    }
+
+    spanList.forEach(span => {
+        tieModalTextArea.append(span.clone());
+        tieModalTextArea.append('<span> </span>');
+        if (span.hasClass('entity')) {
+            objects += ('<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
+                '<span class="unselectable">' + span.html() + '</span></li>');
+        }
+    });
+
+    objects += "<li class='list-group-item disabled' style='text-align: center;'><span style='text-align: center;'>--- Entities ---</span></li>";
+
+    for (entity in annotation_data.annotation.entities) {
+        objects += ('<li class="tie-object list-group-item" data-entity-id="' + entity.toString() + '">' + 
+                '<span class="unselectable">' + annotation_data.annotation.entities[entity].name + '</span></li>');
+    }
+
+    dropdownOne.append(objects);
+    dropdownTwo.append(objects);
 
     $('#addTieModalOpener').click();
+}
+
+var highlightTieModalTextArea = function(e) {
+    var location = $('#tieModalTextArea').find('[data-location-id=' + $(this).attr('data-location-id') + ']');
+    
+    if (location.hasClass('selectedEntity') && !location.hasClass('selectedTieObject')) {
+        location.removeClass('selectedEntity');
+    } else {
+        location.addClass('selectedEntity');
+    }
+}
+
+var tieModalObjectChosen = function(e) {
+    var object = $(this);
+    var mention = $('#tieModalTextArea').find('[data-location-id=' + object.attr('data-location-id') + ']');  
+    mention.addClass('selectedTieObject');
+    mention.addClass('selectedEntity');
+
+    if (object.parent().is('#tieObjectOneSelector')) {
+        if (menuConfigData.tieObjectOne !== null) {
+            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']').removeClass('selectedTieObject');
+            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']').removeClass('selectedEntity');
+            $('#tieObjectOneSelector').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']')
+                .removeClass("disabled");
+            $('#tieObjectTwoSelector').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']')
+                .removeClass("disabled");
+            $('#tieObjectOneSelector').find('[data-entity-id=' + menuConfigData.tieObjectOne.attr('data-entity-id') + ']')
+                .removeClass("disabled");
+        }
+        object.addClass("disabled");
+        $('#tieObjectTwoSelector').find('[data-location-id=' + object.attr('data-location-id') + ']').addClass("disabled");
+        menuConfigData.tieObjectOne = object;
+        var dropdownText = object.find('span').html();
+        if (object.attr('data-entity-id') !== undefined && object.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
+        $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+    } else {
+        if (menuConfigData.tieObjectTwo !== null) {
+            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']').removeClass('selectedTieObject');
+            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']').removeClass('selectedEntity');
+            $('#tieObjectOneSelector').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']')
+                .removeClass("disabled");
+            $('#tieObjectTwoSelector').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']')
+                .removeClass("disabled");  
+            $('#tieObjectTwoSelector').find('[data-entity-id=' + menuConfigData.tieObjectTwo.attr('data-entity-id') + ']')
+                .removeClass("disabled");
+        }
+        $('#tieObjectOneSelector').find('[data-location-id=' + object.attr('data-location-id') + ']').addClass("disabled");
+        object.addClass("disabled");
+        menuConfigData.tieObjectTwo = object;
+        var dropdownText = object.find('span').html();
+        if (object.attr('data-entity-id') !== undefined && object.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
+        $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+    }
 }
 
 var confirmAddTie = function() {
     console.log("In confirmAddTie");
 
-    // DO
+    if (menuConfigData.tieObjectOne === null || menuConfigData.tieObjectTwo === null) {
+        resetMenuConfigData();
+        return;
+    }
+
+    /* tieData {
+            start: 10, 
+            end: 30, 
+            source_entity: {location_id: "10_11"}, 
+            target_entity: {entity_id: "5"}, 
+            label: "speak"
+        }
+    */
+    var tieData = {
+        start: $(menuConfigData.textSpans[0]).attr('data-token'),
+        end: $(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr('data-token'),
+        source_entity: null,
+        target_entity: null,
+        label: $('#tieNameBox').val()
+    }
+
+    if (menuConfigData.tieObjectOne.attr('data-location-id') !== null && menuConfigData.tieObjectOne.attr('data-location-id') !== undefined) {
+            tieData.source_entity = {location_id: menuConfigData.tieObjectOne.attr('data-location-id')};
+    } else {
+        tieData.source_entity = {entity_id: menuConfigData.tieObjectOne.attr('data-entity-id')};
+    }
+    if (menuConfigData.tieObjectTwo.attr('data-location-id') !== null && menuConfigData.tieObjectTwo.attr('data-location-id') !== undefined) {
+            tieData.target_entity = {location_id: menuConfigData.tieObjectTwo.attr('data-location-id')};
+    } else {
+        tieData.target_entity = {entity_id: menuConfigData.tieObjectTwo.attr('data-entity-id')};
+    }
+
+    if (tieData.label === "") {
+        tieData.label = $('#tieNameBox').attr('placeholder').trim();
+    }
+
+    console.log(tieData);
+
+    // addTie(tieData, callback)
+    annotationManager.addTie(tieData, null);
+
+    resetMenuConfigData();
+
+    // TEMPORARY
+    window.location.reload(true);
 }
 
 var combineSelectedEntities = function() {
@@ -1071,6 +1222,8 @@ var resetMenuConfigData = function() {
         numSelectedEntities: 0,
         selectedGroups: [],
         numSelectedGroups: 0,
+        tieObjectOne: null,
+        tieObjectTwo: null
     };
 }
 
@@ -1157,7 +1310,7 @@ $(document).ready(function(){
     
     // Manual Annotation
     menu = document.querySelector(".context-menu");
-    $(document).on('click', '.annotated-entity', existingEntityClicked);
+    $(document).on('click', '#text-panel > .content-page > .annotated-entity', existingEntityClicked);
     $(document).mouseup(checkSelectedText);
     
     // Close Context menu on click
@@ -1197,6 +1350,9 @@ $(document).ready(function(){
 
     $(document).on('click', '.addTieOption', openAddTieModal);
     $(document).on('click', '#confirmAddTie', confirmAddTie);
+    $(document).on('click', '.tie-object', tieModalObjectChosen)
+    $(document).on('mouseover', '.tie-object', highlightTieModalTextArea)
+    $(document).on('mouseleave', '.tie-object', highlightTieModalTextArea)
 
     $(document).on('mouseenter', '.thisMentionHover', openHoverMenu);
     $(document).on('mouseenter', '.thisEntityHover', openHoverMenu);
