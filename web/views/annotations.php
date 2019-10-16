@@ -1,3 +1,5 @@
+<script src="/js/permissions.js"></script>
+
 <div id="annotations" class="page">
     <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
 
@@ -64,12 +66,14 @@ foreach($data["annotations"] as $annotation){
                     <!-- [ ] Anyone can view this page-->
                     <div class="form-group">
                         <label>Public settings</label><br/>
-                        <input type="checkbox" name="is-public" value="true">
+                        <input type="checkbox" id="is-public" name="is-public" 
+                            value="true">
                             Anyone can view this page
                     </div>
                     <div class="form-group">
                         <label>Add permissions for another EntiTies user</label>
                         <br/>
+                        <form id="new-permission">
                         <input type="text" name="new-permission-username" 
                             id="new-permission-username" 
                             class="permission-username" placeholder="user1234">
@@ -81,10 +85,11 @@ foreach($data["annotations"] as $annotation){
                             <option value="OWNER">Can manage permissions on 
                                 this page</option>
                         </select>
-                        <button type="button" aria-label="Add permission"
+                        <button type="submit" aria-label="Add permission"
                             class="btn btn-primary btn-xs" 
                             id="add-new-permission"><span 
                             class="glyphicon glyphicon-plus"</span></button>
+                        </form>
                     </div>
                     <div class="form-group">
                         <label>Existing user permission for this text</label><br/>
@@ -93,28 +98,28 @@ foreach($data["annotations"] as $annotation){
                     $permissionsByUser = getTextPermissions($data["text"]["id"]); 
 
                     foreach($permissionsByUser as $permissionUser){ ?>
-                        <div>
-                        <span class="permission-username"><?= $permissionUser["username"] ?></span>
-                        <select id="new-permission-level" name="new-permission-level"
-                            <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>>
-                            <option value="READ" <?= 
-                                $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
-                                "selected" : "" ?>>Can view this page</option>
-                            <option value="WRITE" <?= 
-                                $permissionUser["permission"] == $PERMISSIONS["WRITE"] ? 
-                                "selected" : "" ?>>Can modify this page 
-                                (e.g., title, metadata)</option>
-                            <option value="OWNER" <?= 
-                                $permissionUser["permission"] == $PERMISSIONS["OWNER"] ? 
-                                "selected" : "" ?>>Can manage permissions on 
-                                this page</option>
-                        </select>
-                        <?php if($permissionUser["user_id"] != $user["id"]) { ?>
-                        <button type="button" aria-label="Add permission"
-                            class="btn btn-danger btn-xs"
-                            id="remove-permission"><span 
-                            class="glyphicon glyphicon-trash"></span></button>
-                        <?php } ?>
+                        <div data-permission-id="<?= $permissionUser["id"] ?>">
+                            <span class="permission-username"><?= $permissionUser["username"] ?></span>
+                            <select class="permission-level" name="permission-level"
+                                <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>>
+                                <option value="READ" <?= 
+                                    $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
+                                    "selected" : "" ?>>Can view this page</option>
+                                <option value="WRITE" <?= 
+                                    $permissionUser["permission"] == $PERMISSIONS["WRITE"] ? 
+                                    "selected" : "" ?>>Can modify this page 
+                                    (e.g., title, metadata)</option>
+                                <option value="OWNER" <?= 
+                                    $permissionUser["permission"] == $PERMISSIONS["OWNER"] ? 
+                                    "selected" : "" ?>>Can manage permissions on 
+                                    this page</option>
+                            </select>
+                            <?php if($permissionUser["user_id"] != $user["id"]) { ?>
+                            <button type="button" aria-label="Remove permission"
+                                class="btn btn-danger btn-xs remove-permission"
+                                id="remove-permission"><span 
+                                class="glyphicon glyphicon-trash"></span></button>
+                            <?php } ?>
 
                         </div>
                     <?php } ?>
