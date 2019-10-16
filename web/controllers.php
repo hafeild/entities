@@ -820,7 +820,66 @@ public static function editAnnotation($path, $matches, $params, $format){
  *       - permission_level (string: "READ", "WRITE", or "OWNER")
  */
 public static function postTextPermission($path, $matches, $params, $format) {
-    // TODO
+    global $user, $PERMISSIONS;
+
+    // Ensure the text id was given.
+    if(count($matches) < 2){
+        error("Must include the id of the text in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("username", $params) || 
+        !array_key_exists("permission_level", $params)){
+
+        error("One or both required parameters are missing; requests ". 
+              "should include a username and permission_level parameter.");
+    }
+
+    $targetUsername = htmlentities($params["username"]);
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!hasTextPermission($textId, $PERMISSIONS["OWNER"])){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    }
+
+    // Check that the requested user exists.
+    $targetUser = getUserInfo($params["username"]);
+    if(!$targetUser){
+        error("We couldn't find a user with the username ". 
+              "${params["username"]}.");
+    }
+
+    // Make sure the user doesn't already have a permission for this text.
+    $existingPermission = getTextPermission($targetUser["id"], $textId);
+    if($existingPermission){
+        error("A permission for user $targetUsername already exists.");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Add new permission.
+    $permissionId = addTextPermission($targetUser["id"], $textId, 
+        $PERMISSIONS[$permissionLevel]);
+
+    // Send back id of new permission.
+    return [
+        "success" => true,
+        "additional_data" => [
+            "permission_id" => $permissionId
+        ]
+    ];
 }
 
 /**
@@ -837,7 +896,51 @@ public static function postTextPermission($path, $matches, $params, $format) {
  *       - permission_level (string: "READ", "WRITE", or "OWNER")
  */
 public static function patchTextPermission($path, $matches, $params, $format) {
-    // TODO
+     global $user, $PERMISSIONS;
+
+    // Ensure the text and permission id were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the text and permission in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("permission_level", $params)){
+        error("The permission_level parameters is missing.");
+    }
+
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!hasTextPermission($textId, $PERMISSIONS["OWNER"])){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getTextPermissionById($permissionId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id .");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Update the permission.
+    setTextPermission($permissionId, $PERMISSIONS[$permissionLevel]);
+
+    return [
+        "success" => true
+    ];
 }
 
 /**
@@ -852,7 +955,38 @@ public static function patchTextPermission($path, $matches, $params, $format) {
  * @param params Ignored.
  */
 public static function deleteTextPermission($path, $matches, $params, $format) {
-    // TODO
+    // Ensure the text and permission ids were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the text and permission in URI.");
+    }
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!hasTextPermission($textId, $PERMISSIONS["OWNER"])){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getTextPermissionById($permissionId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id .");
+    }
+
+
+    // Delete the permission.
+    deleteTextPermission($permissionId);
+
+    return [
+        "success" => true
+    ];
 }
 
 

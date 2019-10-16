@@ -88,14 +88,17 @@ function connectToDB(){
 function getTextMetadata($id){
     $dbh = connectToDB();
 
-    $statement = $dbh->prepare("select texts.*, username as ". 
-        "uploaded_by_username from texts join users on texts.id = :id and ". 
-        "users.id = texts.uploaded_by");
-    checkForStatementError($dbh,$statement,"Error preparing db statement.");
-    $statement->execute([":id" => $id]);
-    checkForStatementError($dbh,$statement,"Error getting text metadata.");
+    try{
+        $statement = $dbh->prepare("select texts.*, username as ". 
+            "uploaded_by_username from texts join users on texts.id = :id and ". 
+            "users.id = texts.uploaded_by");
+        $statement->execute([":id" => $id]);
 
-    return $statement->fetch(PDO::FETCH_ASSOC);
+        return $statement->fetch(PDO::FETCH_ASSOC);
+    } catch(PDOException $e) {
+        error("Error getting text metadata: ". $e->getMessage());
+    }
+
 }
 
 /**
@@ -258,7 +261,7 @@ function addNewUser($username, $password){
             ":time"     => curDateTime()
         ));
     } catch(PDOException $e){
-        die("There was an error saving to the database: ". $e->getMessage());
+        error("There was an error saving to the database: ". $e->getMessage());
     }
 }
 
@@ -285,7 +288,7 @@ function getUserInfo($username){
            
         return $statement->fetch(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
-        die("There was an error reading from the database: ". $e->getMessage());
+        error("There was an error reading from the database: ". $e->getMessage());
     }
 }
 
@@ -312,7 +315,7 @@ function getUserInfoByAuthToken($auth_token){
            
         return $statement->fetch(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
-        die("There was an error reading from the database: ". $e->getMessage());
+        error("There was an error reading from the database: ". $e->getMessage());
     }
 }
 
@@ -333,10 +336,13 @@ function setUserAuthToken($userId, $authToken){
             ":user_id"    => $userId,
             ":auth_token" => $authToken));
     } catch(PDOException $e){
-        die("There was an error updating the database: ". $e->getMessage());
+        error("There was an error updating the database: ". $e->getMessage());
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Text permissions.
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Extracts the permission data for the given user and text. 
@@ -344,6 +350,7 @@ function setUserAuthToken($userId, $authToken){
  * @param userId The id of the user.
  * @param textId The id of the text.
  * @return An associative array of permission data with these fields:
+ *      * id (permission id)
  *      * user_id
  *      * text_id
  *      * permission
@@ -362,7 +369,35 @@ function getTextPermission($userId, $textId){
         return $statement->fetch(PDO::FETCH_ASSOC);
 
     } catch(PDOException $e){
-        die("There was an error retrieving permissions on the given text: ". 
+        error("There was an error retrieving permissions on the given text: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Extracts the data for the given text permission id. 
+ * 
+ * @param permissionId The id of the text permission.
+ * @return An associative array of permission data with these fields:
+ *      * id (permission id)
+ *      * user_id
+ *      * text_id
+ *      * permission
+ *      * created_at
+ */
+function getTextPermissionById($permissionId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select * from text_permissions ". 
+            "where id = :id");
+        $statement->execute([
+            ":id" => $permissionId
+        ]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        error("There was an error retrieving the given permission: ". 
             $e->getMessage());
     }
 }
@@ -372,6 +407,7 @@ function getTextPermission($userId, $textId){
  * 
  * @param textId The id of the text.
  * @return An list of associative arrays of permission data with these fields:
+ *      * id (permission id)
  *      * user_id
  *      * username
  *      * text_id
@@ -392,7 +428,277 @@ function getTextPermissions($textId){
         return $statement->fetchAll(PDO::FETCH_ASSOC);
 
     } catch(PDOException $e){
-        die("There was an error retrieving permissions on the given text: ". 
+        error("There was an error retrieving permissions on the given text: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Adds a text permission. 
+ * 
+ * @param userId The id of the user to add the permission for.
+ * @param textId The id of the text to add the permission to.
+ * @param permission The permission level (integer):
+ *                      - 0: none
+ *                      - 1: read
+ *                      - 2: write
+ *                      - 3: owner
+ * @return The id of the newly created permission.
+ */
+function addTextPermission($userId, $textId, $permission){
+    $dbh = connectToDB();
+    $dbh->beginTransaction();
+
+    try {
+        $statement = $dbh->prepare(
+            "insert into text_permissions". 
+                "(text_id, user_id, permission, created_at) values ". 
+                ":text_id, :user_id, :permission, :created_at");
+        $success = $statement->execute([
+            ":text_id"    => $textId,
+            ":user_id"    => $userId,
+            ":permission" => $permission,
+            ":created_at" => curDateTime()
+        ]);
+
+        $permissionId = $dbh->lastInsertId();
+
+        $dbh->commit();
+
+        return $permissionId;
+
+    } catch(PDOException $e){
+        $dbh->rollback();
+        error("There was an error adding the text permission: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Updates the permission level of the given text permission. 
+ * 
+ * @param id The id of the text permission.
+ * @param permission The permission level (integer):
+ *                      - 0: none
+ *                      - 1: read
+ *                      - 2: write
+ *                      - 3: owner
+ */
+function setTextPermission($id, $permission){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "update text_permissions set permission = :permission ".
+                "where id = :id");
+        $success = $statement->execute([
+            ":id"    => $id,
+            ":permission" => $permission
+        ]);
+    } catch(PDOException $e){
+        error("There was an error updating the text permission: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Deletes the given text permission. 
+ * 
+ * @param id The id of the text permission.
+ */
+function deleteTextPermission($id){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "delete from text_permissions where id = :id");
+        $success = $statement->execute([
+            ":id"    => $id
+        ]);
+    } catch(PDOException $e){
+        error("There was an error deleting the text permission: ". 
+            $e->getMessage());
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Annotation permissions.
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Extracts the permission data for the given user and annotation. 
+ * 
+ * @param userId The id of the user.
+ * @param annotationId The id of the annotation.
+ * @return An associative array of permission data with these fields:
+ *      * id (permission id)
+ *      * user_id
+ *      * annotation_id
+ *      * permission
+ *      * created_at
+ */
+function getAnnotationPermission($userId, $annotationId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select * from annotation_permissions ". 
+            "where annotation_id = :annotation_id and user_id = :user_id");
+        $statement->execute([
+            ":annotation_id" => $annotationId,
+            ":user_id" => $userId
+        ]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        error("There was an error retrieving permissions on the given ". 
+            "annotation: ". $e->getMessage());
+    }
+}
+
+/**
+ * Extracts the data for the given annotation permission id. 
+ * 
+ * @param permissionId The id of the annotation permission.
+ * @return An associative array of permission data with these fields:
+ *      * id (permission id)
+ *      * user_id
+ *      * text_id
+ *      * permission
+ *      * created_at
+ */
+function getAnnotationPermissionById($permissionId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select * from annotation_permissions ". 
+            "where id = :id");
+        $statement->execute([
+            ":id" => $permissionId
+        ]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        error("There was an error retrieving the given permission: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Extracts the permission data for the given annotation. 
+ * 
+ * @param annotationId The id of the text.
+ * @return An list of associative arrays of permission data with these fields:
+ *      * id (permission id)
+ *      * user_id
+ *      * username
+ *      * annotation_id
+ *      * permission
+ *      * created_at
+ */
+function getAnnotationPermissions($annotationId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select annotation_permissions.*, username ". 
+            "from annotation_permissions ". 
+            "join users on user_id = users.id ". 
+            "where annotation_id = :annotation_id");
+        $statement->execute([
+            ":annotation_id" => $annotationId
+        ]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        error("There was an error retrieving permissions on the given ". 
+            "annotation: ". $e->getMessage());
+    }
+}
+
+/**
+ * Adds an annotation permission. 
+ * 
+ * @param annotationId The id of the annotation to add the permission to.
+ * @param userId The id of the user to add the permission for.
+ * @param permission The permission level (integer):
+ *                      - 0: none
+ *                      - 1: read
+ *                      - 2: write
+ *                      - 3: owner
+ * @return The id of the newly created permission.
+ */
+function addAnnotationPermission($annotationId, $userId, $permission){
+    $dbh = connectToDB();
+    $dbh->beginTransaction();
+
+    try {
+        $statement = $dbh->prepare(
+            "insert into annotation_permissions". 
+                "(annotation_id, user_id, permission, created_at) values ". 
+                ":annotation_id, :user_id, :permission, :created_at");
+        $success = $statement->execute([
+            ":annotation_id"    => $annotationId,
+            ":user_id"    => $userId,
+            ":permission" => $permission,
+            ":created_at" => curDateTime()
+        ]);
+
+        $permissionId = $dbh->lastInsertId();
+
+        $dbh->commit();
+
+        return $permissionId;
+
+    } catch(PDOException $e){
+        $dbh->rollback();
+        error("There was an error adding the annotation permission: ". 
+            $e->getMessage());
+    }
+}
+
+
+/**
+ * Updates the permission level of the given annotation permission. 
+ * 
+ * @param id The id of the annotation permission.
+ * @param permission The permission level (integer):
+ *                      - 0: none
+ *                      - 1: read
+ *                      - 2: write
+ *                      - 3: owner
+ */
+function setAnnotationPermission($id, $permission){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "update annotation_permissions set permission = :permission ".
+                "where id = :id");
+        $success = $statement->execute([
+            ":id"    => $id,
+            ":permission" => $permission
+        ]);
+    } catch(PDOException $e){
+        error("There was an error updating the annotation permission: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Deletes the given annotation permission. 
+ * 
+ * @param id The id of the annotation permission.
+ */
+function deleteAnnotationPermission($id){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "delete from annotation_permissions where id = :id");
+        $success = $statement->execute([
+            ":id"    => $id
+        ]);
+    } catch(PDOException $e){
+        error("There was an error deleting the annotation permission: ". 
             $e->getMessage());
     }
 }
