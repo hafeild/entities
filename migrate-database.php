@@ -208,8 +208,8 @@ function makeUsersTextsAnnotationsTables($dbh, $direction="up"){
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
                 "uploaded_by integer, ".
-                "tokenization_in_progress boolean default FALSE, ".
-                "tokenization_error boolean default FALSE, ".
+                "tokenization_in_progress boolean default '0', ".
+                "tokenization_error boolean default '0', ".
                 "foreign key(uploaded_by) references users(id)".
             ")"
         );
@@ -261,13 +261,13 @@ function updateTextsAnnotationsTables($dbh, $direction="up"){
 
         // Add is_public column to texts table.
         print "Adding is_public column to texts table...\n";
-        $dbh->exec("alter table texts add is_public boolean default FALSE");
-        $dbh->exec("update texts set is_public = FALSE");
+        $dbh->exec("alter table texts add is_public boolean default '0'");
+        $dbh->exec("update texts set is_public = '0'");
 
         // Add is_public column to texts table.
         print "Adding is_public column to annotations table...\n";
-        $dbh->exec("alter table annotations add is_public boolean default FALSE");
-        $dbh->exec("update annotations set is_public = FALSE");
+        $dbh->exec("alter table annotations add is_public boolean default '0'");
+        $dbh->exec("update annotations set is_public = '0'");
 
 
     // Remove columns.
@@ -287,8 +287,8 @@ function updateTextsAnnotationsTables($dbh, $direction="up"){
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
                     "uploaded_by integer, ".
-                    "tokenization_in_progress boolean default FALSE, ".
-                    "tokenization_error boolean default FALSE, ".
+                    "tokenization_in_progress boolean default '0', ".
+                    "tokenization_error boolean default '0', ".
                     "foreign key(uploaded_by) references users(id)".
                 ")"
             );
