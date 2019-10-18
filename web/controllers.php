@@ -806,6 +806,62 @@ public static function editAnnotation($path, $matches, $params, $format){
 }
 
 /**
+ * Updates the text with the given id, and returns:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id.
+ * @param params The request parameters. May include any of these:
+ *                  - is_public (true or false)
+ *                  - title
+ */
+public static function editText($path, $matches, $params, $format){
+    global $user;
+
+    if(count($matches) < 2){
+        error("Must include the id of the text in URI.");
+    }
+
+    $textId = $matches[1];
+
+    // Ensure the required parameters were given.
+    if(!(array_key_exists("is_public", $params) || 
+        array_key_exists("title", $params))){
+
+        error("You must specify at least one attribute to update for this ". 
+              "text, either 'is_public' or 'title'.");
+    }
+
+    $title = array_key_exists("title", $params) ? 
+        htmlentities($params["title"]) : null;
+    $isPublic = array_key_exists("is_public", $params) ? 
+        ($params["is_public"] == "true" ? "1" : "0") : null;
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!ownsText($textId)){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    }
+
+    // Make the updates.
+    updateText($textId, $isPublic, $title);
+
+    return [
+        "success" => true
+    ];
+
+}
+
+/**
  * Adds a new permission for the given text. Responds with the following JSON:
  *      - success (true or false)
  *      - message (if error encountered)
@@ -846,7 +902,7 @@ public static function postTextPermission($path, $matches, $params, $format) {
     }
 
     // Ensure the user has owner permission on the text.
-    if(!hasTextPermission($textId, $PERMISSIONS["OWNER"])){
+    if(!ownsText($textId)){
         error("You do not have authorization to modify permissions on ". 
               "this text.");
     }
