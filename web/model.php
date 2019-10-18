@@ -237,6 +237,37 @@ function setTokenizationFlags($textId, $inProgressFlag, $errorFlag) {
     }
 }
 
+/**
+ * Updates the is_public and/or title attributes of a text.
+ * 
+ * @param id The id of the text to update.
+ * @param isPublic Either '1', '0', or null; if null, no change is made.
+ * @param title Either a string (the new title), or null (no change is made).
+ */
+function updateText($id, $isPublic, $title){
+    $dbh = connectToDB();
+    try{
+        $params = [":id" => $id];
+        $updates = [];
+        if($isPublic != null){
+            $params[":is_public" => $isPublic];
+            array_push($updates, "is_public = :is_public");
+        }
+        if($title != null){
+            $params[":title" => $title];
+            array_push($updates, "title = :title");
+        }
+
+        $statement = $dbh->prepare(
+            "update texts set ". implode(", ", $updates) ."where id = :id");
+        $statement->execute($params);
+
+    } catch(Exception $e){
+        error("Error updating text metadata: ". $e->getMessage(),
+            ["In updateText($id, $isPublic, $title)"]);
+    }
+}
+
 /////////////////////////////////
 // User control.
 /////////////////////////////////
