@@ -21,7 +21,7 @@ $PERMISSIONS = [
 $migrations = [
     "makeUsersTextsAnnotationsTables",
     "renameTextUploadedAtColumn",
-    "updateTextsAnnotationsTables",
+    "updateUsersTextsAnnotationsTables",
     "addPermissionsTables"
 ];
 
@@ -321,7 +321,7 @@ function renameTextUploadedAtColumn($dbh, $direction="up"){
     }
 }
 
-function updateTextsAnnotationsTables($dbh, $direction="up"){
+function updateUsersTextsAnnotationsTables($dbh, $direction="up"){
     global $isSqlite, $isPostgres;
 
     // Add new columns.
@@ -332,10 +332,22 @@ function updateTextsAnnotationsTables($dbh, $direction="up"){
         $dbh->exec("alter table texts add is_public boolean default '0'");
         $dbh->exec("update texts set is_public = '0'");
 
+        // Add updated_at column to texts table.
+        print "Adding updated_at column to texts table...\n";
+        $dbh->exec("alter table texts add updated_at ". 
+            ($isPostgres ? "timestamp" : "datetime"));
+        $dbh->exec("update texts set updated_at = created_at");
+
         // Add is_public column to texts table.
         print "Adding is_public column to annotations table...\n";
         $dbh->exec("alter table annotations add is_public boolean default '0'");
         $dbh->exec("update annotations set is_public = '0'");
+
+        // Add updated_at column to users table.
+        print "Adding updated_at column to users table...\n";
+        $dbh->exec("alter table users add updated_at ". 
+            ($isPostgres ? "timestamp" : "datetime"));
+        $dbh->exec("update users set updated_at = created_at");
 
 
     // Remove columns.
@@ -346,7 +358,7 @@ function updateTextsAnnotationsTables($dbh, $direction="up"){
         if($isSqlite){
 
             // Create texts metadata table.
-            print "Removing is_public column from texts table...\n";
+            print "Removing is_public and updated_at columns from texts table...\n";
             $dbh->exec("alter table texts rename to _texts");
             $dbh->exec("create table texts(".
                     "id integer primary key autoincrement,".
@@ -398,15 +410,40 @@ function updateTextsAnnotationsTables($dbh, $direction="up"){
                 "from _annotations");
             $dbh->exec("drop table _annotations");
 
+            // Create users table.
+            print "Removing updated_at column from users table...\n";
+            $dbh->exec("alter table users rename to _users");
+            $dbh->exec("create table users(".
+                    ($isPostgres ? "id serial primary key," 
+                                : "id integer primary key autoincrement,").
+                    "username varchar(50),".
+                    "password varchar(255),".
+                    "auth_token varchar(100),".
+                    ($isPostgres ? "created_at timestamp" 
+                                : "created_at datetime").
+                ")"
+            );
+            $dbh->exec("insert into users(id,username,password,auth_token,". 
+                "created_at) select id,username,password,auth_token,". 
+                "created_at from _users");
+            $dbh->exec("drop table _users");
+
 
         } else {
             // Remove is_public column from texts table.
             print "Removing is_public column from texts table...\n";
             $dbh->exec("alter table texts drop column is_public");
+            // Remove updated_at column from texts table.
+            print "Removing updated_at column from texts table...\n";
+            $dbh->exec("alter table texts drop column updated_at");
 
             // Remove is_public column from the annotations table.
             print "Removing is_public column from annotations table...\n";
             $dbh->exec("alter table annotations drop column is_public");
+
+            // Remove updated_at column from users table.
+            print "Removing updated_at column from users table...\n";
+            $dbh->exec("alter table users drop column updated_at");
         }
     }
 }
