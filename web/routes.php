@@ -93,6 +93,11 @@ $routes = [
         "#^texts/\d+/annotations/(\d+)/?$#", 
         'Controllers::getAnnotation'),
 
+    Controllers::generateRoute(
+        "PATCH", 
+        "#^texts/(\d+)?#", 
+        'Controllers:editText'),
+
     //////////////////////////////////////////////
     // Text permissions.
     ///////////////
