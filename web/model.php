@@ -484,7 +484,7 @@ function addTextPermission($userId, $textId, $permission){
         $statement = $dbh->prepare(
             "insert into text_permissions". 
                 "(text_id, user_id, permission, created_at) values ". 
-                ":text_id, :user_id, :permission, :created_at");
+                "(:text_id, :user_id, :permission, :created_at)");
         $success = $statement->execute([
             ":text_id"    => $textId,
             ":user_id"    => $userId,
@@ -501,7 +501,8 @@ function addTextPermission($userId, $textId, $permission){
     } catch(PDOException $e){
         $dbh->rollback();
         error("There was an error adding the text permission: ". 
-            $e->getMessage());
+            $e->getMessage(), 
+            ["In addTextPermission($userId, $textId, $permission)."]);
     }
 }
 
@@ -665,7 +666,7 @@ function addAnnotationPermission($annotationId, $userId, $permission){
         $statement = $dbh->prepare(
             "insert into annotation_permissions". 
                 "(annotation_id, user_id, permission, created_at) values ". 
-                ":annotation_id, :user_id, :permission, :created_at");
+                "(:annotation_id, :user_id, :permission, :created_at)");
         $success = $statement->execute([
             ":annotation_id"    => $annotationId,
             ":user_id"    => $userId,

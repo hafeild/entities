@@ -21,16 +21,12 @@ var setPermissionListeners = function(){
  * @param {Event} e The change event that triggered this listener.
  */
 var onPublicAccessChange = function(e){
-    console.log('Public access change requested.');
-    // TODO
     var $formGroup = $(this).parents('.is-public-form-group');
     var $page = $('.page');
     var isPublic;
 
     // Get the new public status.
     isPublic = $(this).prop('checked');
-
-    console.log('data:', {is_public: isPublic, _method: 'PATCH'});
 
     // Contact the server.
     $.ajax(`/json${$page.data('uri')}`, {
@@ -96,10 +92,40 @@ var onPermissionDelete = function(e){
 var onNewPermission = function(e){
     console.log("New permission requested.");
     // TODO
+
+    var $formGroup = $(this).parents('.new-permission-form');
+    var $page = $('.page');
+    var username, permissionLevel;
+
     // Collect username and permission.
+    username = $('#new-permission-username').val();
+    permissionLevel = $('#new-permission-level').val();
+
     // Contact the server.
-    // On successfully hearing back, add permission controls.
-    // On failed response, display error message.
+    $.ajax(`/json${$page.data('uri')}/permissions`, {
+        method: 'post',
+        data: {username: username, permission_level: permissionLevel},
+        success: function(data, textStatus, jqXHR){
+             // On successfully hearing back, add permission controls.
+            if(data.success){
+                var $newPermissionControl = $('#permission-template').clone();
+                $newPermissionControl.attr('id', '');
+                $newPermissionControl.appendTo('.existing-permissions');
+                $newPermissionControl.find('.permission-username').text(username);
+                $newPermissionControl.find('.permission-level').val(permissionLevel);
+                $newPermissionControl.attr('data-permission-id', 
+                    data.additional_data.permission_id);
+            } else {
+                // On failure: display an error message.
+                setError(`Error: ${data.message} `+ 
+                    `${JSON.stringify(data.additional_data)}.`);
+            }
+        },
+        // On failure: display an error message.
+        error: function(jqXHR, textStatus, errorThrown){
+            setError(`Error: ${textStatus} ${errorThrown}.`);
+        }
+    });
 
     e.preventDefault();
     return false;

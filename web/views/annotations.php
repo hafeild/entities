@@ -27,6 +27,8 @@ foreach($data["annotations"] as $annotation){
 
     }
 }
+
+$randNum = rand();
 ?>
 
 
@@ -42,7 +44,7 @@ foreach($data["annotations"] as $annotation){
  *      "permission-template".
  */
 function printUserPermissionControls($permissionUser){
-    global $PERMISSIONS, $user;
+    global $PERMISSIONS, $user, $randNum;
     if($permissionUser == null){
         $permissionUser = [
             "id" => "",
@@ -55,7 +57,7 @@ function printUserPermissionControls($permissionUser){
     <div <?= $permissionUser["id"] == "" ? "id=\"permission-template\"" : "" ?> 
         data-permission-id="<?= $permissionUser["id"] ?>" class="permission-control">
         <span class="permission-username"><?= $permissionUser["username"] ?></span>
-        <select class="permission-level" name="permission-level"
+        <select class="permission-level" name="permission-level<?= $randNum ?>"
             <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>>
             <option value="READ" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
@@ -112,8 +114,7 @@ function printUserPermissionControls($permissionUser){
                     <h4 class="modal-title">Text sharing settings</h4>
 
                 </div>
-                <div class="modal-body" data-permission-uri-prefix="/json/texts/<?= 
-                    $data["text"]["id"] ?>/permissions">
+                <div class="modal-body">
                     <p>
                         Select the options below to specify who can see, modify,
                         and manage this page. Sharing options for
@@ -123,8 +124,9 @@ function printUserPermissionControls($permissionUser){
                     <!-- Public setting of this page. -->
                     <div class="form-group is-public-form-group">
                         <label>Public settings</label><br/>
-                        <input type="checkbox" id="is-public" name="is_public" 
-                            value="true">
+                        <input type="checkbox" id="is-public" 
+                            name="is_public<?= $randNum ?>" 
+                            value="true" autocomplete="off">
                             Anyone can view this page
                             <span class="saved-icon hidden"
                                 ><span class="glyphicon glyphicon-floppy-saved"
@@ -132,14 +134,18 @@ function printUserPermissionControls($permissionUser){
                     </div>
 
                     <!-- New per-user permission form. -->
-                    <div class="form-group">
+                    <div class="form-group new-permission-form">
                         <label>Add permissions for another EntiTies user</label>
                         <br/>
                         <form id="new-permission">
-                        <input type="text" name="new-permission-username" 
+                        <input type="text" 
+                            name="new-permission-username<?= $randNum ?>" 
                             id="new-permission-username" 
-                            class="permission-username" placeholder="user1234">
-                        <select id="new-permission-level" name="new-permission-level">
+                            class="permission-username" placeholder="user1234"
+                            autocomplete="off">
+                        <select id="new-permission-level" 
+                            name="new-permission-level<?= $randNum ?>"
+                            autocomplete="off">
                             <option value="READ" selected>Can view this 
                                 page</option>
                             <option value="WRITE">Can modify this page 
@@ -155,18 +161,18 @@ function printUserPermissionControls($permissionUser){
                     </div>
 
                     <!-- Existing per-user permissions. -->
-                    <div class="form-group">
+                    <div class="form-group existing-permissions">
                         <label>Existing user permission for this text</label><br/>
-                    <!-- List users with permission for this text here. -->
-                    <?php 
-                    $permissionsByUser = getTextPermissions($data["text"]["id"]); 
+                        <!-- List users with permission for this text here. -->
+                        <?php 
+                        $permissionsByUser = getTextPermissions($data["text"]["id"]); 
 
-                    // Add a template permission div for AJAX purposes.
-                    printUserPermissionControls(null);
-                    // Add controls for each user permission. 
-                    foreach($permissionsByUser as $permissionUser){ 
-                        printUserPermissionControls($permissionUser);
-                    }
+                        // Add a template permission div for AJAX purposes.
+                        printUserPermissionControls(null);
+                        // Add controls for each user permission. 
+                        foreach($permissionsByUser as $permissionUser){ 
+                            printUserPermissionControls($permissionUser);
+                        }
                     ?> 
                     </div>
                 </div>
