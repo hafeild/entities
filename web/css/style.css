@@ -419,7 +419,7 @@ span.selectedEntity.end-token {
 }
 
 .permission-username {
-    width: 40%;
+    width: 200px;
     display: inline-block;
 }
 

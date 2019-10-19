@@ -95,7 +95,7 @@ $routes = [
 
     Controllers::generateRoute(
         "PATCH", 
-        "#^texts/(\d+)?#", 
+        "#^texts/(\d+)/?$#", 
         'Controllers::editText'),
 
     //////////////////////////////////////////////
@@ -104,21 +104,21 @@ $routes = [
     // Add a new permission.
     Controllers::generateRoute(
         "POST",
-        "#^texts/(\d+)/permissions#",
+        "#^texts/(\d+)/permissions/?$#",
         "Controllers::postTextPermission"
     ),
 
     // Modify an existing permission.
     Controllers::generateRoute(
         "PATCH",
-        "#^texts/(\d+)/permissions/(\d+)#",
+        "#^texts/(\d+)/permissions/(\d+)/?$#",
         "Controllers::patchTextPermission"
     ),
 
     // Delete a permission.
     Controllers::generateRoute(
         "DELETE",
-        "#^texts/(\d+)/permissions/(\d+)#",
+        "#^texts/(\d+)/permissions/(\d+)/?$#",
         "Controllers::deleteTextPermission"
     ),
 

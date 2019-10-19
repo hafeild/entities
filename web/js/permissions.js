@@ -35,14 +35,13 @@ var onPublicAccessChange = function(e){
         success: function(data, textStatus, jqXHR){
             // On success: display "success" icon.
             if(data.success){
-                console.log($formGroup);
-                console.log($formGroup.find('.saved-icon'));
                 flashElement($formGroup.find('.saved-icon'));
 
             } else {
                 // On failure: display an error message.
                 setError(`Error: ${data.message} `+ 
-                    `${JSON.stringify(data.additional_data)}.`);
+                    `${data.additional_data ? 
+                    JSON.stringify(data.additional_data) : ''}`);
             }
         },
         // On failure: display an error message.
@@ -59,13 +58,37 @@ var onPublicAccessChange = function(e){
  * @param {Event} e The change event that triggered this listener.
  */
 var onPermissionChange = function(e){
-    console.log("Permission change requested.");
-    // TODO
+    var $permissionControl = $(this).parents('.permission-control');
+    var $page = $('.page');
+    var permissionLevel, id;
 
     // Get id of permission and new permission.
+    permissionLevel = $permissionControl.find('.permission-level').val();
+    id = $permissionControl.data('permission-id');
+
     // Contact the server.
-    // On success: display "success" icon.
-    // On failure: display an error message.
+    $.ajax(`/json${$page.data('uri')}/permissions/${id}`, {
+        method: 'post',
+        data: {permission_level: permissionLevel, _method: 'PATCH'},
+        success: function(data, textStatus, jqXHR){
+            // On success: display "success" icon.
+            if(data.success){
+                flashElement($permissionControl.find('.saved-icon'));
+
+            } else {
+                // On failure: display an error message.
+                setError(`Error: ${data.message} `+ 
+                    `${data.additional_data ? 
+                    JSON.stringify(data.additional_data) : ''}`);
+            }
+        },
+        // On failure: display an error message.
+        error: function(jqXHR, textStatus, errorThrown){
+            setError(`Error: ${textStatus} ${errorThrown}.`);
+        }
+    });
+
+
 };
 
 /**
@@ -90,10 +113,6 @@ var onPermissionDelete = function(e){
  * @param {Event} e The form submission event that triggered this handler.
  */
 var onNewPermission = function(e){
-    console.log("New permission requested.");
-    // TODO
-
-    var $formGroup = $(this).parents('.new-permission-form');
     var $page = $('.page');
     var username, permissionLevel;
 
@@ -118,7 +137,8 @@ var onNewPermission = function(e){
             } else {
                 // On failure: display an error message.
                 setError(`Error: ${data.message} `+ 
-                    `${JSON.stringify(data.additional_data)}.`);
+                    `${data.additional_data ? 
+                    JSON.stringify(data.additional_data) : ''}`);
             }
         },
         // On failure: display an error message.
