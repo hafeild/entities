@@ -974,7 +974,7 @@ public static function patchTextPermission($path, $matches, $params, $format) {
     }
 
     // Ensure the user has owner permission on the text.
-    if(!hasTextPermission($textId, $PERMISSIONS["OWNER"])){
+    if(!ownsText($textId)){
         error("You do not have authorization to modify permissions on ". 
               "this text.");
     }
@@ -1024,7 +1024,7 @@ public static function deleteTextPermission($path, $matches, $params, $format) {
     }
 
     // Ensure the user has owner permission on the text.
-    if(!hasTextPermission($textId, $PERMISSIONS["OWNER"])){
+    if(!ownsText($textId)){
         error("You do not have authorization to modify permissions on ". 
               "this text.");
     }

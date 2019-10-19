@@ -87,8 +87,6 @@ var onPermissionChange = function(e){
             setError(`Error: ${textStatus} ${errorThrown}.`);
         }
     });
-
-
 };
 
 /**
@@ -97,13 +95,36 @@ var onPermissionChange = function(e){
  * @param {Event} e The click event that triggered this handler.
  */
 var onPermissionDelete = function(e){
-    console.log("Permission removal requested.");
-    // TODO
+    var $permissionControl = $(this).parents('.permission-control');
+    var $page = $('.page');
+    var id;
 
     // Get id of permission.
+    id = $permissionControl.data('permission-id');
+
     // Contact the server.
-    // On success: remove the permission control from the permissions modal.
-    // On failure: display an error message.
+    $.ajax(`/json${$page.data('uri')}/permissions/${id}`, {
+        method: 'post',
+        data: {_method: 'DELETE'},
+        success: function(data, textStatus, jqXHR){
+            // On success: remove the permission control from the permissions 
+            // modal.
+            if(data.success){
+                $permissionControl.remove();
+
+            } else {
+                // On failure: display an error message.
+                setError(`Error: ${data.message} `+ 
+                    `${data.additional_data ? 
+                    JSON.stringify(data.additional_data) : ''}`);
+            }
+        },
+        // On failure: display an error message.
+        error: function(jqXHR, textStatus, errorThrown){
+            setError(`Error: ${textStatus} ${errorThrown}.`);
+        }
+    });
+
 };
 
 /**
