@@ -430,3 +430,20 @@ span.selectedEntity.end-token {
 .saved-icon {
     color: green;
 }
+
+#floating-error-container {
+    position: fixed;
+    top: 40px;
+    left: 200px;
+    right: 200px;
+    z-index: 10000;
+    box-sizing: border-box;
+}
+
+#floating-error-template {
+    display: none;
+}
+
+.floating-error {
+    width: 100% !important;
+}

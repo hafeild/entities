@@ -1,21 +1,6 @@
-window.addEventListener('load', function(){
-
-    // Process errors and messages embedded in the url.
-    var error = getParameterByName('error');
-    var message = getParameterByName('message');
-
-    if(error !== ''){
-        var errorElm = document.getElementById('errors');
-        errorElm.style.display = 'block';
-        errorElm.innerHTML = error;
-    }
-
-    if(message !== ''){
-        var messageElm = document.getElementById('messages');
-        messageElm.style.display = 'block';
-        messageElm.innerHTML = message;
-    }
-});
+// File:    messages.js
+// Author:  Hank Feild
+// Purpose: Handles displaying error messages.
 
 /**
  * Extracts GET parameters from the url. Taken from: 
@@ -36,8 +21,47 @@ function getParameterByName(name, url) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+/**
+ * Sets the error text of the non-dismissible error message. This appears at the
+ * top of the page, just below the header, under any modals that may be 
+ * displayed. Use `setFloatingError` if you are setting an error from a modal.
+ * 
+ * @param {string} error The error message to display.
+ */
 function setError(error){
     var errorElm = document.getElementById('errors');
     errorElm.style.display = 'block';
     errorElm.innerHTML = error;
 }
+
+/**
+ * Adds a dismissible error alert that floats above all other elements.
+ * 
+ * @param {string} error The error message to display.
+ */
+function setFloatingError(error){
+    var $errorElm = $('#floating-error-template').clone().attr('id', '');
+    $errorElm.find('.floating-error-content').html(error);
+    $('#floating-error-container').append($errorElm);
+}
+
+// When the page first loads, this displays any error messages that are present
+// in the URL as GET parameters.
+window.addEventListener('load', function(){
+
+    // Process errors and messages embedded in the url.
+    var error = getParameterByName('error');
+    var message = getParameterByName('message');
+
+    if(error !== ''){
+        var errorElm = document.getElementById('errors');
+        errorElm.style.display = 'block';
+        errorElm.innerHTML = error;
+    }
+
+    if(message !== ''){
+        var messageElm = document.getElementById('messages');
+        messageElm.style.display = 'block';
+        messageElm.innerHTML = message;
+    }
+});

@@ -39,14 +39,14 @@ var onPublicAccessChange = function(e){
 
             } else {
                 // On failure: display an error message.
-                setError(`Error: ${data.message} `+ 
+                setFloatingError(`Error: ${data.message} `+ 
                     `${data.additional_data ? 
                     JSON.stringify(data.additional_data) : ''}`);
             }
         },
         // On failure: display an error message.
         error: function(jqXHR, textStatus, errorThrown){
-            setError(`Error: ${textStatus} ${errorThrown}.`);
+            setFloatingError(`Error: ${textStatus} ${errorThrown}.`);
         }
     });
 };
@@ -77,14 +77,14 @@ var onPermissionChange = function(e){
 
             } else {
                 // On failure: display an error message.
-                setError(`Error: ${data.message} `+ 
+                setFloatingError(`Error: ${data.message} `+ 
                     `${data.additional_data ? 
                     JSON.stringify(data.additional_data) : ''}`);
             }
         },
         // On failure: display an error message.
         error: function(jqXHR, textStatus, errorThrown){
-            setError(`Error: ${textStatus} ${errorThrown}.`);
+            setFloatingError(`Error: ${textStatus} ${errorThrown}.`);
         }
     });
 };
@@ -114,14 +114,14 @@ var onPermissionDelete = function(e){
 
             } else {
                 // On failure: display an error message.
-                setError(`Error: ${data.message} `+ 
+                setFloatingError(`Error: ${data.message} `+ 
                     `${data.additional_data ? 
                     JSON.stringify(data.additional_data) : ''}`);
             }
         },
         // On failure: display an error message.
         error: function(jqXHR, textStatus, errorThrown){
-            setError(`Error: ${textStatus} ${errorThrown}.`);
+            setFloatingError(`Error: ${textStatus} ${errorThrown}.`);
         }
     });
 
@@ -157,14 +157,14 @@ var onNewPermission = function(e){
                     data.additional_data.permission_id);
             } else {
                 // On failure: display an error message.
-                setError(`Error: ${data.message} `+ 
+                setFloatingError(`Error: ${data.message} `+ 
                     `${data.additional_data ? 
                     JSON.stringify(data.additional_data) : ''}`);
             }
         },
         // On failure: display an error message.
         error: function(jqXHR, textStatus, errorThrown){
-            setError(`Error: ${textStatus} ${errorThrown}.`);
+            setFloatingError(`Error: ${textStatus} ${errorThrown}.`);
         }
     });
 
