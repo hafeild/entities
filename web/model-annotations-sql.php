@@ -124,7 +124,7 @@ function lookupAnnotations($textId = null){
             "select annotations.id as annotation_id, title as text_title, ".
                 "md5sum as text_md5sum, text_id,username,users.id as user_id, ". 
                 "parent_annotation_id, method, method_metadata, label, ". 
-                "annotations.created_at, updated_at, ". 
+                "annotations.created_at, annotations.updated_at, ". 
                 "automated_method_in_progress, automated_method_error, ". 
                 "permission from annotations ".
                 "join users on users.id = created_by ". 
@@ -174,7 +174,7 @@ function lookupAnnotationsByUser($userId){
             "select annotations.id as annotation_id, title as text_title, ".
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, method_metadata, label, ".
-            "annotations.created_at, updated_at, ". 
+            "annotations.created_at, annotations.updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
             "join users on users.id = created_by". 
@@ -218,7 +218,7 @@ function lookupAnnotationsByText($textId){
             "select annotations.id as annotation_id, title as text_title, ".
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, method_metadata, label, ". 
-            "annotations.created_at, updated_at, ". 
+            "annotations.created_at, annotations.updated_at, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
             "join users on users.id = created_by ". 
@@ -268,7 +268,7 @@ function lookupAnnotation($id){
             "select annotations.id as annotation_id, title as text_title, ".
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, method_metadata, label, ". 
-            "annotations.created_at, updated_at, ". 
+            "annotations.created_at, annotations.updated_at, ". 
             "automated_method_in_progress, automated_method_error, annotation ". 
             "from annotations ".
             "join users on users.id = created_by ". 

@@ -422,3 +422,11 @@ span.selectedEntity.end-token {
     width: 40%;
     display: inline-block;
 }
+
+#permission-template {
+    display: none;
+}
+
+.saved-icon {
+    color: green;
+}

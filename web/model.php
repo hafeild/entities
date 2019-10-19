@@ -250,16 +250,16 @@ function updateText($id, $isPublic, $title){
         $params = [":id" => $id];
         $updates = [];
         if($isPublic != null){
-            $params[":is_public" => $isPublic];
+            $params[":is_public"] = $isPublic;
             array_push($updates, "is_public = :is_public");
         }
         if($title != null){
-            $params[":title" => $title];
+            $params[":title"] = $title;
             array_push($updates, "title = :title");
         }
 
         $statement = $dbh->prepare(
-            "update texts set ". implode(", ", $updates) ."where id = :id");
+            "update texts set ". implode(", ", $updates) ." where id = :id");
         $statement->execute($params);
 
     } catch(Exception $e){

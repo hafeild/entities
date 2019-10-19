@@ -96,7 +96,7 @@ $routes = [
     Controllers::generateRoute(
         "PATCH", 
         "#^texts/(\d+)?#", 
-        'Controllers:editText'),
+        'Controllers::editText'),
 
     //////////////////////////////////////////////
     // Text permissions.

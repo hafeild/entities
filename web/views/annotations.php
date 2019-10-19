@@ -1,6 +1,6 @@
 <script src="/js/permissions.js"></script>
 
-<div id="annotations" class="page">
+<div id="annotations" class="page" data-uri="/texts/<?= $data["text"]["id"] ?>">
     <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
 
 <?php
@@ -30,6 +30,60 @@ foreach($data["annotations"] as $annotation){
 ?>
 
 
+<?php 
+/**
+ * @param permissionUser A text_permissions row with a username field. Should
+ *      have these fields:
+ *          - username
+ *          - user_id
+ *          - id (in text_permissions)
+ *          - permission
+ *      If null, a hidden template will be emitted with the DOM id 
+ *      "permission-template".
+ */
+function printUserPermissionControls($permissionUser){
+    global $PERMISSIONS, $user;
+    if($permissionUser == null){
+        $permissionUser = [
+            "id" => "",
+            "permission" => 0,
+            "username" => "",
+            "user_id" => 0
+        ];
+    }
+?>
+    <div <?= $permissionUser["id"] == "" ? "id=\"permission-template\"" : "" ?> 
+        data-permission-id="<?= $permissionUser["id"] ?>" class="permission-control">
+        <span class="permission-username"><?= $permissionUser["username"] ?></span>
+        <select class="permission-level" name="permission-level"
+            <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>>
+            <option value="READ" <?= 
+                $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
+                "selected" : "" ?>>Can view this page</option>
+            <option value="WRITE" <?= 
+                $permissionUser["permission"] == $PERMISSIONS["WRITE"] ? 
+                "selected" : "" ?>>Can modify this page 
+                (e.g., title, metadata)</option>
+            <option value="OWNER" <?= 
+                $permissionUser["permission"] == $PERMISSIONS["OWNER"] ? 
+                "selected" : "" ?>>Can manage permissions on 
+                this page</option>
+        </select>
+        <?php if($permissionUser["user_id"] != $user["id"]) { ?>
+        <button type="button" aria-label="Remove permission"
+            class="btn btn-danger btn-xs remove-permission"
+            id="remove-permission"><span 
+            class="glyphicon glyphicon-trash"></span></button>
+        <span class="saved-icon hidden"
+            ><span class="glyphicon glyphicon-floppy-saved"
+            ></span></span>
+        <?php } ?>
+
+    </div>
+<?php
+}
+?>
+
 
 <?php if($user != null){ // Begin logged-in user only section. ?>
 
@@ -37,6 +91,7 @@ foreach($data["annotations"] as $annotation){
     // Sharing settings are only exposed to owners.
     global $PERMISSIONS;
     if(ownsText($data["text"]["id"])){ ?>
+    
     
 
     <!-- Run annotation. -->
@@ -57,19 +112,26 @@ foreach($data["annotations"] as $annotation){
                     <h4 class="modal-title">Text sharing settings</h4>
 
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" data-permission-uri-prefix="/json/texts/<?= 
+                    $data["text"]["id"] ?>/permissions">
                     <p>
                         Select the options below to specify who can see, modify,
                         and manage this page. Sharing options for
                         annotations must be managed per annotation. 
                     </p>
-                    <!-- [ ] Anyone can view this page-->
-                    <div class="form-group">
+
+                    <!-- Public setting of this page. -->
+                    <div class="form-group is-public-form-group">
                         <label>Public settings</label><br/>
-                        <input type="checkbox" id="is-public" name="is-public" 
+                        <input type="checkbox" id="is-public" name="is_public" 
                             value="true">
                             Anyone can view this page
+                            <span class="saved-icon hidden"
+                                ><span class="glyphicon glyphicon-floppy-saved"
+                                ></span></span>
                     </div>
+
+                    <!-- New per-user permission form. -->
                     <div class="form-group">
                         <label>Add permissions for another EntiTies user</label>
                         <br/>
@@ -91,38 +153,21 @@ foreach($data["annotations"] as $annotation){
                             class="glyphicon glyphicon-plus"</span></button>
                         </form>
                     </div>
+
+                    <!-- Existing per-user permissions. -->
                     <div class="form-group">
                         <label>Existing user permission for this text</label><br/>
                     <!-- List users with permission for this text here. -->
                     <?php 
                     $permissionsByUser = getTextPermissions($data["text"]["id"]); 
 
-                    foreach($permissionsByUser as $permissionUser){ ?>
-                        <div data-permission-id="<?= $permissionUser["id"] ?>">
-                            <span class="permission-username"><?= $permissionUser["username"] ?></span>
-                            <select class="permission-level" name="permission-level"
-                                <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>>
-                                <option value="READ" <?= 
-                                    $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
-                                    "selected" : "" ?>>Can view this page</option>
-                                <option value="WRITE" <?= 
-                                    $permissionUser["permission"] == $PERMISSIONS["WRITE"] ? 
-                                    "selected" : "" ?>>Can modify this page 
-                                    (e.g., title, metadata)</option>
-                                <option value="OWNER" <?= 
-                                    $permissionUser["permission"] == $PERMISSIONS["OWNER"] ? 
-                                    "selected" : "" ?>>Can manage permissions on 
-                                    this page</option>
-                            </select>
-                            <?php if($permissionUser["user_id"] != $user["id"]) { ?>
-                            <button type="button" aria-label="Remove permission"
-                                class="btn btn-danger btn-xs remove-permission"
-                                id="remove-permission"><span 
-                                class="glyphicon glyphicon-trash"></span></button>
-                            <?php } ?>
-
-                        </div>
-                    <?php } ?>
+                    // Add a template permission div for AJAX purposes.
+                    printUserPermissionControls(null);
+                    // Add controls for each user permission. 
+                    foreach($permissionsByUser as $permissionUser){ 
+                        printUserPermissionControls($permissionUser);
+                    }
+                    ?> 
                     </div>
                 </div>
                 <div class="modal-footer">
