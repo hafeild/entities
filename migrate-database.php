@@ -340,7 +340,7 @@ function updateUsersTextsAnnotationsTables($dbh, $direction="up"){
 
         // Add is_public column to texts table.
         print "Adding is_public column to annotations table...\n";
-        $dbh->exec("alter table annotations add is_public boolean default '0'");
+        $dbh->exec("alter table annotations add is_public boolean default NULL");
         $dbh->exec("update annotations set is_public = '0'");
 
         // Add updated_at column to users table.
