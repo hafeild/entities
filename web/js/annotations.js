@@ -886,6 +886,7 @@ var openAddTieModal = function() {
     dropdownTwo = $('#tieObjectTwoSelector');
     tieNameBox = $('#tieNameBox');
 
+    // Clear old modal body
     tieModalTextArea.empty();
     dropdownOne.empty();
     dropdownTwo.empty();
@@ -896,15 +897,45 @@ var openAddTieModal = function() {
     menuConfigData.tieObjectOne = null;
     menuConfigData.tieObjectTwo = null;
 
+    // display n spans before and after selected spans
     var objectSearchWindowSize = 100;
-    var objects = "";
+    var curSearch = 0;
     var spanList = [];
+    // start of spans to be displayed
     var startToken = parseInt($(menuConfigData.textSpans[0]).attr("data-token")) - objectSearchWindowSize/2;
-    var endToken = parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token")) + objectSearchWindowSize/2;
-    var curSpan = null;
+    if (startToken < 1) { startToken = 1;}
+    var curSpan = $("span[data-token=" + startToken.toString() + "]");
+    var curSpanClone = null;
+    // don't start on puncutative tokens
+    while (curSpan.prev() !== null && curSpan.prev() !== undefined &&
+           curSpan.prev().length !== 0 && curSpan.prev().html().trim() !== "") {
+                curSpan = curSpan.prev();
+    }
 
+
+    while (curSearch < objectSearchWindowSize) {
+        if (curSpan === null || curSpan === undefined || curSpan.length===0) { break; }
+        if (typeof curSpan.attr('data-token') !== typeof undefined && typeof curSpan.attr('data-token') !== typeof null) {curSearch++;}
+        // need to push clone to spanList but need original for DOM navigation
+        curSpanClone = curSpan.clone();
+        if (curSpan.html().trim() !== "" && parseInt(curSpan.attr('data-token')) >= parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && parseInt(curSpan.attr('data-token')) <= parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token"))) {
+            curSpanClone.addClass('text-primary');
+            tieNameBox.attr('placeholder', tieNameBox.attr('placeholder') + curSpan.html() + " ").blur();
+            curSearch--;
+        }
+        spanList.push(curSpanClone); 
+        curSpan = curSpan.next();
+    }
+    // don't end on punctuative tokens
+    while (curSpan.next() !== null && curSpan.next() !== undefined &&
+           curSpan.next().length !== 0 && curSpan.next().html().trim() !== "") {
+                spanList.push(curSpan.next().clone());
+                curSpan = curSpan.next();
+    }
+
+    // old method for pushing spans to text window
+    /*
     for (var i = startToken; i <= endToken; i++) {
-        // TODO - KEEP TRACK OF LAST TOKEN ID IN ANNOTATION DATA AND STOP WHEN THAT IS REACHED
         if (i < 1) { break; }
         curSpan = $("span[data-token=" + i.toString() + "]").clone();
         if (i >= parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && i <= parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token"))) {
@@ -913,10 +944,12 @@ var openAddTieModal = function() {
         }
         spanList.push(curSpan);
     }
+    */
+
+    var objects = "";
 
     spanList.forEach(span => {
         tieModalTextArea.append(span.clone());
-        tieModalTextArea.append('<span> </span>');
         if (span.hasClass('entity')) {
             objects += ('<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
                 '<span class="unselectable">' + span.html() + '</span></li>');
@@ -1351,7 +1384,7 @@ $(document).ready(function(){
     $(document).on('click', '.addTieOption', openAddTieModal);
     $(document).on('click', '#confirmAddTie', confirmAddTie);
     $(document).on('click', '.tie-object', tieModalObjectChosen)
-    $(document).on('mouseover', '.tie-object', highlightTieModalTextArea)
+    $(document).on('mouseenter', '.tie-object', highlightTieModalTextArea)
     $(document).on('mouseleave', '.tie-object', highlightTieModalTextArea)
 
     $(document).on('mouseenter', '.thisMentionHover', openHoverMenu);
