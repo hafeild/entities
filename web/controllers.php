@@ -1099,7 +1099,67 @@ public static function deleteTextPermission($path, $matches, $params, $format) {
  */
 public static function postAnnotationPermission($path, $matches, $params, 
                                                 $format) {
-    // TODO
+     global $PERMISSIONS;
+
+    // Ensure the annotation id was given.
+    if(count($matches) < 2){
+        error("Must include the id of the annotation in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("username", $params) || 
+        !array_key_exists("permission_level", $params)){
+
+        error("One or both required parameters are missing; requests ". 
+              "should include a username and permission_level parameter.");
+    }
+
+    $targetUsername = htmlentities($params["username"]);
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the annotation exists.
+    $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
+    if(!$text){
+        error("We couldn't find an annotation with the id $annotationId.");
+    }
+
+    // Ensure the user has owner permission on the annotation.
+    if(!ownsAnnotation($annotationId)){
+        error("You do not have authorization to modify permissions for ". 
+              "this annotation.");
+    }
+
+    // Check that the requested user exists.
+    $targetUser = getUserInfo($params["username"]);
+    if(!$targetUser){
+        error("We couldn't find a user with the username ". 
+              "${params["username"]}.");
+    }
+
+    // Make sure the user doesn't already have a permission for this annotation.
+    $existingPermission = getAnnotationPermissions(
+        $targetUser["id"], $annotationId);
+    if($existingPermission){
+        error("A permission for user $targetUsername already exists.");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Add new permission.
+    $permissionId = addAnnotationPermission($targetUser["id"], $annotationId, 
+        $PERMISSIONS[$permissionLevel]);
+
+    // Send back id of new permission.
+    return [
+        "success" => true,
+        "additional_data" => [
+            "permission_id" => $permissionId
+        ]
+    ];
 }
 
 /**
@@ -1118,7 +1178,51 @@ public static function postAnnotationPermission($path, $matches, $params,
 public static function patchAnnotationPermission($path, $matches, $params, 
                                                  $format) {
 
-    // TODO
+     global $user, $PERMISSIONS;
+
+    // Ensure the annotation and permission id were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the annotation and permission in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("permission_level", $params)){
+        error("The permission_level parameters is missing.");
+    }
+
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the text exists.
+    $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
+    if(!$annotation){
+        error("We couldn't find an annotation with the id $annotationId.");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!ownsAnnotation($annotationId)){
+        error("You do not have authorization to modify permissions for ". 
+              "this annotation.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getAnnotationPermissionById($annotationId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id $permissionId.");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Update the permission.
+    setAnnotationPermission($permissionId, $PERMISSIONS[$permissionLevel]);
+
+    return [
+        "success" => true
+    ];
 }
 
 /**
@@ -1134,7 +1238,38 @@ public static function patchAnnotationPermission($path, $matches, $params,
  */
 public static function deleteAnnotationPermission($path, $matches, $params, 
                                                   $format) {
-    // TODO
+    // Ensure the text and permission ids were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the text and permission in URI.");
+    }
+
+    // Ensure the text exists.
+    $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
+    if(!$annotation){
+        error("We couldn't find an annotation with the id $annotationId.");
+    }
+
+    // Ensure the user has owner permission on the annotation.
+    if(!ownsAnnotation($annotationId)){
+        error("You do not have authorization to modify permissions for ". 
+              "this annotation.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getAnnotationPermissionById($permissionId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id $permissionId.");
+    }
+
+
+    // Delete the permission.
+    deleteAnnotationPermission($permissionId);
+
+    return [
+        "success" => true
+    ];
 }
 
 
