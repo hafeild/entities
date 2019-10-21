@@ -90,10 +90,11 @@ function hasAnnotationPermission($annotationId, $permissionLevel, $userId=null){
     if($userId == null && $user != null){
         $userId = $user["id"];
     }
+    
+    $annotation = lookupAnnotation($annotationId);
 
     // Check if the resource is public.
     if($permissionLevel == $PERMISSIONS["READ"]){
-        $annotation = lookupAnnotation($annotationId);
         if($annotation["is_public"] == null){
             return hasTextPermission($annotation["text_id"], $permissionLevel, 
                                      $userId);
@@ -104,7 +105,7 @@ function hasAnnotationPermission($annotationId, $permissionLevel, $userId=null){
     } else if($userId != null) {
         // Check if the user has the requested permissions.
         $permission = getAnnotationPermission($userId, $annotationId);
-        if($permission == null){
+        if(!$permission){
             return hasTextPermission($annotation["text_id"], $permissionLevel, 
                                      $userId);
         } else {

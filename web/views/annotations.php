@@ -1,6 +1,6 @@
 <script src="/js/permissions.js"></script>
 
-<div id="annotations" class="page" data-uri="/texts/<?= $data["text"]["id"] ?>">
+<div id="annotations" class="page page-info" data-uri="/texts/<?= $data["text"]["id"] ?>">
     <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
 
 <?php
@@ -98,7 +98,7 @@ function printUserPermissionControls($permissionUser){
     <!-- Button trigger modal -->
     <button type="button" class="btn btn-primary btn-md sharing-button" 
         data-toggle="modal" data-target="#sharing-modal">
-    Share text
+    Share annotation
     </button>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="sharing-modal">
@@ -115,10 +115,8 @@ function printUserPermissionControls($permissionUser){
                 <div class="modal-body">
                     <p>
                         Select the options below to specify who can see, modify,
-                        and manage this text. These will apply to all annotations
-                        of the text, but you may add different permissions 
-                        per-annotation. Annotation-level permissions take 
-                        precedence text-level permissions.
+                        and manage this annotation. These permissions take 
+                        precedence over text-level permissions.
                     </p>
 
                     <!-- Public setting of this page. -->
@@ -126,7 +124,8 @@ function printUserPermissionControls($permissionUser){
                         <label>Public settings</label><br/>
                         <input type="checkbox" id="is-public" 
                             name="is_public<?= $randNum ?>" 
-                            value="true" autocomplete="off">
+                            value="true" autocomplete="off" 
+                            <?= $data["text"]["is_public"] ? "checked" : "" ?>>
                             Anyone can view this page
                             <span class="saved-icon hidden"
                                 ><span class="glyphicon glyphicon-floppy-saved"
@@ -185,8 +184,6 @@ function printUserPermissionControls($permissionUser){
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
-
-
     <?php } ?>
 
 

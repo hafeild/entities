@@ -1123,7 +1123,7 @@ public static function postAnnotationPermission($path, $matches, $params,
     // Ensure the annotation exists.
     $annotationId = $matches[1];
     $annotation = lookupAnnotation($annotationId);
-    if(!$text){
+    if(!$annotation){
         error("We couldn't find an annotation with the id $annotationId.");
     }
 
