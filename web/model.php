@@ -592,7 +592,7 @@ function getAnnotationPermission($userId, $annotationId){
         return $statement->fetch(PDO::FETCH_ASSOC);
 
     } catch(PDOException $e){
-        error("There was an error retrieving permissions on the given ". 
+        error("There was an error retrieving permissions for the given ". 
             "annotation: ". $e->getMessage());
     }
 }
@@ -659,8 +659,8 @@ function getAnnotationPermissions($annotationId){
 /**
  * Adds an annotation permission.
  * 
- * @param annotationId The id of the annotation to add the permission to.
  * @param userId The id of the user to add the permission for.
+ * @param annotationId The id of the annotation to add the permission to.
  * @param permission The permission level (integer):
  *                      - 0: none
  *                      - 1: read
@@ -668,7 +668,7 @@ function getAnnotationPermissions($annotationId){
  *                      - 3: owner
  * @return The id of the newly created permission.
  */
-function addAnnotationPermission($annotationId, $userId, $permission){
+function addAnnotationPermission($userId, $annotationId, $permission){
     $dbh = connectToDB();
     $dbh->beginTransaction();
 

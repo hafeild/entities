@@ -463,6 +463,8 @@ function addPermissionsTables($dbh, $direction="up"){
                 "permission integer default 0,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
+                ($isPostgres ? "updated_at timestamp," 
+                             : "updated_at datetime,").
                 "unique(text_id, user_id),".
                 "foreign key(text_id) references texts(id),".
                 "foreign key(user_id) references users(id)".
@@ -496,6 +498,8 @@ function addPermissionsTables($dbh, $direction="up"){
                 "permission integer default 0,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
+                ($isPostgres ? "updated_at timestamp," 
+                             : "updated_at datetime,").
                 "unique(annotation_id, user_id),".
                 "foreign key(annotation_id) references annotations(id),".
                 "foreign key(user_id) references users(id)".

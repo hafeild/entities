@@ -64,7 +64,7 @@ $routes = [
         'editEntity'),
     Controllers::generateRoute(
         "PATCH", 
-        "#^annotations/(\d+)/?#", 
+        "#^annotations/(\d+)/?$#", 
         'Controllers::editAnnotation'),
 
     // Adds a new annotation.
@@ -128,14 +128,14 @@ $routes = [
     // Add a new permission.
     Controllers::generateRoute(
         "POST",
-        "#^annotations/(\d+)/permissions#",
+        "#^annotations/(\d+)/permissions/?$#",
         "Controllers::postAnnotationPermission"
     ),
 
     // Modify an existing permission.
     Controllers::generateRoute(
         "PATCH",
-        "#^annotations/(\d+)/permissions/(\d+)#",
+        "#^annotations/(\d+)/permissions/(\d+)/?$#",
         "Controllers::patchAnnotationPermission"
     ),
 

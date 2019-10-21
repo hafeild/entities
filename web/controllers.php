@@ -451,6 +451,7 @@ public static function postAnnotation($path, $matches, $params, $format){
     global $user;
     global $validMethods;
     global $validProcessors;
+    global $PERMISSIONS;
 
 
     if(count($matches) < 3){
@@ -519,6 +520,9 @@ public static function postAnnotation($path, $matches, $params, $format){
         $newAnnotationId = addAnnotation($user["id"], $textId, 
             $parentAnnotationId, $textData["annotation"], $method,
             generateAnnotationMethodMetadata($method, []), $label);
+        // Give the current user ownership.
+        addAnnotationPermission($newAnnotationId, $user["id"], 
+            $PERMISSIONS["OWNER"]);
 
         if($format == "html"){
             // Reroute to the new annotation.
@@ -551,6 +555,9 @@ public static function postAnnotation($path, $matches, $params, $format){
             $parentAnnotationId, $annotation, $method, 
             generateAnnotationMethodMetadata($method, $args),
             generateAnnotationLabel($method, $args), 1);
+        // Give the current user ownership.
+        addAnnotationPermission($newAnnotationId, $user["id"], 
+            $PERMISSIONS["OWNER"]);
 
         $result = Controllers::runAutomaticAnnotation($method, $args, $textId, 
             $textData["text_md5sum"], $newAnnotationId);
@@ -1159,10 +1166,11 @@ public static function postAnnotationPermission($path, $matches, $params,
     }
 
     // Make sure the user doesn't already have a permission for this annotation.
-    $existingPermission = getAnnotationPermissions(
+    $existingPermission = getAnnotationPermission(
         $targetUser["id"], $annotationId);
     if($existingPermission){
-        error("A permission for user $targetUsername already exists.");
+        error("A permission for user $targetUsername ". 
+              "already exists for this annotation.");
     }
 
     // Check the permission level is valid.
@@ -1228,7 +1236,7 @@ public static function patchAnnotationPermission($path, $matches, $params,
 
     // Make sure the permission exists.
     $permissionId = $matches[2];
-    $existingPermission = getAnnotationPermissionById($annotationId);
+    $existingPermission = getAnnotationPermissionById($permissionId);
     if(!$existingPermission){
         error("We couldn't find a permission with id $permissionId.");
     }

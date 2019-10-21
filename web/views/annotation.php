@@ -233,7 +233,8 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                         below.</p>
                         <!-- List users with permission for this text here. -->
                         <?php 
-                        $permissionsByUser = getAnnotationPermissions($data["annotation"]["annotation_id"]); 
+                        $permissionsByUser = getAnnotationPermissions(
+                            $data["annotation"]["annotation_id"]); 
 
                         // Add a template permission div for AJAX purposes.
                         printUserPermissionControls(null);
@@ -248,7 +249,8 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                     <div class="form-group existing-text-permissions">
                         <label>Existing user permission for this text</label><br/>
                         <p>Override these by adding annotation-specific settings
-                          above, or <a href="/texts/<?= $data["text"]["id"]?>/annotaitons"
+                          above, or <a href="/texts/<?= 
+                            $data["text"]["id"]?>/annotations"
                           >change them for the text here</a>.</p>
                         <!-- List users with permission for this text here. -->
                         <?php 
