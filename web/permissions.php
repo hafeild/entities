@@ -75,7 +75,8 @@ function ownsText($textId, $userId=null){
 
 /**
  * Determines if the user has the requested permission level for the requested
- * annotation.
+ * annotation. If no annotation permission exists, this backs off to the text 
+ * permissions for the given user, or publicness.
  * 
  * @param annotationId The id of the annotation.
  * @param permissionLevel The requested permission level.
@@ -93,37 +94,53 @@ function hasAnnotationPermission($annotationId, $permissionLevel, $userId=null){
     // Check if the resource is public.
     if($permissionLevel == $PERMISSIONS["READ"]){
         $annotation = lookupAnnotation($annotationId);
-        return $annotation["is_public"] == "1";
+        if($annotation["is_public"] == null){
+            return hasTextPermission($annotation["text_id"], $permissionLevel, 
+                                     $userId);
+        } else {
+            return $annotation["is_public"] == "1";
+        }
 
     } else if($userId != null) {
         // Check if the user has the requested permissions.
         $permission = getAnnotationPermission($userId, $annotationId);
-        return intval($permission["permission"]) >= $permissionLevel;
+        if($permission == null){
+            return hasTextPermission($annotation["text_id"], $permissionLevel, 
+                                     $userId);
+        } else {
+            return intval($permission["permission"]) >= $permissionLevel;
+        }
     }
 
     return false;
 }
 
 /**
- * Alias for hasAnnotationPermission($textId, $PERMISSIONS["READ"], $userId).
+ * Alias for hasAnnotationPermission($annotationId, $PERMISSIONS["READ"], 
+ * $userId).
  */
-function canViewAnnotation($textId, $userId=null){
+function canViewAnnotation($annotationId, $userId=null){
     global $PERMISSIONS;
-    return hasAnnotationPermission($textId, $PERMISSIONS["READ"], $userId);
+    return hasAnnotationPermission(
+        $annotationId, $PERMISSIONS["READ"], $userId);
 }
 
 /**
- * Alias for hasAnnotationPermission($textId, $PERMISSIONS["WRITE"], $userId).
+ * Alias for hasAnnotationPermission($annotationId, $PERMISSIONS["WRITE"], 
+ * $userId).
  */
-function canModifyAnnotation($textId, $userId=null){
+function canModifyAnnotation($annotationId, $userId=null){
     global $PERMISSIONS;
-    return hasAnnotationPermission($textId, $PERMISSIONS["WRITE"], $userId);
+    return hasAnnotationPermission(
+        $annotationId, $PERMISSIONS["WRITE"], $userId);
 }
 
 /**
- * Alias for hasAnnotationPermission($textId, $PERMISSIONS["OWNER"], $userId).
+ * Alias for hasAnnotationPermission($annotationId, $PERMISSIONS["OWNER"], 
+ * $userId).
  */
-function ownsAnnotation($textId, $userId=null){
+function ownsAnnotation($annotationId, $userId=null){
     global $PERMISSIONS;
-    return hasAnnotationPermission($textId, $PERMISSIONS["OWNER"], $userId);
+    return hasAnnotationPermission(
+        $annotationId, $PERMISSIONS["OWNER"], $userId);
 }

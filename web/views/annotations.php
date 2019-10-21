@@ -93,8 +93,6 @@ function printUserPermissionControls($permissionUser){
     // Sharing settings are only exposed to owners.
     global $PERMISSIONS;
     if(ownsText($data["text"]["id"])){ ?>
-    
-    
 
     <!-- Run annotation. -->
     <!-- Button trigger modal -->
@@ -117,8 +115,10 @@ function printUserPermissionControls($permissionUser){
                 <div class="modal-body">
                     <p>
                         Select the options below to specify who can see, modify,
-                        and manage this page. Sharing options for
-                        annotations must be managed per annotation. 
+                        and manage this text. These will apply to all annotations
+                        of the text, but you may add different permissions 
+                        per-annotation. Annotation-level permissions take 
+                        precedence text-level permissions.
                     </p>
 
                     <!-- Public setting of this page. -->

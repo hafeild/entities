@@ -133,11 +133,6 @@ public static function getTexts($path, $matches, $params, $format,
  *      * processed_at
  *      * uploaded_by
  *      * is_public
- *  - annotation
- *      * entities
- *      * groups
- *      * ties
- *      * locations
  * 
  * @param path Ignored.
  * @param matches First match (index 1) must be the id of the text to retrieve
@@ -154,13 +149,23 @@ public static function getText($path, $matches, $params, $format){
         error("Must include the id of the text in URI.");
     }
     $id = $matches[1];
+    $metadata = getTextMetadata($id);
 
+
+    // Ensure this text exists.
+    if($metadata == null){
+        error("We could not find a text with the id $id.");
+    }
+
+    // Ensure the user has permission to view this text.
     if(!canViewText($id)){
         error("You do not have permissions to view this text.");
     }
 
-    $results = getOriginalAnnotation($id);
-    $results["success"] = true;
+    $results = [
+        "success" => true,
+        "text" => $metadata 
+    ];
 
     return $results;
 }
@@ -460,7 +465,9 @@ public static function postAnnotation($path, $matches, $params, $format){
     // Confirm that the user has permissions to fork this annotation. Either
     // the annotation must be public or the user must have at least read
     // permissions for it.
-    // TODO
+    if(!canViewText($matches[1])){
+        error("You do not have permission to fork this annotation.");
+    }
 
     $label = htmlentities($params["label"] ?? "");
     $method = htmlentities($params["method"] ?? "manual");
@@ -471,7 +478,8 @@ public static function postAnnotation($path, $matches, $params, $format){
         $error = "The annotation method '$method' is not supported.";
         if($format == "html"){
             // Reroute to the new annotation.
-            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
+            Controllers::redirectTo(
+                "/texts/$textId/annotations/$parentAnnotationId",
                 $error, null);
         } else {
             return [
@@ -491,7 +499,8 @@ public static function postAnnotation($path, $matches, $params, $format){
                   "original annotation.";
         if($format == "html"){
             // Reroute to the new annotation.
-            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
+            Controllers::redirectTo(
+                "/texts/$textId/annotations/$parentAnnotationId",
                 $error, null);
         } else {
             return [
@@ -510,7 +519,8 @@ public static function postAnnotation($path, $matches, $params, $format){
 
         if($format == "html"){
             // Reroute to the new annotation.
-            Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId",
+            Controllers::redirectTo(
+                "/texts/$textId/annotations/$newAnnotationId",
                 null, "Annotation successfully forked!");
         } else {
             return [
@@ -543,11 +553,16 @@ public static function postAnnotation($path, $matches, $params, $format){
             $textData["text_md5sum"], $newAnnotationId);
 
         if($result["success"] === true){
-            $successMessages = ["The file has been uploaded and is being processed."];
+            $successMessages = [
+                "The file has been uploaded and is being processed."
+            ];
             $errorMessages = [];
         } else {
             $successMessages = [];
-            $errorMessages = ["File stored, but not processed.", $result["error"]];
+            $errorMessages = [
+                "File stored, but not processed.", 
+                $result["error"]
+            ];
         }
     
         // $data = [
@@ -556,7 +571,8 @@ public static function postAnnotation($path, $matches, $params, $format){
         // ];
     
         if($format == "html"){
-            // Controllers::getTexts($path, [], [], "html", ["uploaded_text" => $data],
+            // Controllers::getTexts($path, [], [], "html", 
+            //     ["uploaded_text" => $data],
             //     $errorMessages, $successMessages);
 
             // TODO add id of new annotation so it can be highlighted.
@@ -693,6 +709,16 @@ public static function getAnnotation($path, $matches, $params, $format){
 
     $annotation = lookupAnnotation($matches[1]);
 
+    // Verify this annotation exists.
+    if($annotation == null){
+        error("We could not find an annotation with id ${matches[1]}.");
+    }
+
+    // Verify the user has permission to view this annotation.
+    if(!canViewAnnotation($annotation["annotation_id"])){
+        error("You do not have permission to view this annotation.");
+    }
+
     if($format == "json"){
         return [
             "success" => true,
@@ -746,8 +772,15 @@ public static function editAnnotation($path, $matches, $params, $format){
 
     $annotationId = $matches[1];
 
-    // TODO Ensure the annotation exists.
-    // TODO Ensure the user has write permissions for this.
+    // Verify this annotation exists.
+    if($annotation == null){
+        error("We could not find an annotation with id ${matches[1]}.");
+    }
+
+    // Verify the user has permission to modify this annotation.
+    if(!canModifyAnnotation($annotation["annotation_id"])){
+        error("You do not have permission to modify this annotation.");
+    }
 
     $validUpdateFields = [
         "last_entity_id" => 1,
@@ -843,12 +876,15 @@ public static function editText($path, $matches, $params, $format){
     $textId = $matches[1];
     $text = getTextMetadata($textId);
     if(!$text){
-        error("We couldn't find a text with the id $textId");
+        error("We couldn't find a text with the id $textId.");
     }
 
     // Ensure the user has owner permission on the text.
-    if(!ownsText($textId)){
+    if($isPublic != null && !ownsText($textId)){
         error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    } else if(!canModifyText($textId)) {
+        error("You do not have authormization to modify the metadata of ". 
               "this text.");
     }
 
@@ -898,7 +934,7 @@ public static function postTextPermission($path, $matches, $params, $format) {
     $textId = $matches[1];
     $text = getTextMetadata($textId);
     if(!$text){
-        error("We couldn't find a text with the id $textId");
+        error("We couldn't find a text with the id $textId.");
     }
 
     // Ensure the user has owner permission on the text.
@@ -970,7 +1006,7 @@ public static function patchTextPermission($path, $matches, $params, $format) {
     $textId = $matches[1];
     $text = getTextMetadata($textId);
     if(!$text){
-        error("We couldn't find a text with the id $textId");
+        error("We couldn't find a text with the id $textId.");
     }
 
     // Ensure the user has owner permission on the text.
@@ -983,7 +1019,7 @@ public static function patchTextPermission($path, $matches, $params, $format) {
     $permissionId = $matches[2];
     $existingPermission = getTextPermissionById($permissionId);
     if(!$existingPermission){
-        error("We couldn't find a permission with id .");
+        error("We couldn't find a permission with id $permissionId.");
     }
 
     // Check the permission level is valid.
@@ -1020,7 +1056,7 @@ public static function deleteTextPermission($path, $matches, $params, $format) {
     $textId = $matches[1];
     $text = getTextMetadata($textId);
     if(!$text){
-        error("We couldn't find a text with the id $textId");
+        error("We couldn't find a text with the id $textId.");
     }
 
     // Ensure the user has owner permission on the text.
@@ -1033,7 +1069,7 @@ public static function deleteTextPermission($path, $matches, $params, $format) {
     $permissionId = $matches[2];
     $existingPermission = getTextPermissionById($permissionId);
     if(!$existingPermission){
-        error("We couldn't find a permission with id .");
+        error("We couldn't find a permission with id $permissionId.");
     }
 
 

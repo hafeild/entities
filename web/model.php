@@ -114,27 +114,29 @@ function getTextMetadata($id){
  *          - ties
  *          - locations
  */
-function getOriginalAnnotation($id){
-    global $CONFIG;
+// function getOriginalAnnotation($id){
+//     global $CONFIG;
 
-    $results = [];
+//     // $results = [];
 
-    $row = getTextMetadata($id);
-    if(!$row){
-        error("No text with id $id found in the database.");
-    }
-    $results["text"] = $row;
+//     $row = getTextMetadata($id);
+//     if(!$row){
+//         error("We could not find a text with the id $id.");
+//     }
+//     return $row;
 
-    if($row["processed"] == 1){
-        //$filename = $CONFIG->text_storage."/".$row["md5sum"].".ids.json.book";
-        $filename = $CONFIG->text_storage."/".$row["md5sum"].".entities.json";
-        $fd = fopen($filename, "r");
-        $results["annotation"] = json_decode(fread($fd,filesize($filename)));
-        fclose($fd);
-    }
+//     // $results["text"] = $row;
 
-    return $results;
-}
+//     // if($row["processed"] == 1){
+//     //     //$filename = $CONFIG->text_storage."/".$row["md5sum"].".ids.json.book";
+//     //     $filename = $CONFIG->text_storage."/".$row["md5sum"].".entities.json";
+//     //     $fd = fopen($filename, "r");
+//     //     $results["annotation"] = json_decode(fread($fd,filesize($filename)));
+//     //     fclose($fd);
+//     // }
+
+//     // return $results;
+// }
 
 /**
  * Adds a new text to the metadata table as well as to the file system in the
@@ -465,7 +467,7 @@ function getTextPermissions($textId){
 }
 
 /**
- * Adds a text permission. 
+ * Adds a text permission.
  * 
  * @param userId The id of the user to add the permission for.
  * @param textId The id of the text to add the permission to.
@@ -491,7 +493,6 @@ function addTextPermission($userId, $textId, $permission){
             ":permission" => $permission,
             ":created_at" => curDateTime()
         ]);
-
         $permissionId = $dbh->lastInsertId();
 
         $dbh->commit();
@@ -647,7 +648,7 @@ function getAnnotationPermissions($annotationId){
 }
 
 /**
- * Adds an annotation permission. 
+ * Adds an annotation permission.
  * 
  * @param annotationId The id of the annotation to add the permission to.
  * @param userId The id of the user to add the permission for.

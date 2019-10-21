@@ -107,9 +107,11 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
  *      * label
  *      * created_at
  *      * updated_at
+ *      * is_public
  *      * automated_method_in_progress
  *      * automated_method_error
  *      * permission (of the current user)
+ * 
  */
 function lookupAnnotations($textId = null){
     global $user;
@@ -125,6 +127,7 @@ function lookupAnnotations($textId = null){
                 "md5sum as text_md5sum, text_id,username,users.id as user_id, ". 
                 "parent_annotation_id, method, method_metadata, label, ". 
                 "annotations.created_at, annotations.updated_at, ". 
+                "annotations.is_public, ". 
                 "automated_method_in_progress, automated_method_error, ". 
                 "permission from annotations ".
                 "join users on users.id = created_by ". 
@@ -163,6 +166,7 @@ function lookupAnnotations($textId = null){
  *      * label
  *      * created_at
  *      * updated_at
+ *      * is_public
  *      * automated_method_in_progress
  *      * automated_method_error
  */
@@ -175,6 +179,7 @@ function lookupAnnotationsByUser($userId){
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, method_metadata, label, ".
             "annotations.created_at, annotations.updated_at, ". 
+            "annotations.is_public, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
             "join users on users.id = created_by". 
@@ -207,6 +212,7 @@ function lookupAnnotationsByUser($userId){
  *      * label
  *      * created_at
  *      * updated_at
+ *      * is_public
  *      * automated_method_in_progress
  *      * automated_method_error
  */
@@ -219,6 +225,7 @@ function lookupAnnotationsByText($textId){
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, method_metadata, label, ". 
             "annotations.created_at, annotations.updated_at, ". 
+            "annotations.is_public, ". 
             "automated_method_in_progress, automated_method_error ". 
             "from annotations ".
             "join users on users.id = created_by ". 
@@ -239,7 +246,7 @@ function lookupAnnotationsByText($textId){
  * Retrieves the annotation with the given id.
  * 
  * @param id The id of the annotation.
- * @return An array of annotation metadata. Each element has the fields:
+ * @return An associative array of annotation metadata with these fields:
  *      * annotation_id
  *      * parent_annotation_id
  *      * text_title
@@ -252,6 +259,7 @@ function lookupAnnotationsByText($textId){
  *      * label
  *      * created_at
  *      * updated_at
+ *      * is_public
  *      * automated_method_in_progress
  *      * automated_method_error
  *      * annotation
@@ -269,6 +277,7 @@ function lookupAnnotation($id){
             "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
             "parent_annotation_id, method, method_metadata, label, ". 
             "annotations.created_at, annotations.updated_at, ". 
+            "annotations.is_public, ". 
             "automated_method_in_progress, automated_method_error, annotation ". 
             "from annotations ".
             "join users on users.id = created_by ". 
@@ -281,7 +290,9 @@ function lookupAnnotation($id){
         $res = $statement->fetch(PDO::FETCH_ASSOC);
         
         // Convert annotation value into a PHP array.
-        $res["annotation"] = json_decode($res["annotation"], true);
+        if($res != null){
+            $res["annotation"] = json_decode($res["annotation"], true);
+        }
         return $res;
 
     } catch(Exception $e){
@@ -334,7 +345,7 @@ function updateAnnotation($annotationId, $userId, $updater){
  * Sets the automatic annotation progress and error flags for an annotation.
  * 
  * @param annotationId The id of the annotation to update.
- * @param inProressFlag The value to set the `automated_method_in_progress`
+ * @param inProgressFlag The value to set the `automated_method_in_progress`
  *                      column to.
  * @param errorFlag The value to set the `automated_method_error` column to.
  */
@@ -355,5 +366,57 @@ function setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag) {
     } catch(Exception $e){
         error("Error updating annotation: ". $e->getMessage(), 
             ["In setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag)"]);
+    }
+}
+
+/**
+ * F
+ * @param textId The id of the text whose blank slate annotation should be 
+ *               retrieved.
+ * @return The blank slate annotation, which includes these fields:
+ *      * annotation_id
+ *      * parent_annotation_id
+ *      * text_title
+ *      * text_id
+ *      * text_md5sum
+ *      * username (owner)
+ *      * user_id  (owner)
+ *      * method
+ *      * method_metadata
+ *      * label
+ *      * created_at
+ *      * updated_at
+ *      * is_public
+ *      * automated_method_in_progress
+ *      * automated_method_error
+ *      * annotation
+ *           - entities
+ *           - groups
+ *           - ties
+ *           - locations
+ */
+function getBlankSlateAnnotation($textId){
+    $dbh = connectToAnnotationDB();
+
+    try{
+        $statement = $dbh->prepare(
+            "select annotations.id as annotation_id, title as text_title, ".
+            "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
+            "parent_annotation_id, method, method_metadata, label, ". 
+            "annotations.created_at, annotations.updated_at, ".
+            "annotations.is_public, ". 
+            "automated_method_in_progress, automated_method_error ". 
+            "from annotations ".
+            "join users on users.id = created_by ". 
+            "join texts on text_id = texts.id and ".
+            "where text_id = :text_id and parent_annotation_id = ''");
+        $statement->execute([
+            ":text_id" => $textId,
+        ]);
+
+        return $statement->fetch(PDO::FETCH_ASSOC);
+    } catch(Exception $e){
+        error("Error retrieving annotation: ". $e->getMessage(),
+            ["In lookupAnnotationsByText($textId)"]);
     }
 }
