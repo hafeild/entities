@@ -231,8 +231,8 @@ function makeUsersTextsAnnotationsTables($dbh, $direction="up"){
                              : "created_at datetime,").
                 ($isPostgres ? "updated_at timestamp," 
                              : "updated_at datetime,").
-                "automated_method_in_progress boolean default FALSE,". 
-                "automated_method_error boolean default FALSE,".
+                "automated_method_in_progress boolean default '0',". 
+                "automated_method_error boolean default '0',".
                 "foreign key(created_by) references users(id),".
                 "foreign key(text_id) references texts(id)".
             ")"
@@ -394,8 +394,8 @@ function updateUsersTextsAnnotationsTables($dbh, $direction="up"){
                              : "created_at datetime,").
                 ($isPostgres ? "updated_at timestamp," 
                              : "updated_at datetime,").
-                    "automated_method_in_progress boolean default FALSE,". 
-                    "automated_method_error boolean default FALSE,".
+                    "automated_method_in_progress boolean default '0',". 
+                    "automated_method_error boolean default '0',".
                     "foreign key(created_by) references users(id),".
                     "foreign key(text_id) references texts(id)".
                 ")"

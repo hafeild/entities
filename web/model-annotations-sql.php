@@ -54,11 +54,12 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
             "insert into annotations(" .
                 "text_id, created_by, parent_annotation_id, annotation, ". 
                 "method, method_metadata, label, created_at, updated_at, ". 
-                "automated_method_in_progress) values(:text_id, :user_id, ". 
+                "automated_method_in_progress, automated_method_error) ". 
+                "values(:text_id, :user_id, ". 
                 ":parent_annotation_id, :annotation, :method, ".
                 ":method_metadata, :label, ". 
                 ":timestamp, :timestamp, ". 
-                ":automated_method_in_progress)");
+                ":automated_method_in_progress, '0')");
         $statement->execute([
             ":text_id"             => $textId,
             ":user_id"             => $userId,
@@ -69,6 +70,7 @@ function addAnnotation($userId, $textId, $parentAnnotationId, $annotation,
             ":label"               => $label,
             ":automated_method_in_progress"
                                    => boolToString($automatedMethodInProgress),
+                                   
             ":timestamp"           => curDateTime()
         ]);
         return $dbh->lastInsertId();

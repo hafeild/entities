@@ -184,7 +184,7 @@ public static function getText($path, $matches, $params, $format){
  *         outlines above; otherwise, returns nothing.
  */
 public static function postText($path, $matches, $params, $format){
-    global $CONFIG, $user, $validMethods;
+    global $CONFIG, $user, $validMethods, $PERMISSIONS;
 
     if(!key_exists("title", $params) or !key_exists("file", $_FILES)){
         error("Missing title and/or file parameters.");
@@ -201,6 +201,9 @@ public static function postText($path, $matches, $params, $format){
 
     // Create a metadata entry for this text.
     $text = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
+
+    // Give the user ownership over the text.
+    addTextPermission($user["id"], $text["id"], $PERMISSIONS["OWNER"]);
 
     // Add a root annotation.
     $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [

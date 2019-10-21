@@ -165,8 +165,9 @@ function addText($md5sum, $file, $title, $user_id){
         error("This text has already been uploaded.", $row);
     } else {
         $statement = $dbh->prepare("insert into texts".
-            "(title,md5sum,created_at,uploaded_by) ".
-            "values(:title, :md5sum, :time, :user_id)");
+            "(title,md5sum,created_at,uploaded_by, tokenization_in_progress, ". 
+            "tokenization_error) ".
+            "values(:title, :md5sum, :time, :user_id, '0', '0')");
         checkForStatementError($dbh, $statement, 
             "Error preparing upload db statement.");
         $statement->execute(array(
