@@ -22,7 +22,7 @@ var setPermissionListeners = function(){
  */
 var onPublicAccessChange = function(e){
     var $formGroup = $(this).parents('.is-public-form-group');
-    var $page = $('.page');
+    var $page = $('.page-info');
     var isPublic;
 
     // Get the new public status.
@@ -59,7 +59,7 @@ var onPublicAccessChange = function(e){
  */
 var onPermissionChange = function(e){
     var $permissionControl = $(this).parents('.permission-control');
-    var $page = $('.page');
+    var $page = $('.page-info');
     var permissionLevel, id;
 
     // Get id of permission and new permission.
@@ -96,7 +96,7 @@ var onPermissionChange = function(e){
  */
 var onPermissionDelete = function(e){
     var $permissionControl = $(this).parents('.permission-control');
-    var $page = $('.page');
+    var $page = $('.page-info');
     var id;
 
     // Get id of permission.
@@ -134,7 +134,7 @@ var onPermissionDelete = function(e){
  * @param {Event} e The form submission event that triggered this handler.
  */
 var onNewPermission = function(e){
-    var $page = $('.page');
+    var $page = $('.page-info');
     var username, permissionLevel;
 
     // Collect username and permission.

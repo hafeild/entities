@@ -2,6 +2,7 @@
 <script src="/js/network-viz.js"></script>
 <script src="/js/annotation-manager.js"></script>
 <script src="/js/annotations.js"></script>
+<script src="/js/permissions.js"></script>
 
 
 <?php 
@@ -40,7 +41,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
             <option value="WRITE" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["WRITE"] ? 
                 "selected" : "" ?>>Can modify this page 
-                (e.g., title, metadata)</option>
+                (e.g., title, annotations)</option>
             <option value="OWNER" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["OWNER"] ? 
                 "selected" : "" ?>>Can manage permissions on 
@@ -63,7 +64,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
 
 <div class="header page-info" 
-    data-uri="/texts/<?= $data["text"]["id"] ?>/annotations/<?= 
+    data-uri="/annotations/<?= 
         $data["annotation"]["annotation_id"] ?>">
     <h2>
         <a href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= 
@@ -160,11 +161,9 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     global $PERMISSIONS;
     if(ownsAnnotation($data["annotation"]["annotation_id"])){ ?>
 
-    <!-- Run annotation. -->
-    <!-- Button trigger modal -->
     <button type="button" class="btn btn-primary btn-md sharing-button" 
         data-toggle="modal" data-target="#sharing-modal">
-    Share text
+    Share annotation
     </button>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="sharing-modal">
@@ -216,14 +215,14 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                             <option value="READ" selected>Can view this 
                                 page</option>
                             <option value="WRITE">Can modify this page 
-                                (e.g., title, metadata, annotations)</option>
+                                <br/>(e.g., title, annotations)</option>
                             <option value="OWNER">Can manage permissions on 
                                 this page</option>
                         </select>
                         <button type="submit" aria-label="Add permission"
                             class="btn btn-primary btn-xs" 
                             id="add-new-permission"><span 
-                            class="glyphicon glyphicon-plus"</span></button>
+                            class="glyphicon glyphicon-plus"></span></button>
                         </form>
                     </div>
 
@@ -240,13 +239,13 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                         printUserPermissionControls(null);
                         // Add controls for each user permission. 
                         foreach($permissionsByUser as $permissionUser){ 
-                            printUserPermissionControls($permissionUser, true);
+                            printUserPermissionControls($permissionUser);
                         }
                     ?> 
                     </div>
 
                     <!-- Existing per-user text permissions. -->
-                    <div class="form-group existing-permissions">
+                    <div class="form-group existing-text-permissions">
                         <label>Existing user permission for this text</label><br/>
                         <p>Override these by adding annotation-specific settings
                           above, or <a href="/texts/<?= $data["text"]["id"]?>/annotaitons"
@@ -263,10 +262,8 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" 
-                        data-dismiss="modal">Cancel</button>
-                    <input type="submit" class="btn btn-primary"
-                        value="Run"/>
+                    <button type="button" class="btn btn-primary" 
+                        data-dismiss="modal">Done</button>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->

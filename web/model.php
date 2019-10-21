@@ -251,10 +251,14 @@ function setTokenizationFlags($textId, $inProgressFlag, $errorFlag) {
 function updateText($id, $isPublic, $title){
     $dbh = connectToDB();
     try{
-        $params = [":id" => $id];
-        $updates = [":updated_at" => curDateTime()];
-        if($isPublic != null){
-            $params[":is_public"] = $isPublic;
+        $params = [
+            ":id" => $id,
+            ":updated_at" => curDateTime()
+        ];
+        $updates = ["updated_at = :updated_at"];
+
+        if($isPublic !== null){
+            $params[":is_public"] = boolToString($isPublic);
             array_push($updates, "is_public = :is_public");
         }
         if($title != null){
@@ -263,8 +267,8 @@ function updateText($id, $isPublic, $title){
         }
 
         $statement = $dbh->prepare(
-            "update texts set ". implode(", ", $updates) .", ". 
-                "updated_at = :updated_at where id = :id");
+            "update texts set ". implode(", ", $updates) . 
+                " where id = :id");
         $statement->execute($params);
 
     } catch(Exception $e){

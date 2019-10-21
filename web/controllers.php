@@ -153,7 +153,7 @@ public static function getText($path, $matches, $params, $format){
 
 
     // Ensure this text exists.
-    if($metadata == null){
+    if(!$metadata){
         error("We could not find a text with the id $id.");
     }
 
@@ -713,7 +713,7 @@ public static function getAnnotation($path, $matches, $params, $format){
     $annotation = lookupAnnotation($matches[1]);
 
     // Verify this annotation exists.
-    if($annotation == null){
+    if(!$annotation){
         error("We could not find an annotation with id ${matches[1]}.");
     }
 
@@ -774,9 +774,10 @@ public static function editAnnotation($path, $matches, $params, $format){
     }
 
     $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
 
     // Verify this annotation exists.
-    if($annotation == null){
+    if(!$annotation){
         error("We could not find an annotation with id ${matches[1]}.");
     }
 
@@ -797,44 +798,61 @@ public static function editAnnotation($path, $matches, $params, $format){
                         "directed"=>1]
     ];
 
-    $data = json_decode($params["data"], true);
+    // Verify that at least one valid update field is present.
+    if(!(array_key_exists("data", $params) || 
+         array_key_exists("is_public", $params))){
 
-    // Update the annotation.
-    $updater = function($annotation) use(&$validUpdateFields, &$data){
-        foreach($validUpdateFields as $field => $value){
-            if(array_key_exists($field, $data)){
-                // Check if this is a top-level data field...
-                if($value === 1){
-                    $annotation[$field] = $data[$field];
+        error("You must specify at least one valid annotation field: 'data' ". 
+              "or 'is_public'.");
+    }
 
-                // ...or an object.
-                } else {
-                    foreach($data[$field] as $id => $val){
-                        // Check if this is being deleted.
-                        if(array_key_exists($id, $annotation[$field]) && 
-                            $val == "DELETE"){
+    $data = null;
+    $updater = null;
+    $isPublic = array_key_exists("is_public", $params) ? 
+        $params["is_public"] == "true" : null;
 
-                            unset($annotation[$field][$id]);
-                        } else {
-                            // Check if this is new or updated.
-                            if(!array_key_exists($id, $annotation[$field])){
-                                $annotation[$field][$id] = [];
-                            }
-                            foreach($validUpdateFields[$field] as $subfield => $y){
-                                if(array_key_exists($subfield, $val)){
-                                    $annotation[$field][$id][$subfield] =
-                                        $val[$subfield];
+    // If the annotation JSON is being updated, extract that data and define the
+    // updater needed by the annotation model function.
+    if(array_key_exists("data", $params)){
+        $data = json_decode($params["data"], true);
+
+        // Update the annotation.
+        $updater = function($annotation) use(&$validUpdateFields, &$data){
+            foreach($validUpdateFields as $field => $value){
+                if(array_key_exists($field, $data)){
+                    // Check if this is a top-level data field...
+                    if($value === 1){
+                        $annotation[$field] = $data[$field];
+
+                    // ...or an object.
+                    } else {
+                        foreach($data[$field] as $id => $val){
+                            // Check if this is being deleted.
+                            if(array_key_exists($id, $annotation[$field]) && 
+                                $val == "DELETE"){
+
+                                unset($annotation[$field][$id]);
+                            } else {
+                                // Check if this is new or updated.
+                                if(!array_key_exists($id, $annotation[$field])){
+                                    $annotation[$field][$id] = [];
+                                }
+                                foreach($validUpdateFields[$field] as $subfield => $y){
+                                    if(array_key_exists($subfield, $val)){
+                                        $annotation[$field][$id][$subfield] =
+                                            $val[$subfield];
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        return $annotation;
-    };
+            return $annotation;
+        };
+    }
 
-    updateAnnotation($annotationId, $user["id"], $updater);
+    updateAnnotation($annotationId, $user["id"], $updater, $isPublic);
 
     return [
         "success" => true
@@ -873,7 +891,7 @@ public static function editText($path, $matches, $params, $format){
     $title = array_key_exists("title", $params) ? 
         htmlentities($params["title"]) : null;
     $isPublic = array_key_exists("is_public", $params) ? 
-        ($params["is_public"] == "true" ? "1" : "0") : null;
+        $params["is_public"] == "true" : null;
 
     // Ensure the text exists.
     $textId = $matches[1];

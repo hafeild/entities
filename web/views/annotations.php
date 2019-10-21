@@ -94,11 +94,9 @@ function printUserPermissionControls($permissionUser){
     global $PERMISSIONS;
     if(ownsText($data["text"]["id"])){ ?>
 
-    <!-- Run annotation. -->
-    <!-- Button trigger modal -->
     <button type="button" class="btn btn-primary btn-md sharing-button" 
         data-toggle="modal" data-target="#sharing-modal">
-    Share annotation
+    Share text
     </button>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="sharing-modal">
@@ -155,7 +153,7 @@ function printUserPermissionControls($permissionUser){
                         <button type="submit" aria-label="Add permission"
                             class="btn btn-primary btn-xs" 
                             id="add-new-permission"><span 
-                            class="glyphicon glyphicon-plus"</span></button>
+                            class="glyphicon glyphicon-plus"></span></button>
                         </form>
                     </div>
 
@@ -176,10 +174,8 @@ function printUserPermissionControls($permissionUser){
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" 
-                        data-dismiss="modal">Cancel</button>
-                    <input type="submit" class="btn btn-primary"
-                        value="Run"/>
+                    <button type="button" class="btn btn-primary" 
+                        data-dismiss="modal">Done</button>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->

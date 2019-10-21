@@ -310,9 +310,12 @@ function lookupAnnotation($id){
  * @param annotationId The id of the annotation.
  * @param userId The id of the user making the change.
  * @param updater The function to call (should be short as the whole thing
- *                occurs in a transaction).
+ *                occurs in a transaction). Can be null if the annotation JSON
+ *                is not being updated.
+ * @param isPublic Boolean. Whether this annotation is publicly viewable or not.
+ *                 Defaults to null (ignored).
  */
-function updateAnnotation($annotationId, $userId, $updater){
+function updateAnnotation($annotationId, $userId, $updater, $isPublic = null){
     $dbh = connectToAnnotationDB();
 
     $dbh->beginTransaction();
@@ -320,15 +323,26 @@ function updateAnnotation($annotationId, $userId, $updater){
     $annotationData = lookupAnnotation($annotationId);
 
     try{
-        $statement = $dbh->prepare(
-            "update annotations set annotation = :annotation, ".
-                "updated_at = :updated_at where id = :id");
-        $statement->execute([
+        $params = [
             ":id" => $annotationId,
-            ":annotation" => json_encode(
-                $updater($annotationData["annotation"]), true),
             ":updated_at" => curDateTime()
-        ]);
+        ];
+        $updates = ["updated_at = :updated_at"];
+        if($isPublic !== null){
+            $params[":is_public"] =  boolToString($isPublic);
+            array_push($updates, "is_public = :is_public");
+        }
+        if($updater != null){
+            $params[":annotation"] = json_encode(
+                $updater($annotationData["annotation"]), true);
+            array_push($updates, "annotation = :annotation");
+        }
+        
+        $statement = $dbh->prepare(
+            "update annotations set ". implode(", ", $updates) . 
+                " where id = :id");
+
+        $statement->execute($params);
         $dbh->commit();
 
     } catch(Exception $e){
