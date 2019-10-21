@@ -225,12 +225,13 @@ function setTokenizationFlags($textId, $inProgressFlag, $errorFlag) {
         $statement = $dbh->prepare(
             "update texts set ".
                 "tokenization_in_progress = :in_progress, ".
-                "tokenization_error = :error ".
+                "tokenization_error = :error, updated_at = :updated_at ".
                 "where id = :id");
         $statement->execute([
             ":id"           => $textId,
             ":in_progress"  => boolToString($inProgressFlag),
-            ":error"        => boolToString($errorFlag)
+            ":error"        => boolToString($errorFlag),
+            ":updated_at"   => curDateTime()
         ]);
 
     } catch(Exception $e){
@@ -250,7 +251,7 @@ function updateText($id, $isPublic, $title){
     $dbh = connectToDB();
     try{
         $params = [":id" => $id];
-        $updates = [];
+        $updates = [":updated_at" => curDateTime()];
         if($isPublic != null){
             $params[":is_public"] = $isPublic;
             array_push($updates, "is_public = :is_public");
@@ -261,7 +262,8 @@ function updateText($id, $isPublic, $title){
         }
 
         $statement = $dbh->prepare(
-            "update texts set ". implode(", ", $updates) ." where id = :id");
+            "update texts set ". implode(", ", $updates) .", ". 
+                "updated_at = :updated_at where id = :id");
         $statement->execute($params);
 
     } catch(Exception $e){
@@ -348,7 +350,8 @@ function getUserInfoByAuthToken($auth_token){
            
         return $statement->fetch(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
-        error("There was an error reading from the database: ". $e->getMessage());
+        error("There was an error reading from the database: ". 
+            $e->getMessage());
     }
 }
 
@@ -522,11 +525,12 @@ function setTextPermission($id, $permission){
 
     try {
         $statement = $dbh->prepare(
-            "update text_permissions set permission = :permission ".
-                "where id = :id");
+            "update text_permissions set permission = :permission, ".
+                "updated_at = :updated_at where id = :id");
         $success = $statement->execute([
             ":id"    => $id,
-            ":permission" => $permission
+            ":permission" => $permission,
+            ":updated_at" => curDateTime()
         ]);
     } catch(PDOException $e){
         error("There was an error updating the text permission: ". 
@@ -704,11 +708,12 @@ function setAnnotationPermission($id, $permission){
 
     try {
         $statement = $dbh->prepare(
-            "update annotation_permissions set permission = :permission ".
-                "where id = :id");
+            "update annotation_permissions set permission = :permission, ".
+                "updated_at = :updated_at where id = :id");
         $success = $statement->execute([
             ":id"    => $id,
-            ":permission" => $permission
+            ":permission" => $permission,
+            ":updated_at" => curDateTime()
         ]);
     } catch(PDOException $e){
         error("There was an error updating the annotation permission: ". 

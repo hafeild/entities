@@ -317,20 +317,15 @@ function updateAnnotation($annotationId, $userId, $updater){
 
     $annotationData = lookupAnnotation($annotationId);
 
-    if($annotationData["user_id"] != $userId){
-        $dbh->rollback();
-        error("User $userId is not authorized to modify the annotation with id ".
-            $annotationId);
-    }
-
     try{
         $statement = $dbh->prepare(
-            "update annotations set annotation = :annotation ".
-                "where id = :id");
+            "update annotations set annotation = :annotation, ".
+                "updated_at = :updated_at where id = :id");
         $statement->execute([
             ":id" => $annotationId,
             ":annotation" => json_encode(
-                $updater($annotationData["annotation"]), true)
+                $updater($annotationData["annotation"]), true),
+            ":updated_at" => curDateTime()
         ]);
         $dbh->commit();
 
@@ -355,17 +350,19 @@ function setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag) {
         $statement = $dbh->prepare(
             "update annotations set ".
                 "automated_method_in_progress = :in_progress, ".
-                "automated_method_error = :error ".
+                "automated_method_error = :error, updated_at = :updated_at ".
                 "where id = :id");
         $statement->execute([
             ":id"           => $annotationId,
             ":in_progress"  => boolToString($inProgressFlag),
-            ":error"        => boolToString($errorFlag)
+            ":error"        => boolToString($errorFlag),
+            ":updated_at" => curDateTime()
         ]);
 
     } catch(Exception $e){
         error("Error updating annotation: ". $e->getMessage(), 
-            ["In setAnnotationFlags($annotationId, $inProgressFlag, $errorFlag)"]);
+            ["In setAnnotationFlags($annotationId, ". 
+            "$inProgressFlag, $errorFlag)"]);
     }
 }
 
@@ -401,15 +398,16 @@ function getBlankSlateAnnotation($textId){
     try{
         $statement = $dbh->prepare(
             "select annotations.id as annotation_id, title as text_title, ".
-            "md5sum as text_md5sum, text_id, username, users.id as user_id, ". 
-            "parent_annotation_id, method, method_metadata, label, ". 
-            "annotations.created_at, annotations.updated_at, ".
-            "annotations.is_public, ". 
-            "automated_method_in_progress, automated_method_error ". 
-            "from annotations ".
-            "join users on users.id = created_by ". 
-            "join texts on text_id = texts.id and ".
-            "where text_id = :text_id and parent_annotation_id = ''");
+                "md5sum as text_md5sum, text_id, username, ". 
+                "users.id as user_id, ". 
+                "parent_annotation_id, method, method_metadata, label, ". 
+                "annotations.created_at, annotations.updated_at, ".
+                "annotations.is_public, ". 
+                "automated_method_in_progress, automated_method_error ". 
+                "from annotations ".
+                "join users on users.id = created_by ". 
+                "join texts on text_id = texts.id and ".
+                "where text_id = :text_id and parent_annotation_id = ''");
         $statement->execute([
             ":text_id" => $textId,
         ]);
