@@ -1221,11 +1221,17 @@ public static function patchAnnotationPermission($path, $matches, $params,
 
     $permissionLevel = htmlentities($params["permission_level"]);
 
-    // Ensure the text exists.
+    // Ensure the annotation exists.
     $annotationId = $matches[1];
     $annotation = lookupAnnotation($annotationId);
     if(!$annotation){
         error("We couldn't find an annotation with the id $annotationId.");
+    }
+
+    // If this is the root annotation, it cannot be modified.
+    if($annotation["parent_annotation_id"] == null){
+        error("You cannot make changes to the root annotation for a text; ". 
+              "fork it first and make changes to the fork.");
     }
 
     // Ensure the user has owner permission on the text.
