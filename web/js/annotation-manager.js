@@ -81,7 +81,7 @@ var AnnotationManager = function(annotation_data){
             var entity = self.entities[entityId];
 
             // Remove from groups.
-            group = SVGDefsElement.groups[entity.group_id];
+            group = self.groups[entity.group_id];
             if(size(group.entities) === 1 && 
                 group.entities[entityId] !== undefined){
 
@@ -282,7 +282,7 @@ var AnnotationManager = function(annotation_data){
      */
     self.groupEntities = function(entityIds, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var newGroupId = ++annotation.last_group_id;
+        var newGroupId = (++annotation.last_group_id).toString();
         var selectedEntities = {};
         var selectedGroups = {};
         var groupId, entityId;
@@ -321,6 +321,10 @@ var AnnotationManager = function(annotation_data){
             // Update group id.
             changes.last_group_id = newGroupId;
 
+            changes.groups[newGroupId] = {
+                name: null,
+                entities: {}
+            };
             self.groups[newGroupId] = {
                 name: null,
                 entities: {}
@@ -340,9 +344,9 @@ var AnnotationManager = function(annotation_data){
 
                 // Use this entity's name for the group name if not already set.
                 if(self.groups[newGroupId].name == null){
-                    self.groups[newGroupId] = {name:  
-                        self.entities[entityId].name};
                     self.groups[newGroupId].name = 
+                        self.entities[entityId].name;
+                    changes.groups[newGroupId].name =
                         self.entities[entityId].name;
                 }
             }   
@@ -526,7 +530,7 @@ var AnnotationManager = function(annotation_data){
         };
 
         // Add convenience link from the entity to the mention.
-        var entity = self.entities[entity_id];
+        var entity = self.entities[entityId];
         if(entity.locations === undefined){
             entity.locations = {};
         }
@@ -553,7 +557,7 @@ var AnnotationManager = function(annotation_data){
      *                                 * jqXHR
      *                                 * textStatus
      */
-    self.removeMention = function(locationId){
+    self.removeMention = function(locationId, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var location, nodeEntity, node, 
             nodes = {source_entity: 1, target_entity: 1};
@@ -611,12 +615,12 @@ var AnnotationManager = function(annotation_data){
      */
     self.updateMention = function(locationId, updatedMention, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var fields = ['start', 'end', 'entity_id'],field;
+        var fields = ['start', 'end', 'entity_id'];
         var location = self.locations[locationId];
         var nodes = {source_entity: 1, target_entity: 1}, node, nodeEntity;
 
         // Update the fields.
-        for(field in fields){
+        fields.forEach(field => {
             if(updatedMention[field] !== undefined){
                 // If this is the entity_id field, update the old and new 
                 // entity.
@@ -631,7 +635,7 @@ var AnnotationManager = function(annotation_data){
                 // Mark change.
                 changes.locations[field] = location[field];
             }
-        }
+        });
 
         // Sync with server.
         sendChangesToServer(changes, callback);
@@ -735,7 +739,7 @@ var AnnotationManager = function(annotation_data){
 
         // Update the simple fields.
         for(field in basicFields){
-            if(updatedMention[field] !== undefined){
+            if(updatedTie[field] !== undefined){
                 tie[field] = updatedTie[field];
                 // Mark change.
                 changes.ties[field] = location[field];
@@ -746,10 +750,12 @@ var AnnotationManager = function(annotation_data){
         for(node in nodes){
             if(updatedTie[node] !== undefined){
                 // Remove convenience links.
-                if(tie[node].location_id !== undefined){
-                    delete self.locations[tie[node].location_id].ties[tieId];
-                } else if(tie[node].entity_id !== undefined) {
-                    delete self.entities[tie[node].entity_id].ties[tieId];
+                if (Object.keys(tie).length > 0) {
+                    if(tie[node].location_id !== undefined){
+                        delete self.locations[tie[node].location_id].ties[tieId];
+                    } else if(tie[node].entity_id !== undefined) {
+                        delete self.entities[tie[node].entity_id].ties[tieId];
+                    }
                 }
 
                 // Add in new convenience links.
