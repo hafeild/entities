@@ -17,7 +17,12 @@ global $user;
 </head>
 <body class="main-app" data-logged-in="<?= $user == null ? "yes" : "no"?>">
     
-
+    <div id="floating-error-container">
+      <div id="floating-error-template" class="container alert alert-danger alert-dismissible floating-error" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <span class="floating-error-content"></span>
+      </div>
+    </div>
 
     <!-- Fixed navbar -->
     <nav class="navbar navbar-default navbar-fixed-top">
@@ -59,7 +64,12 @@ global $user;
         </div>
     </nav>
       
+
+
     <div id="content" class="container <?= $contentClasses ?>">
+
+
+
         <div id="errors" class="alert alert-danger errors" role="alert" 
             <?= count($errors) > 0 ? "" : 'style="display: none"' ?>>
             <?php foreach($errors as $error) { ?>

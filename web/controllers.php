@@ -21,6 +21,7 @@ class Controllers {
  *      * annotation_count
  *      * tokenization_in_progress
  *      * tokenization_error
+ *      * is_public
  * 
  * @param path Ignored.
  * @param matches Ignored.
@@ -38,7 +39,8 @@ class Controllers {
  *         outlines above; otherwise, returns nothing.
  */
 public static function getTexts($path, $matches, $params, $format,
-    $data = [],  $errors = [], $messages = []){
+        $data = [],  $errors = [], $messages = []){
+    global $user;
 
     $startID = getWithDefault($params, "start_id", 1);
     $endID = getWithDefault($params, "end_id", -1);
@@ -64,22 +66,32 @@ public static function getTexts($path, $matches, $params, $format,
     try {
         if($endID >= 1){
             $statement = $dbh->prepare(
-                "select texts.*, annotation_count from texts ". 
+                "select texts.*, annotation_count, permission from texts ". 
                 "join (select text_id,count(text_id) as annotation_count ". 
                 "from texts join annotations on text_id = texts.id group by ". 
-                "text_id) as A on texts.id = text_id ".
+                "text_id) as A on texts.id = A.text_id ".
+                "left join (select text_id, permission from text_permissions ". 
+                "where user_id = :user_id) as B on B.text_id = texts.id ".
                 "where texts.id between :start_id and :end_id");
-            $statement->execute(array(":start_id" => $startID, 
-                ":end_id" => $endID));
+            $statement->execute([
+                ":start_id" => $startID, 
+                ":end_id" => $endID,
+                ":user_id" => ($user ==  null ? null : $user.id)
+            ]);
         } else {
             $statement = $dbh->prepare(
                 // "select * from texts where id >= :start_id");
-                "select texts.*, annotation_count from texts ". 
+                "select texts.*, annotation_count, permission from texts ". 
                 "join (select text_id,count(text_id) as annotation_count ". 
                 "from texts join annotations on text_id = texts.id group by ". 
-                "text_id) as A ".
-                "on texts.id = text_id where texts.id >= :start_id");
-            $statement->execute(array(":start_id" => $startID));
+                "text_id) as A on texts.id = A.text_id ". 
+                "left join (select text_id, permission from text_permissions ". 
+                "where user_id = :user_id) as B on B.text_id = texts.id ".
+                "where texts.id >= :start_id");
+            $statement->execute([
+                ":start_id" => $startID, 
+                ":user_id" => ($user ==  null ? null : $user["id"])
+            ]);
         }
     } catch(Exception $e){
         error("Error getting list of texts: ". $e->getMessage());
@@ -107,8 +119,8 @@ public static function getTexts($path, $matches, $params, $format,
 
 
 /**
- * Displays the metadata for the texts that have been processed or are
- * currently in process. Returned fields include:
+ * Displays the metadata for the given text if the current user has permission 
+ * to view it. Returned fields include:
  * 
  *  - success (true/false)
  *  - text (objects of text metadata)
@@ -120,11 +132,7 @@ public static function getTexts($path, $matches, $params, $format,
  *      * created_at
  *      * processed_at
  *      * uploaded_by
- *  - annotation
- *      * entities
- *      * groups
- *      * ties
- *      * locations
+ *      * is_public
  * 
  * @param path Ignored.
  * @param matches First match (index 1) must be the id of the text to retrieve
@@ -140,11 +148,24 @@ public static function getText($path, $matches, $params, $format){
     if(count($matches) < 2){
         error("Must include the id of the text in URI.");
     }
-
     $id = $matches[1];
+    $metadata = getTextMetadata($id);
 
-    $results = getOriginalAnnotation($id);
-    $results["success"] = true;
+
+    // Ensure this text exists.
+    if(!$metadata){
+        error("We could not find a text with the id $id.");
+    }
+
+    // Ensure the user has permission to view this text.
+    if(!canViewText($id)){
+        error("You do not have permissions to view this text.");
+    }
+
+    $results = [
+        "success" => true,
+        "text" => $metadata 
+    ];
 
     return $results;
 }
@@ -163,7 +184,7 @@ public static function getText($path, $matches, $params, $format){
  *         outlines above; otherwise, returns nothing.
  */
 public static function postText($path, $matches, $params, $format){
-    global $CONFIG, $user, $validMethods;
+    global $CONFIG, $user, $validMethods, $PERMISSIONS;
 
     if(!key_exists("title", $params) or !key_exists("file", $_FILES)){
         error("Missing title and/or file parameters.");
@@ -180,6 +201,9 @@ public static function postText($path, $matches, $params, $format){
 
     // Create a metadata entry for this text.
     $text = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
+
+    // Give the user ownership over the text.
+    addTextPermission($user["id"], $text["id"], $PERMISSIONS["OWNER"]);
 
     // Add a root annotation.
     $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
@@ -427,6 +451,7 @@ public static function postAnnotation($path, $matches, $params, $format){
     global $user;
     global $validMethods;
     global $validProcessors;
+    global $PERMISSIONS;
 
 
     if(count($matches) < 3){
@@ -444,7 +469,9 @@ public static function postAnnotation($path, $matches, $params, $format){
     // Confirm that the user has permissions to fork this annotation. Either
     // the annotation must be public or the user must have at least read
     // permissions for it.
-    // TODO
+    if(!canViewText($matches[1])){
+        error("You do not have permission to fork this annotation.");
+    }
 
     $label = htmlentities($params["label"] ?? "");
     $method = htmlentities($params["method"] ?? "manual");
@@ -455,7 +482,8 @@ public static function postAnnotation($path, $matches, $params, $format){
         $error = "The annotation method '$method' is not supported.";
         if($format == "html"){
             // Reroute to the new annotation.
-            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
+            Controllers::redirectTo(
+                "/texts/$textId/annotations/$parentAnnotationId",
                 $error, null);
         } else {
             return [
@@ -475,7 +503,8 @@ public static function postAnnotation($path, $matches, $params, $format){
                   "original annotation.";
         if($format == "html"){
             // Reroute to the new annotation.
-            Controllers::redirectTo("/texts/$textId/annotations/$parentAnnotationId",
+            Controllers::redirectTo(
+                "/texts/$textId/annotations/$parentAnnotationId",
                 $error, null);
         } else {
             return [
@@ -491,10 +520,14 @@ public static function postAnnotation($path, $matches, $params, $format){
         $newAnnotationId = addAnnotation($user["id"], $textId, 
             $parentAnnotationId, $textData["annotation"], $method,
             generateAnnotationMethodMetadata($method, []), $label);
+        // Give the current user ownership.
+        addAnnotationPermission($user["id"], $newAnnotationId, 
+            $PERMISSIONS["OWNER"]);
 
         if($format == "html"){
             // Reroute to the new annotation.
-            Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId",
+            Controllers::redirectTo(
+                "/texts/$textId/annotations/$newAnnotationId",
                 null, "Annotation successfully forked!");
         } else {
             return [
@@ -522,16 +555,24 @@ public static function postAnnotation($path, $matches, $params, $format){
             $parentAnnotationId, $annotation, $method, 
             generateAnnotationMethodMetadata($method, $args),
             generateAnnotationLabel($method, $args), 1);
+        // Give the current user ownership.
+        addAnnotationPermission($user["id"], $newAnnotationId, 
+            $PERMISSIONS["OWNER"]);
 
         $result = Controllers::runAutomaticAnnotation($method, $args, $textId, 
             $textData["text_md5sum"], $newAnnotationId);
 
         if($result["success"] === true){
-            $successMessages = ["The file has been uploaded and is being processed."];
+            $successMessages = [
+                "The file has been uploaded and is being processed."
+            ];
             $errorMessages = [];
         } else {
             $successMessages = [];
-            $errorMessages = ["File stored, but not processed.", $result["error"]];
+            $errorMessages = [
+                "File stored, but not processed.", 
+                $result["error"]
+            ];
         }
     
         // $data = [
@@ -540,7 +581,8 @@ public static function postAnnotation($path, $matches, $params, $format){
         // ];
     
         if($format == "html"){
-            // Controllers::getTexts($path, [], [], "html", ["uploaded_text" => $data],
+            // Controllers::getTexts($path, [], [], "html", 
+            //     ["uploaded_text" => $data],
             //     $errorMessages, $successMessages);
 
             // TODO add id of new annotation so it can be highlighted.
@@ -572,6 +614,7 @@ public static function postAnnotation($path, $matches, $params, $format){
  *      * created_at
  *      * uploaded_by
  *      * uploaded_by_username
+ *      * is_public
  *     
  * If 'json', the returned 
  * object looks like this:
@@ -609,13 +652,17 @@ public static function getAnnotations($path, $matches, $params, $format){
         if($format == "html"){
             $text = getTextMetadata($matches[1]);
         }
+
+        // Ensure the user has permission to view this text.
+        if(!canViewText($matches[1])){
+            error("You do not have permission to view this text or its ". 
+                  "annotations.");
+        }
+
     } else {
         $annotations = lookupAnnotations();
         $text = null;
     }
-
-    // if($annotations == null)
-    //     $annotations = [];
 
     if($format == "json"){
         return [
@@ -672,6 +719,16 @@ public static function getAnnotation($path, $matches, $params, $format){
 
     $annotation = lookupAnnotation($matches[1]);
 
+    // Verify this annotation exists.
+    if(!$annotation){
+        error("We could not find an annotation with id ${matches[1]}.");
+    }
+
+    // Verify the user has permission to view this annotation.
+    if(!canViewAnnotation($annotation["annotation_id"])){
+        error("You do not have permission to view this annotation.");
+    }
+
     if($format == "json"){
         return [
             "success" => true,
@@ -724,9 +781,17 @@ public static function editAnnotation($path, $matches, $params, $format){
     }
 
     $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
 
-    // TODO Ensure the annotation exists.
-    // TODO Ensure the user has write permissions for this.
+    // Verify this annotation exists.
+    if(!$annotation){
+        error("We could not find an annotation with id ${matches[1]}.");
+    }
+
+    // Verify the user has permission to modify this annotation.
+    if(!canModifyAnnotation($annotation["annotation_id"])){
+        error("You do not have permission to modify this annotation.");
+    }
 
     $validUpdateFields = [
         "last_entity_id" => 1,
@@ -740,49 +805,509 @@ public static function editAnnotation($path, $matches, $params, $format){
                         "directed"=>1]
     ];
 
-    $data = json_decode($params["data"], true);
+    // Verify that at least one valid update field is present.
+    if(!(array_key_exists("data", $params) || 
+         array_key_exists("is_public", $params))){
 
-    // Update the annotation.
-    $updater = function($annotation) use(&$validUpdateFields, &$data){
-        foreach($validUpdateFields as $field => $value){
-            if(array_key_exists($field, $data)){
-                // Check if this is a top-level data field...
-                if($value === 1){
-                    $annotation[$field] = $data[$field];
+        error("You must specify at least one valid annotation field: 'data' ". 
+              "or 'is_public'.");
+    }
 
-                // ...or an object.
-                } else {
-                    foreach($data[$field] as $id => $val){
-                        // Check if this is being deleted.
-                        if(array_key_exists($id, $annotation[$field]) && 
-                            $val == "DELETE"){
+    $data = null;
+    $updater = null;
+    $isPublic = array_key_exists("is_public", $params) ? 
+        $params["is_public"] == "true" : null;
 
-                            unset($annotation[$field][$id]);
-                        } else {
-                            // Check if this is new or updated.
-                            if(!array_key_exists($id, $annotation[$field])){
-                                $annotation[$field][$id] = [];
-                            }
-                            foreach($validUpdateFields[$field] as $subfield => $y){
-                                if(array_key_exists($subfield, $val)){
-                                    $annotation[$field][$id][$subfield] =
-                                        $val[$subfield];
+    // If the annotation JSON is being updated, extract that data and define the
+    // updater needed by the annotation model function.
+    if(array_key_exists("data", $params)){
+        $data = json_decode($params["data"], true);
+
+        // Update the annotation.
+        $updater = function($annotation) use(&$validUpdateFields, &$data){
+            foreach($validUpdateFields as $field => $value){
+                if(array_key_exists($field, $data)){
+                    // Check if this is a top-level data field...
+                    if($value === 1){
+                        $annotation[$field] = $data[$field];
+
+                    // ...or an object.
+                    } else {
+                        foreach($data[$field] as $id => $val){
+                            // Check if this is being deleted.
+                            if(array_key_exists($id, $annotation[$field]) && 
+                                $val == "DELETE"){
+
+                                unset($annotation[$field][$id]);
+                            } else {
+                                // Check if this is new or updated.
+                                if(!array_key_exists($id, $annotation[$field])){
+                                    $annotation[$field][$id] = [];
+                                }
+                                foreach($validUpdateFields[$field] as $subfield => $y){
+                                    if(array_key_exists($subfield, $val)){
+                                        $annotation[$field][$id][$subfield] =
+                                            $val[$subfield];
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        return $annotation;
-    };
+            return $annotation;
+        };
+    }
 
-    updateAnnotation($annotationId, $user["id"], $updater);
+    updateAnnotation($annotationId, $user["id"], $updater, $isPublic);
 
     return [
         "success" => true
     ];
 }
+
+/**
+ * Updates the text with the given id, and returns:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id.
+ * @param params The request parameters. May include any of these:
+ *                  - is_public (true or false)
+ *                  - title
+ */
+public static function editText($path, $matches, $params, $format){
+    global $user;
+
+    if(count($matches) < 2){
+        error("Must include the id of the text in URI.");
+    }
+
+    $textId = $matches[1];
+
+    // Ensure the required parameters were given.
+    if(!(array_key_exists("is_public", $params) || 
+        array_key_exists("title", $params))){
+
+        error("You must specify at least one attribute to update for this ". 
+              "text, either 'is_public' or 'title'.");
+    }
+
+    $title = array_key_exists("title", $params) ? 
+        htmlentities($params["title"]) : null;
+    $isPublic = array_key_exists("is_public", $params) ? 
+        $params["is_public"] == "true" : null;
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId.");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if($isPublic != null && !ownsText($textId)){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    } else if(!canModifyText($textId)) {
+        error("You do not have authormization to modify the metadata of ". 
+              "this text.");
+    }
+
+    // Make the updates.
+    updateText($textId, $isPublic, $title);
+
+    return [
+        "success" => true
+    ];
+
+}
+
+/**
+ * Adds a new permission for the given text. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data
+ *          * permission_id (id of newly added permission, if successful)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the text id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - username (string)
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function postTextPermission($path, $matches, $params, $format) {
+    global $user, $PERMISSIONS;
+
+    // Ensure the text id was given.
+    if(count($matches) < 2){
+        error("Must include the id of the text in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("username", $params) || 
+        !array_key_exists("permission_level", $params)){
+
+        error("One or both required parameters are missing; requests ". 
+              "should include a username and permission_level parameter.");
+    }
+
+    $targetUsername = htmlentities($params["username"]);
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId.");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!ownsText($textId)){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    }
+
+    // Check that the requested user exists.
+    $targetUser = getUserInfo($params["username"]);
+    if(!$targetUser){
+        error("We couldn't find a user with the username ". 
+              "${params["username"]}.");
+    }
+
+    // Make sure the user doesn't already have a permission for this text.
+    $existingPermission = getTextPermission($targetUser["id"], $textId);
+    if($existingPermission){
+        error("A permission for user $targetUsername already exists.");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Add new permission.
+    $permissionId = addTextPermission($targetUser["id"], $textId, 
+        $PERMISSIONS[$permissionLevel]);
+
+    // Send back id of new permission.
+    return [
+        "success" => true,
+        "additional_data" => [
+            "permission_id" => $permissionId
+        ]
+    ];
+}
+
+/**
+ * Updates an existing text permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the text id, the second the 
+ *                permission id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function patchTextPermission($path, $matches, $params, $format) {
+     global $user, $PERMISSIONS;
+
+    // Ensure the text and permission id were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the text and permission in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("permission_level", $params)){
+        error("The permission_level parameters is missing.");
+    }
+
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId.");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!ownsText($textId)){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getTextPermissionById($permissionId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id $permissionId.");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Update the permission.
+    setTextPermission($permissionId, $PERMISSIONS[$permissionLevel]);
+
+    return [
+        "success" => true
+    ];
+}
+
+/**
+ * Removes an existing text permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the text id, the second the 
+ *                permission id.
+ * @param params Ignored.
+ */
+public static function deleteTextPermission($path, $matches, $params, $format) {
+    // Ensure the text and permission ids were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the text and permission in URI.");
+    }
+
+    // Ensure the text exists.
+    $textId = $matches[1];
+    $text = getTextMetadata($textId);
+    if(!$text){
+        error("We couldn't find a text with the id $textId.");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!ownsText($textId)){
+        error("You do not have authorization to modify permissions on ". 
+              "this text.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getTextPermissionById($permissionId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id $permissionId.");
+    }
+
+
+    // Delete the permission.
+    deleteTextPermission($permissionId);
+
+    return [
+        "success" => true
+    ];
+}
+
+
+/**
+ * Adds a new permission for the given annotation. Responds with the following 
+ * JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data
+ *          * permission_id (id of newly added permission, if successful)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotaiton id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - username (string)
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function postAnnotationPermission($path, $matches, $params, 
+                                                $format) {
+     global $PERMISSIONS;
+
+    // Ensure the annotation id was given.
+    if(count($matches) < 2){
+        error("Must include the id of the annotation in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("username", $params) || 
+        !array_key_exists("permission_level", $params)){
+
+        error("One or both required parameters are missing; requests ". 
+              "should include a username and permission_level parameter.");
+    }
+
+    $targetUsername = htmlentities($params["username"]);
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the annotation exists.
+    $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
+    if(!$annotation){
+        error("We couldn't find an annotation with the id $annotationId.");
+    }
+
+    // Ensure the user has owner permission on the annotation.
+    if(!ownsAnnotation($annotationId)){
+        error("You do not have authorization to modify permissions for ". 
+              "this annotation.");
+    }
+
+    // Check that the requested user exists.
+    $targetUser = getUserInfo($params["username"]);
+    if(!$targetUser){
+        error("We couldn't find a user with the username ". 
+              "${params["username"]}.");
+    }
+
+    // Make sure the user doesn't already have a permission for this annotation.
+    $existingPermission = getAnnotationPermission(
+        $targetUser["id"], $annotationId);
+    if($existingPermission){
+        error("A permission for user $targetUsername ". 
+              "already exists for this annotation.");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Add new permission.
+    $permissionId = addAnnotationPermission($targetUser["id"], $annotationId, 
+        $PERMISSIONS[$permissionLevel]);
+
+    // Send back id of new permission.
+    return [
+        "success" => true,
+        "additional_data" => [
+            "permission_id" => $permissionId
+        ]
+    ];
+}
+
+/**
+ * Updates an existing annotation permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id, the second the 
+ *                permission id.
+ * @param params The request parameters. Should contain the following:
+ * 
+ *       - permission_level (string: "READ", "WRITE", or "OWNER")
+ */
+public static function patchAnnotationPermission($path, $matches, $params, 
+                                                 $format) {
+
+     global $user, $PERMISSIONS;
+
+    // Ensure the annotation and permission id were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the annotation and permission in URI.");
+    }
+
+    // Ensure the required parameters were given.
+    if(!array_key_exists("permission_level", $params)){
+        error("The permission_level parameters is missing.");
+    }
+
+    $permissionLevel = htmlentities($params["permission_level"]);
+
+    // Ensure the annotation exists.
+    $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
+    if(!$annotation){
+        error("We couldn't find an annotation with the id $annotationId.");
+    }
+
+    // If this is the root annotation, it cannot be modified.
+    if($annotation["parent_annotation_id"] == null){
+        error("You cannot make changes to the root annotation for a text; ". 
+              "fork it first and make changes to the fork.");
+    }
+
+    // Ensure the user has owner permission on the text.
+    if(!ownsAnnotation($annotationId)){
+        error("You do not have authorization to modify permissions for ". 
+              "this annotation.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getAnnotationPermissionById($permissionId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id $permissionId.");
+    }
+
+    // Check the permission level is valid.
+    if(!array_key_exists($permissionLevel, $PERMISSIONS)){
+        error("$permissionLevel is an invalid permission level.");
+    }
+
+    // Update the permission.
+    setAnnotationPermission($permissionId, $PERMISSIONS[$permissionLevel]);
+
+    return [
+        "success" => true
+    ];
+}
+
+/**
+ * Removes an existing annotation permission. Responds with the following JSON:
+ *      - success (true or false)
+ *      - message (if error encountered)
+ *      - additional_data (if error encountered)
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id, the second the 
+ *                permission id.
+ * @param params Ignored.
+ */
+public static function deleteAnnotationPermission($path, $matches, $params, 
+                                                  $format) {
+    // Ensure the text and permission ids were given in the URI.
+    if(count($matches) < 3){
+        error("Must include the id of the text and permission in URI.");
+    }
+
+    // Ensure the text exists.
+    $annotationId = $matches[1];
+    $annotation = lookupAnnotation($annotationId);
+    if(!$annotation){
+        error("We couldn't find an annotation with the id $annotationId.");
+    }
+
+    // Ensure the user has owner permission on the annotation.
+    if(!ownsAnnotation($annotationId)){
+        error("You do not have authorization to modify permissions for ". 
+              "this annotation.");
+    }
+
+    // Make sure the permission exists.
+    $permissionId = $matches[2];
+    $existingPermission = getAnnotationPermissionById($permissionId);
+    if(!$existingPermission){
+        error("We couldn't find a permission with id $permissionId.");
+    }
+
+
+    // Delete the permission.
+    deleteAnnotationPermission($permissionId);
+
+    return [
+        "success" => true
+    ];
+}
+
+
 /**
  * Generates a route map with three fields:
  *   - method
@@ -863,6 +1388,7 @@ public static function redirectTo($url, $error=null, $message=null){
     header('Location: '.$url);
     die('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url='. $url .'"></head></html>');
 }
+
 
 }
 
