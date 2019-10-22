@@ -521,7 +521,7 @@ public static function postAnnotation($path, $matches, $params, $format){
             $parentAnnotationId, $textData["annotation"], $method,
             generateAnnotationMethodMetadata($method, []), $label);
         // Give the current user ownership.
-        addAnnotationPermission($newAnnotationId, $user["id"], 
+        addAnnotationPermission($user["id"], $newAnnotationId, 
             $PERMISSIONS["OWNER"]);
 
         if($format == "html"){
@@ -556,7 +556,7 @@ public static function postAnnotation($path, $matches, $params, $format){
             generateAnnotationMethodMetadata($method, $args),
             generateAnnotationLabel($method, $args), 1);
         // Give the current user ownership.
-        addAnnotationPermission($newAnnotationId, $user["id"], 
+        addAnnotationPermission($user["id"], $newAnnotationId, 
             $PERMISSIONS["OWNER"]);
 
         $result = Controllers::runAutomaticAnnotation($method, $args, $textId, 

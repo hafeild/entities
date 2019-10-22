@@ -26,7 +26,8 @@ var onPublicAccessChange = function(e){
     var isPublic;
 
     // Get the new public status.
-    isPublic = $(this).prop('checked');
+    isPublic = $(this).prop('tagName') == 'SELECT' ? $(this).val() : 
+        $(this).prop('checked');
 
     // Contact the server.
     $.ajax(`/json${$page.data('uri')}`, {

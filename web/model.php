@@ -493,13 +493,13 @@ function addTextPermission($userId, $textId, $permission){
     try {
         $statement = $dbh->prepare(
             "insert into text_permissions". 
-                "(text_id, user_id, permission, created_at) values ". 
-                "(:text_id, :user_id, :permission, :created_at)");
+                "(text_id, user_id, permission, created_at,updated_at) values ". 
+                "(:text_id, :user_id, :permission, :time, :time)");
         $success = $statement->execute([
             ":text_id"    => $textId,
             ":user_id"    => $userId,
             ":permission" => $permission,
-            ":created_at" => curDateTime()
+            ":time" => curDateTime
         ]);
         $permissionId = $dbh->lastInsertId();
 
@@ -675,13 +675,14 @@ function addAnnotationPermission($userId, $annotationId, $permission){
     try {
         $statement = $dbh->prepare(
             "insert into annotation_permissions". 
-                "(annotation_id, user_id, permission, created_at) values ". 
-                "(:annotation_id, :user_id, :permission, :created_at)");
+                "(annotation_id, user_id, permission, created_at, updated_at) ". 
+                "values (:annotation_id, :user_id, :permission, :time, ". 
+                ":time)");
         $success = $statement->execute([
             ":annotation_id"    => $annotationId,
             ":user_id"    => $userId,
             ":permission" => $permission,
-            ":created_at" => curDateTime()
+            ":time" => curDateTime()
         ]);
 
         $permissionId = $dbh->lastInsertId();

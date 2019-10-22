@@ -35,6 +35,9 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
         <select class="permission-level" name="permission-level<?= $randNum ?>"
             <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>
             <?= $readOnly ? "disabled" : "" ?>>
+            <option value="NONE" <?= 
+                $permissionUser["permission"] == $PERMISSIONS["NONE"] ? 
+                "selected" : "" ?>>Cannot access this page</option>
             <option value="READ" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
                 "selected" : "" ?>>Can view this page</option>
@@ -189,14 +192,35 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                     <!-- Public setting of this page. -->
                     <div class="form-group is-public-form-group">
                         <label>Public settings</label><br/>
-                        <input type="checkbox" id="is-public" 
-                            name="is_public<?= $randNum ?>" 
-                            value="true" autocomplete="off"
-                            <?= $data["annotation"]["is_public"] ? "checked" : "" ?>>
-                            Anyone can view this annotation
-                            <span class="saved-icon hidden"
-                                ><span class="glyphicon glyphicon-floppy-saved"
-                                ></span></span>
+                        <p>
+                        Please choose whether anyone can view this, even if not
+                        logged in or if you have assigned a user the "Cannot 
+                        access" permission below.
+                        </p>
+                        <select id="is-public" name="is_public<?= $randNum ?>"
+                            autocomplete="off">
+                            <option value="null" <?= 
+                                $data["annotation"]["is_public"] == "null" ? 
+                                    "selected" : "" ?>>
+                                Use the text's public access (currently 
+                                <?= $data["text"]["is_public"] ? 
+                                "public" : "private" ?>)
+                            </option>
+                            <option value="true" <?= 
+                                $data["annotation"]["is_public"] === true  ? 
+                                    "selected" : "" ?>>
+                                Public: anyone can view this annotation
+                            </option>
+                            <option value="false" <?= 
+                                $data["annotation"]["is_public"] === false ? 
+                                    "selected" : "" ?>>
+                                Private: only users with explicit permission 
+                                may view this page
+                            </option>
+                        </select>
+                        <span class="saved-icon hidden"
+                            ><span class="glyphicon glyphicon-floppy-saved"
+                            ></span></span>
                     </div>
 
                     <!-- New per-user permission form. -->
@@ -212,6 +236,8 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                         <select id="new-permission-level" 
                             name="new-permission-level<?= $randNum ?>"
                             autocomplete="off">
+                            <option value="NONE">Cannot access this 
+                                page</option>
                             <option value="READ" selected>Can view this 
                                 page</option>
                             <option value="WRITE">Can modify this page 
@@ -244,7 +270,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                         }
                     ?> 
                     </div>
-
+                    <hr/>
                     <!-- Existing per-user text permissions. -->
                     <div class="form-group existing-text-permissions">
                         <label>Existing user permission for this text</label><br/>
