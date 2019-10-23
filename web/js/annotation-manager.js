@@ -86,7 +86,7 @@ var AnnotationManager = function(annotation_data){
                 group.entities[entityId] !== undefined){
 
                 delete self.groups[entity.group_id];
-                changes.groups[entity.groupId] = "DELETE";
+                changes.groups[entity.group_id] = "DELETE";
             }
 
             // Remove from ties.
