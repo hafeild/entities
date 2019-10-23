@@ -499,7 +499,7 @@ function addTextPermission($userId, $textId, $permission){
             ":text_id"    => $textId,
             ":user_id"    => $userId,
             ":permission" => $permission,
-            ":time" => curDateTime
+            ":time" => curDateTime()
         ]);
         $permissionId = $dbh->lastInsertId();
 

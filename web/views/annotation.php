@@ -32,22 +32,24 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     <div <?= $permissionUser["id"] == "" ? "id=\"permission-template\"" : "" ?> 
         data-permission-id="<?= $permissionUser["id"] ?>" class="permission-control">
         <span class="permission-username"><?= $permissionUser["username"] ?></span>
-        <select class="permission-level" name="permission-level<?= $randNum ?>"
-            <?= $permissionUser["user_id"] == $user["id"] ? "disabled" : "" ?>
+        <select class="permission-level" autocomplete="off" 
+            name="permission-level<?= $randNum ?>"
+            <?= $permissionUser["user_id"] == $user["id"] ? 
+                "disabled=\"disabled\"" : "" ?>
             <?= $readOnly ? "disabled" : "" ?>>
             <option value="NONE" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["NONE"] ? 
-                "selected" : "" ?>>Cannot access this page</option>
+                "selected=\"selected\"" : "" ?>>Cannot access this page</option>
             <option value="READ" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["READ"] ? 
-                "selected" : "" ?>>Can view this page</option>
+                "selected=\"selected\"" : "" ?>>Can view this page</option>
             <option value="WRITE" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["WRITE"] ? 
-                "selected" : "" ?>>Can modify this page 
+                "selected=\"selected\"" : "" ?>>Can modify this page 
                 (e.g., title, annotations)</option>
             <option value="OWNER" <?= 
                 $permissionUser["permission"] == $PERMISSIONS["OWNER"] ? 
-                "selected" : "" ?>>Can manage permissions on 
+                "selected=\"selected\"" : "" ?>>Can manage permissions on 
                 this page</option>
         </select>
         <?php if($permissionUser["user_id"] != $user["id"] && !$readOnly) { ?>
