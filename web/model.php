@@ -292,8 +292,8 @@ function addNewUser($username, $password){
 
     try {
         $statement = $dbh->prepare(
-            "insert into users(username, password, created_at) ".
-            "values(:username, :password, :time)");
+            "insert into users(username, password, created_at, updated_at) ".
+            "values(:username, :password, :time, :time)");
 
         $success = $statement->execute(array(
             ":username" => $username, 
