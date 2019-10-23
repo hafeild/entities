@@ -341,9 +341,13 @@ var networkViz = (function(){
         simulation.alpha(1).restart();
     }
 
+    /**
+     * Downloads the graph in the format of TSV in the browser
+     */
     this.exportTSV = function() {
         var links = networkData.links.slice();
 
+        // sort links alphabetically 
         links.sort(function(a,b) {
             var nameA = a.source.name;
             var nameB = b.source.name;
@@ -358,6 +362,7 @@ var networkViz = (function(){
         ];
         var used = {};
 
+        // push link to rows if it does not reference itself and is not a duplicate
         links.forEach(function(link) {
             if (link.source.name !== link.target.name) {
                 var curLink = [link.source.name, link.target.name];
@@ -368,10 +373,11 @@ var networkViz = (function(){
             }
         });
 
-        let csvContent = "data:text/tsv;charset=utf-8," 
+        // push rows the 
+        let tsvContent = "data:text/tsv;charset=utf-8," 
             + rows.map(e => e.join("\t")).join("\n");
 
-        var encodedUri = encodeURI(csvContent);
+        var encodedUri = encodeURI(tsvContent);
         var link = document.createElement("a");
         link.setAttribute("href", encodedUri);
         link.setAttribute("id", "tsvDownloader")
@@ -379,6 +385,22 @@ var networkViz = (function(){
         document.body.appendChild(link); 
 
         link.click();
+    }
+
+    this.exportGraphML = function() {
+        var links = networkData.links.slice();
+        var nodes = networkData.nodes.slice();
+
+        links.sort(function(a,b) {
+            var nameA = a.source.name;
+            var nameB = b.source.name;
+
+            if(nameA < nameB) { return -1; }
+            if(nameA > nameB) { return 1; }
+            return 0;
+        })
+
+
     }
 
     return this;
