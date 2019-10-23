@@ -1,3 +1,9 @@
+// File:    network-viz.js
+// Author:  Hank Feild
+// Date:    Sep-2019
+// Purpose: Takes care of drawing and updating the entity network in the network
+//          panel on the annotations page.
+
 var networkViz = (function(){
     const RADIUS = 10;
     var svgElm, svg, svgWidth, svgHeight;
@@ -23,9 +29,17 @@ var networkViz = (function(){
             .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
             .force("collision", d3.forceCollide(RADIUS));
 
-        simulation.force("charge").strength(-400);
+        simulation.force("charge").strength(-100).distanceMax(svgWidth);
         console.log(svgHeight, svgWidth);
     };
+
+    function xCoord(x){
+        return Math.min(Math.max(0, x), svgWidth);
+    }
+
+    function yCoord(y){
+        return Math.min(Math.max(0, y), svgHeight);
+    }
     
     /**
      * Draws the network and places listeners on nodes for clicking/dragging/
@@ -41,13 +55,13 @@ var networkViz = (function(){
         networkData = entitiesDataToGraph(entitiesData);
 
         refreshNetwork = function() {
-            links.attr("x1", function(d) { return d.source.x; })
-                .attr("y1", function(d) { return d.source.y; })
-                .attr("x2", function(d) { return d.target.x; })
-                .attr("y2", function(d) { return d.target.y; });
+            links.attr("x1", function(d) { return xCoord(d.source.x); })
+                .attr("y1", function(d) { return yCoord(d.source.y); })
+                .attr("x2", function(d) { return xCoord(d.target.x); })
+                .attr("y2", function(d) { return yCoord(d.target.y); });
     
             gnodes.attr("transform", function(d) { 
-                return 'translate(' + [d.x, d.y] + ')';
+                return 'translate(' + [xCoord(d.x), yCoord(d.y)] + ')';
             }); 
     
         };
@@ -140,8 +154,8 @@ var networkViz = (function(){
             // Freeze the network.
             if(!readjustOnMove){
                 for(var i = 0; i < networkData.nodes.length; i++){
-                    networkData.nodes[i].fx = networkData.nodes[i].x;
-                    networkData.nodes[i].fy = networkData.nodes[i].y;
+                    networkData.nodes[i].fx = xCoord(networkData.nodes[i].x);
+                    networkData.nodes[i].fy = yCoord(networkData.nodes[i].y);
                 }
             }
             
@@ -151,8 +165,8 @@ var networkViz = (function(){
 
             console.log('readadjustOnMove:', readjustOnMove);
 
-            d3.event.subject.fx = d3.event.subject.x;
-            d3.event.subject.fy = d3.event.subject.y;
+            d3.event.subject.fx = xCoord(d3.event.subject.x);
+            d3.event.subject.fy = yCoord(d3.event.subject.y);
         //} 
     }
     
@@ -161,8 +175,8 @@ var networkViz = (function(){
      */
     function dragged() {
         if(movingNode) {
-            d3.event.subject.fx = d3.event.x;
-            d3.event.subject.fy = d3.event.y;
+            d3.event.subject.fx = xCoord(d3.event.x);
+            d3.event.subject.fy = yCoord(d3.event.y);
         }
     }
     
