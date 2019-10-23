@@ -821,6 +821,7 @@ public static function editAnnotation($path, $matches, $params, $format){
     // If the annotation JSON is being updated, extract that data and define the
     // updater needed by the annotation model function.
     if(array_key_exists("data", $params)){
+        error_log("Updating annotation $annotationId: ${params["data"]}.");
         $data = json_decode($params["data"], true);
 
         // Update the annotation.

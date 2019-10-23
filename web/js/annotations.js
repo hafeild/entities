@@ -1064,12 +1064,12 @@ var confirmAddTie = function() {
     console.log(tieData);
 
     // addTie(tieData, callback)
-    annotationManager.addTie(tieData, null);
+    annotationManager.addTie(tieData, ()=>{window.location.reload(true);});
 
     resetMenuConfigData();
 
     // TEMPORARY
-    window.location.reload(true);
+    // window.location.reload(true);
 }
 
 var combineSelectedEntities = function() {

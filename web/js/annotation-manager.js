@@ -685,7 +685,7 @@ var AnnotationManager = function(annotation_data){
         var tieId = `${++annotation.last_tie_id}`;
 
         // Add a placeholder for the tie data and mark the change.
-        self.ties[tieId] = {};
+        self.ties[tieId] = {source_entity: {}, target_entity: {}};
         changes.last_tie_id = annotation.last_tie_id;
 
         // Let updateTie do all the heavy lifting...
@@ -729,20 +729,26 @@ var AnnotationManager = function(annotation_data){
      *                         AnnotationManager calls.
      */
     self.updateTie = function(tieId, updatedTie, callback, changes){
+        console.log(tieId, updatedTie, changes);
+
         var basicFields = ['start', 'end', 'label', 'weight', 'directed'],field;
         var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = self.ties[tieId];
+        var i;
 
         if(changes === undefined){
             changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         }
 
+        changes.ties[tieId] = {};
+
         // Update the simple fields.
-        for(field in basicFields){
+        for(i = 0; i < basicFields.length; i++){
+            field = basicFields[i];
             if(updatedTie[field] !== undefined){
                 tie[field] = updatedTie[field];
                 // Mark change.
-                changes.ties[field] = location[field];
+                changes.ties[tieId][field] = updatedTie[field];
             }
         }
 
@@ -761,12 +767,26 @@ var AnnotationManager = function(annotation_data){
                 // Add in new convenience links.
                 if(updatedTie[node].location_id !== undefined){
                     tie[node] = {location_id: updatedTie[node].location_id};
+
+                    // In case this is the first tie the location has been 
+                    // associated with.
+                    if(self.locations[tie[node].location_id].ties == undefined){
+                        self.locations[tie[node].location_id].ties = {};
+                    }
                     self.locations[tie[node].location_id].ties[tieId] = tie;
+
+                    // In case this is the first tie this entity has been 
+                    // associated with.
+                    if(self.entities[self.locations[tie[node].location_id].
+                        entity_id].ties == undefined) {
+                            self.entities[self.locations[tie[node].location_id].
+                        entity_id].ties = {};
+                    }
                     self.entities[self.locations[tie[node].location_id].
                         entity_id].ties[tieId] = tie;
 
                     // Mark changes.
-                    changes.ties[node] = {
+                    changes.ties[tieId][node] = {
                         location_id: updatedTie[node].location_id
                     };
                 } else if(updatedTie[node].entity_id !== undefined){
@@ -774,7 +794,7 @@ var AnnotationManager = function(annotation_data){
                     self.entities[tie[node].entity_id].ties[tieId] = tie;
 
                     // Mark changes.
-                    changes.ties[node] = {
+                    changes.ties[tieId][node] = {
                         entity_id: updatedTie[node].entity_id
                     };
                 }
@@ -801,10 +821,12 @@ var AnnotationManager = function(annotation_data){
      */
     self.removeTie = function(tieId, callback){
         var changes = {
-            entities: {}, groups: {}, locations: {}, ties: {tieId: "DELETE"}
+            entities: {}, groups: {}, locations: {}, ties: {}
         };
         var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = self.ties[tieId];
+
+        changes.ties[tieId] = 'DELETE';
 
         // Update the *_entity fields.
         for(node in nodes){
@@ -860,6 +882,7 @@ var AnnotationManager = function(annotation_data){
      *                                 * textStatus
      */
     var sendChangesToServer = function(changes, callback){
+        console.log('sending changes to server', changes);
         $.post({
             url: `/json/annotations/${self.annotation_data.annotation_id}`,
             data: {_method: 'PATCH', data: JSON.stringify(changes)},
