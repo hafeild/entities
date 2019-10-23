@@ -1,3 +1,8 @@
+// File:    annotation-manager.js
+// Author:  Hank Feild
+// Date:    Sep-2019
+// Purpose: Takes care of operations on the annotation data and syncing with the 
+//          server.
 
 /**
  * Manages the annotation object on the frontend and sends changes to the
@@ -947,7 +952,7 @@ var AnnotationManager = function(annotation_data){
      * Adds a map of ties to corresponding location and entity entries.
      */
     var linkTiesToLocationsAndEntities = function(){
-        var tieId, nodes = {source_entity: 1, target_entity: 1};
+        var tieId, nodes = {source_entity: 1, target_entity: 1}, node;
 
         for(tieId in self.ties){
             var tie = self.ties[tieId];
