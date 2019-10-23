@@ -355,5 +355,67 @@ var networkViz = (function(){
         simulation.alpha(1).restart();
     }
 
+    /**
+     * Downloads the graph in the format of TSV in the browser
+     */
+    this.exportTSV = function() {
+        var links = networkData.links.slice();
+
+        // sort links alphabetically 
+        links.sort(function(a,b) {
+            var nameA = a.source.name;
+            var nameB = b.source.name;
+
+            if(nameA < nameB) { return -1; }
+            if(nameA > nameB) { return 1; }
+            return 0;
+        })
+
+        var rows = [
+            ["Entity 1", "Entity 2"],
+        ];
+        var used = {};
+
+        // push link to rows if it does not reference itself and is not a duplicate
+        links.forEach(function(link) {
+            if (link.source.name !== link.target.name) {
+                var curLink = [link.source.name, link.target.name];
+                if (!(used[curLink[0] + curLink[1]] === true)) {
+                    rows.push(curLink);
+                    used[curLink[0] + curLink[1]] = true;
+                }
+            }
+        });
+
+        // push rows the 
+        let tsvContent = "data:text/tsv;charset=utf-8," 
+            + rows.map(e => e.join("\t")).join("\n");
+
+        var encodedUri = encodeURI(tsvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("id", "tsvDownloader")
+        link.setAttribute("download", "my_graph.tsv");
+        document.body.appendChild(link); 
+
+        link.click();
+    }
+
+    this.exportGraphML = function() {
+        var links = networkData.links.slice();
+        var nodes = networkData.nodes.slice();
+
+        links.sort(function(a,b) {
+            var nameA = a.source.name;
+            var nameB = b.source.name;
+
+            if(nameA < nameB) { return -1; }
+            if(nameA > nameB) { return 1; }
+            return 0;
+        })
+
+
+    }
+
     return this;
 })();
