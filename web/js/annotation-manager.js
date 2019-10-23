@@ -614,10 +614,14 @@ var AnnotationManager = function(annotation_data){
      *                                 * textStatus
      */
     self.updateMention = function(locationId, updatedMention, callback){
+        console.log('In updateMention', locationId, updatedMention, '...');
+
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var fields = ['start', 'end', 'entity_id'];
         var location = self.locations[locationId];
         var nodes = {source_entity: 1, target_entity: 1}, node, nodeEntity;
+
+        changes.locations[locationId] = {};
 
         // Update the fields.
         fields.forEach(field => {
@@ -633,7 +637,7 @@ var AnnotationManager = function(annotation_data){
 
                 location[field] = updatedMention[field];
                 // Mark change.
-                changes.locations[field] = location[field];
+                changes.locations[locationId][field] = location[field];
             }
         });
 
