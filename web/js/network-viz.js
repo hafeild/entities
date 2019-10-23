@@ -341,5 +341,45 @@ var networkViz = (function(){
         simulation.alpha(1).restart();
     }
 
+    this.exportTSV = function() {
+        var links = networkData.links.slice();
+
+        links.sort(function(a,b) {
+            var nameA = a.source.name;
+            var nameB = b.source.name;
+
+            if(nameA < nameB) { return -1; }
+            if(nameA > nameB) { return 1; }
+            return 0;
+        })
+
+        var rows = [
+            ["Entity 1", "Entity 2"],
+        ];
+        var used = {};
+
+        links.forEach(function(link) {
+            if (link.source.name !== link.target.name) {
+                var curLink = [link.source.name, link.target.name];
+                if (!(used[curLink[0] + curLink[1]] === true)) {
+                    rows.push(curLink);
+                    used[curLink[0] + curLink[1]] = true;
+                }
+            }
+        });
+
+        let csvContent = "data:text/tsv;charset=utf-8," 
+            + rows.map(e => e.join("\t")).join("\n");
+
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("id", "tsvDownloader")
+        link.setAttribute("download", "my_graph.tsv");
+        document.body.appendChild(link); 
+
+        link.click();
+    }
+
     return this;
 })();

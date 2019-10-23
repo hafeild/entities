@@ -453,6 +453,11 @@ span.selectedEntity.end-token {
     cursor: pointer;
 }
 
+#graph-export {
+    position: relative;
+    z-index: 10000;
+}
+
 .tie-object:hover {
     cursor: pointer;
     background-color: #0066aa;

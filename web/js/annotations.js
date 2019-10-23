@@ -1318,6 +1318,11 @@ for(i = 0; i < mentions.length; i++){
 console.log(`Found ${annotation_data.annotation.ties.length} ties!`);
 };
 
+var exportAsTSV = function() {
+    networkViz.exportTSV(); 
+    $('#tsvDownloader').remove();   
+}
+
 
 
 
@@ -1391,6 +1396,8 @@ $(document).ready(function(){
     $(document).on('mouseenter', '.thisEntityHover', openHoverMenu);
     $(document).on('mouseenter', '.thisGroupHover', openHoverMenu);
     $(document).on('mouseenter', '.selectedHover', openHoverMenu);
+
+    $(document).on('click', '#graph-export', exportAsTSV);
 
 
     // Autofocus the first input of a modal.

@@ -122,6 +122,7 @@
 
 
         <div id="network-panel">
+            <button id="graph-export" class="btn">Export</button>
             <svg id="network-svg"></svg>
             <script>
                 networkViz.init();

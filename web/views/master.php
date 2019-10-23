@@ -96,6 +96,52 @@ global $user;
     </nav>
 
 
+    <!-- Add Mention Modal -->
+      <div class="modal fade" id="addMentionModal" role="dialog">
+        <div class="modal-dialog">
+        
+          <!-- Add Mention Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" id="addMentionModalClose" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Add Mention</h4>
+            </div>
+            <div class="modal-body">
+              <ul id='addMentionEntitySelectorChecklist'>
+              </ul>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="confirmAddMention" data-dismiss="modal">Confirm</button>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+
+    <!-- Reassign Mention Modal -->
+      <div class="modal fade" id="reassignMentionModal" role="dialog">
+        <div class="modal-dialog">
+        
+          <!-- Reassign Mention Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" id="reassignMentionModalClose" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Reassign Mention</h4>
+            </div>
+            <div class="modal-body">
+              <ul id='reassignMentionEntitySelectorChecklist'>
+              </ul>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="confirmReassignMention" data-dismiss="modal">Confirm</button>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+
     <!-- Group Name Change Modal -->
       <div class="modal fade" id="changeGroupNameModal" role="dialog">
         <div class="modal-dialog">
@@ -107,7 +153,7 @@ global $user;
               <h4 class="modal-title">Change Group Name</h4>
             </div>
             <div class="modal-body">
-              <input name="newGroupNameBox" placeholder="Enter a new group name" type="text" maxlength="512" id="newGroupNameBox"/>
+              <input name="newGroupNameBox" class="form-control" placeholder="Enter a new group name" type="text" maxlength="512" id="newGroupNameBox"/>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-primary" id="confirmGroupNameChange" data-dismiss="modal">Confirm</button>
@@ -140,22 +186,46 @@ global $user;
       </div>  
 
     <!-- Tie Selector Modal -->
-      <div class="modal fade" id="tieSelectorModal" role="dialog">
+      <div class="modal fade" id="addTieModal" role="dialog">
         <div class="modal-dialog">
         
           <!-- Tie Modal content-->
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Create a tie between two groups</h4>
+              <h4 class="modal-title">Create a tie between two objects</h4>
             </div>
-            <div class="modal-body" id="tieSelectorModal-body">
-              <!--
-                TODO
-              -->
+            <div class="modal-body" id="addTieModal-body">
+              <div class="row" id="tieModalTextArea">
+              </div>
+              <div class="row">
+              </div>
+              <div class="row" id="tieModalObjectSelectors">
+                <div class="col-sm-4">
+                  <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" id="tieObjectOneDropdown" type="button" data-toggle="dropdown">Object One
+                    <span class="caret"></span></button>
+                    <ul class="dropdown-menu tieObjectSelector" id="tieObjectOneSelector">
+                      
+                    </ul>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <input name="tieNameBox" class="form-control" placeholder="" type="text" maxlength="512" id="tieNameBox"/>
+                </div>
+                <div class="col-sm-4">
+                  <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" id="tieObjectTwoDropdown" type="button" data-toggle="dropdown">Object Two
+                    <span class="caret"></span></button>
+                    <ul class="dropdown-menu tieObjectSelector" id="tieObjectTwoSelector">
+                      
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-primary" id="confirmTieSelection" data-dismiss="modal">Confirm</button>
+              <button type="button" class="btn btn-primary" id="confirmAddTie" data-dismiss="modal">Confirm</button>
             </div>
           </div>
           
@@ -163,8 +233,12 @@ global $user;
       </div>  
 
       <!-- hidden buttons that allows for the bootstrap modal to open -->
+      <button class="hidden-modal-button" id="addMentionModalOpener" data-toggle="modal" data-target="#addMentionModal">
+      <button class="hidden-modal-button" id="reassignMentionModalOpener" data-toggle="modal" data-target="#reassignMentionModal">
       <button class="hidden-modal-button" id="changeGroupnameModalOpener" data-toggle="modal" data-target="#changeGroupNameModal">
       <button class="hidden-modal-button" id="groupSelectorModalOpener" data-toggle="modal" data-target="#groupSelectorModal">
+      <button class="hidden-modal-button" id="addTieModalOpener" data-toggle="modal" data-target="#addTieModal">
+
 
 </body>
 </html>
