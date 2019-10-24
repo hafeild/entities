@@ -30,7 +30,6 @@ var networkViz = (function(){
             .force("collision", d3.forceCollide(RADIUS));
 
         simulation.force("charge").strength(-100).distanceMax(svgWidth);
-        console.log(svgHeight, svgWidth);
     };
 
     function xCoord(x){
@@ -54,15 +53,23 @@ var networkViz = (function(){
     this.loadNetwork = function(entitiesData) {
         networkData = entitiesDataToGraph(entitiesData);
 
+
         refreshNetwork = function() {
-            links.attr("x1", function(d) { return xCoord(d.source.x); })
-                .attr("y1", function(d) { return yCoord(d.source.y); })
-                .attr("x2", function(d) { return xCoord(d.target.x); })
-                .attr("y2", function(d) { return yCoord(d.target.y); });
-    
             gnodes.attr("transform", function(d) { 
-                return 'translate(' + [xCoord(d.x), yCoord(d.y)] + ')';
+                d.x = xCoord(d.x);
+                d.y = yCoord(d.y);
+                return 'translate(' + [d.x, d.y] + ')';
             }); 
+
+            // links.attr("x1", function(d) { return xCoord(d.source.x); })
+            //     .attr("y1", function(d) { return yCoord(d.source.y); })
+            //     .attr("x2", function(d) { return xCoord(d.target.x); })
+            //     .attr("y2", function(d) { return yCoord(d.target.y); });
+            links.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
     
         };
 
@@ -93,6 +100,7 @@ var networkViz = (function(){
         var graph = {nodes: [], links: []};
         var tie;
         var seenGroups = {};
+        var seenLinks = {};
 
         function getTieNodeGroup(tieNode) {
             if(tieNode.entity_id !== undefined){
@@ -127,15 +135,31 @@ var networkViz = (function(){
             var targetGroupId = getTieNodeGroup(tie.target_entity);
             
 
-            graph.links.push({
-                // id: tieId,
-                source: sourceGroupId,
-                target: targetGroupId,
-                value: tie.weight
-            });
+            var id1 = sourceGroupId, id2 = targetGroupId;
+            if(id2 < id1){
+                id2 = sourceGroupId;
+                id1 = targetGroupId;
+            }
+            var key = `${id1}-${id2}-${tie.is_directed == undefined ? false : tie.is_directed}`;
 
-            addNode(sourceGroupId);
-            addNode(targetGroupId);
+            if(seenLinks[key] == undefined){
+                seenLinks[key] = {
+                    source: sourceGroupId,
+                    target: targetGroupId,
+                    value: 0,
+                    is_directed: tie.is_directed == undefined ? 
+                                    false : tie.is_directed,
+                    label: tie.label
+                }
+            }
+
+            seenLinks[key].value += tie.weight == undefined ? 1.0 : tie.weight;
+        }
+
+        for(linkId in seenLinks){
+            graph.links.push(seenLinks[linkId]);
+            addNode(seenLinks[linkId].source);
+            addNode(seenLinks[linkId].target);
         }
 
         return graph;
@@ -154,8 +178,8 @@ var networkViz = (function(){
             // Freeze the network.
             if(!readjustOnMove){
                 for(var i = 0; i < networkData.nodes.length; i++){
-                    networkData.nodes[i].fx = xCoord(networkData.nodes[i].x);
-                    networkData.nodes[i].fy = yCoord(networkData.nodes[i].y);
+                    networkData.nodes[i].fx = networkData.nodes[i].x;
+                    networkData.nodes[i].fy = networkData.nodes[i].y;
                 }
             }
             
@@ -163,10 +187,8 @@ var networkViz = (function(){
                 simulation.alphaTarget(0.3).restart();
             }
 
-            console.log('readadjustOnMove:', readjustOnMove);
-
-            d3.event.subject.fx = xCoord(d3.event.subject.x);
-            d3.event.subject.fy = yCoord(d3.event.subject.y);
+            d3.event.subject.fx = d3.event.subject.x;
+            d3.event.subject.fy = d3.event.subject.y;
         //} 
     }
     
@@ -175,8 +197,8 @@ var networkViz = (function(){
      */
     function dragged() {
         if(movingNode) {
-            d3.event.subject.fx = xCoord(d3.event.x);
-            d3.event.subject.fy = yCoord(d3.event.y);
+            d3.event.subject.fx = d3.event.x;
+            d3.event.subject.fy = d3.event.y;
         }
     }
     
@@ -248,7 +270,7 @@ var networkViz = (function(){
         
         links.enter().append("line")
             .attr("class", "link")
-            .style("stroke-width", function(d) { return Math.sqrt(d.value); })
+            .style("stroke-width", function(d) { return 0.25*Math.sqrt(d.value); })
             .style("stroke", "#999999");
     
         links.exit().remove();
@@ -268,7 +290,7 @@ var networkViz = (function(){
             .enter()
             .append('g')
             .classed('gnode', true)
-            .on('click', nodeClicked)
+            // .on('click', nodeClicked)
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
@@ -293,13 +315,18 @@ var networkViz = (function(){
     /**
      * Adds a new node and redraws the network.
      * 
-     * @param {string} id The id (label) of the new node.
-     * @param {number} group The group number of the new node.
+     * @param {string} groupId The id of the group to add.
+     * @param {string} groupName The name of the group to add. 
      */
-    this.addNode = function(id, group){
+    this.addNode = function(groupId, groupName){
         // simulation.stop();
-        networkData.nodes.push({id: id, group: group, 
-            x: svgWidth/2, y: svgHeight/2});
+        networkData.nodes.push({
+            id: groupId, 
+            group: group, 
+            name: groupName,
+            x: svgWidth/2, 
+            y: svgHeight/2
+        });
         drawNodes();
         simulation.nodes(networkData.nodes);
         simulation.alpha(1).restart();
@@ -312,14 +339,23 @@ var networkViz = (function(){
      * @param {string} sourceId The id of the source node.
      * @param {string} targetId The id of the garget node.
      * @param {number} value The weight of the edge.
+     * @param {boolean} isDirected Whether this edge is directed or not.
+     * @param {string} label The edge's label.
      * @param {boolean} adjustLayout Whether or not the network layout should be
      *                               re-adjusted after drawing the link.
      * 
      */
-    this.addLink = function(sourceId, targetId, value, adjustLayout){
+    this.addLink = function(sourceId, targetId, value, isDirected, label, 
+            adjustLayout){
         // simulation.stop();
-        networkData.links.push(
-            {source: sourceId, target: targetId, value: value});
+        networkData.links.push({
+                source: sourceId,
+                target: targetId,
+                value: value == undefined ? 1.0 : value,
+                is_directed: isDirected == undefined ? 
+                                false : tie.is_directed,
+                label: label
+        });
 
         // Need to clear the entire network so that edges display beneath the
         // nodes.
