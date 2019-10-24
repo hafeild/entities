@@ -378,13 +378,14 @@ var networkViz = (function(){
 
         // push link to rows if it does not reference itself and is not a duplicate
         links.forEach(function(link) {
+
             if (link.source.name !== link.target.name) {
                 var curLink = [link.source.name, link.target.name];
                 if (!(used[curLink[0] + curLink[1]] === true)) {
                     rows.push(curLink);
                     used[curLink[0] + curLink[1]] = true;
                 }
-            }
+            } 
         });
 
         // push rows the 
