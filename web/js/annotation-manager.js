@@ -853,6 +853,177 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, callback);
     };
 
+    /**
+     * Packages the entity group and tie information into a graph. Undirected
+     * edges have the source and target ordered alphabetically. Example usage:
+     * 
+     * Generate one edge per tie (no de-duplication):
+     *      graph = generateGraph();
+     * 
+     * Merge based on source/target pairs and directedness; sum weights:
+     *      graph = generateGraph('sum', ['source', 'target']);
+     * 
+     * Merge based on source/target pairs, directedness, and label; sum weights:
+     *      graph = generateGraph('sum', ['source', 'target', 'label']);
+     *  
+     * @param {string} mergeMethod The method to use to combine weights, one
+     *                             of sum, max, min, first, last, or null 
+     *                             (default). Use null to indicate that no 
+     *                             merging should occur; also leave keyFields 
+     *                             null. In the case of sum, the label is taken
+     *                             from the first tie with a key found.
+     *                              
+     * @param {string[]} tieKeyFields An array of the tie fields to use as a
+     *                                unique identifier when combining. For
+     *                                example, specifying null or ['id']
+     *                                would cause each tie to appear in the
+     *                                output, whereas ['source','target'] will
+     *                                combine all edges of the same directedness
+     *                                that share the same source and target 
+     *                                fields. Here are the valid fields:
+     * 
+     *                                  - source (source group id)
+     *                                  - target (target group id)
+     *                                  - id (the tie id)
+     *                                  - weight
+     *                                  - label
+     * 
+     *                                is_directed is always taken into account.
+     * 
+     * @return An object with these fields:
+     *          - is_directed (boolean; true if at least one edge)
+     *          - nodes (map of ids to node objects)
+     *              * id (group id -> object)
+     *                  - label (group name)
+     *          - edges (array of edge objects)
+     *              * key (based on the)
+     *                  - id (tie id)
+     *                  - label (tie label)
+     *                  - source (node id)
+     *                  - target (node id)
+     *                  - weight (number)
+     *                  - is_directed (boolean)
+     */
+    self.generateGraph = function(mergeMethod, tieKeyFields){
+        var tie, sourceGroupId, targetGroupId, tmp, keyValues, key, tieWeight;
+        var graph = {
+            is_directed: false,
+            nodes: {},
+            edges: {}
+        };
+
+        // Add nodes.
+        for(var groupId in self.groups){
+            graph.nodes[groupId] = {label: self.groups[groupId].name};
+        }
+
+        // Add edges.
+        if(!tieKeyFields){
+            tieKeyFields = ['id'];
+        }
+
+        tieKeyFields.push('is_directed');
+
+        for(var tieId in self.ties){
+            tie = self.ties[tieId];
+            sourceGroupId = 
+                self.getTieNodeEntity(tie.source_entity).group_id;
+            targetGroupId = 
+                self.getTieNodeEntity(tie.target_entity).group_id;
+            keyValues = [];
+            tieWeight = tie.weight === undefined ? 1.0 : tie.weight;
+
+            graph.is_directed = (tie.is_directed === true) || graph.is_directed;
+
+            // Alphabetize source/target nodes if undirected.
+            if(!tie.is_directed && self.groups[sourceGroupId].name > 
+                    self.groups[targetGroupId].name){
+                tmp = sourceGroupId;
+                sourceGroupId = targetGroupId;
+                targetGroupId = tmp;
+            }
+
+            // Generate the key.
+            tieKeyFields.forEach(function(field){
+                if(field == 'id'){
+                    keyValues.push(tieId);
+                } else if(field == 'source'){
+                    keyValues.push(sourceGroupId);
+                } else if(field == 'target'){
+                    keyValues.push(targetGroupId)
+                } else {
+                    keyValues.push(tie[field]);
+                }
+            });
+            key = keyValues.join("-");
+
+            // First add.
+            if(!graph.edges[key]){
+                graph.edges[key] = {
+                    id: tieId,
+                    label: !tie.label ? '' : tie.label,
+                    source: sourceGroupId,
+                    target: targetGroupId,
+                    weight: tieWeight,
+                    is_directed: tie.is_directed === true
+                }
+
+            // Subsequent add -- need to merge.
+            } else {
+
+                if(mergeMethod === null){
+                    console.log('Ack! There should be no need to merge, but '+
+                        `a duplicate key was discovered: ${key}.`);
+
+                // Methods that result in the current tie overriding the 
+                // existing edge.
+                } else if(mergeMethod == 'last' || 
+                        (mergeMethod == 'min' && 
+                            tieWeight < graph.edges[key].weight) || 
+                        (mergeMethod == 'max' &&
+                            tieWeight > graph.edges[key].weight)){
+                    graph.edges[key] = {
+                        id: tieId,
+                        label: !tie.label ? '' : tie.label,
+                        source: sourceGroupId,
+                        target: targetGroupId,
+                        weight: tieWeight,
+                        is_directed: tie.is_directed === true
+                    }
+
+                // Sum weights
+                } else if(mergeMethod == 'sum'){
+                    graph.edges[key].weight +=  tieWeight;
+                }
+                
+            }
+
+        }
+
+        return graph;
+
+    };
+
+    /**
+     * Finds the entity associated with a tie node (source_entity or 
+     * target_entity).
+     * 
+     * @param tieNode Either the source_entity or target_entity of a tie object.
+     * @return The entity object for the given tie node (one of source_entity or
+     * target_entity in the tie object).
+     */
+    self.getTieNodeEntity = function(tieNode) {
+            if(tieNode.entity_id !== undefined){
+                return self.entities[tieNode.entity_id];
+            } else if(tieNode.location_id != undefined){
+                if(self.locations[tieNode.location_id].entity_id !== undefined){
+                    return self.entities[
+                        self.locations[tieNode.location_id].entity_id];
+                }
+            }
+            return null;
+        }
+
     ////////////////////////////////////////////////////////////////////////////
     // Helpers, etc.
     ////////////////////////////////////////////////////////////////////////////
