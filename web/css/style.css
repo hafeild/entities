@@ -502,3 +502,14 @@ span.selectedEntity.end-token {
     color: #999;
     font-style: italic;
 }
+
+.graph-export-option {
+    margin: 0 20%;
+    padding: 0;
+    text-align: left;
+}
+
+.graph-export-option:hover {
+    background-color: #d3d3d3;
+    cursor: pointer;
+}

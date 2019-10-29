@@ -338,15 +338,14 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
 
         <div id="network-panel">
-            <div class="dropdown">
+            <div id="graph-export" class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Export As
                 <span class="caret"></span></button>
-                <ul class="dropdown-menu">
-                    <li><a id= "graph-export-tsv"[ href="#">TSV</a></li>
-                    <li><a id="graph-export-graphml" href="#">graphML</a></li>
+                <ul id="graph-export-dropdown" class="dropdown-menu">
+                    <li class="graph-export-option" id="graph-export-tsv">TSV</li>
+                    <li class="graph-export-option" id="graph-export-graphml">graphML</li>
                 </ul>
             </div>
-            <!-- <button id="graph-export" class="btn">Export</button> -->
             <svg id="network-svg"></svg>
             <script>
                 networkViz.init();
