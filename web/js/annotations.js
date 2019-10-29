@@ -361,6 +361,7 @@ var locationsByPages = [];
 
     // Highlight locations for this page.
     highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
+    highlightTiesInContent(locationsByPages[pageIndex], $newPageElm);
 }
 
 /**
@@ -456,6 +457,32 @@ var locationsByPages = [];
         }
    }
 }
+
+/**
+ * Highlights ties in the given text content element. This relies on the global `annotation_data`
+ * variable being properly initialized and maintained.
+ *
+ * @param {jQuery Element} The element to highlight entities in.
+ */
+ var highlightTiesInContent = function(locationKeys, $element){
+    var ties = annotation_data.annotation.ties;
+    console.log(annotation_data.annotation);
+
+    $.each(ties, function(index, tie) {
+        // look in given text content element for non-entity tags between start and end of tie
+        $element.find('span').filter(function() {
+            return parseInt($(this).attr("data-token")) >= tie.start;
+        }).filter(function() {
+            return parseInt($(this).attr("data-token")) <= tie.end;
+        }).not('.entity').wrap(function() {
+            $(this).addClass('tie-text');
+            if ($(this).prev().html().trim() === "") {
+                $(this).prev().addClass('tie-text');
+            }
+        });
+    });
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -785,6 +812,11 @@ var makeEntityModalChecklist = function(groupId, entities, radioOptionName) {
 }
 
 var openAddMentionModal = function() {
+
+    if (menuConfigData.textSpans.length < 1) {
+        return;
+    }
+
     $('#addMentionEntitySelectorChecklist').empty();
 
     for(groupId in annotationManager.groups){
@@ -828,10 +860,6 @@ var openReassignMentionModal = function() {
     $('#reassignMentionModalOpener').click();
 }
 
-//////////
-//   TODO
-//   FIX THIS
-//////////
 var confirmReassignMention = function() {
     console.log("In confirmReassignMention");
 
@@ -853,12 +881,16 @@ var confirmReassignMention = function() {
     resetMenuConfigData();
 
     // TEMPORARY
-    // window.location.reload(true);
+    window.location.reload(true);
 }
 
 var addEntityFromSelection = function() {
-    closeContextMenu();
     console.log("In addEntityFromSelection");
+    closeContextMenu();
+    
+    if (menuConfigData.textSpans.length < 1) {
+        return;
+    }
 
     var spans = menuConfigData.textSpans;
     var name = "";
