@@ -785,11 +785,58 @@ var makeEntityModalChecklist = function(groupId, entities, radioOptionName) {
 }
 
 var openAddMentionModal = function() {
-    $('#addMentionEntitySelectorChecklist').empty();
+    var $allEntitiesChecklist = $('#addMentionEntitySelectorChecklist');
+    var $recentlyMentionedEntitiesDiv = $('#addMentionModal .recentlySeenWrapper');
+    var $recentlyMentionedEntitiesChecklist = $recentlyMentionedEntitiesDiv.find('ul');
+    $allEntitiesChecklist.empty();
+    $recentlyMentionedEntitiesChecklist.empty();
+    $recentlyMentionedEntitiesDiv.hide();
 
+    // First, add the 10 most recently mentioned entities/groups (prior to the
+    // selection). 
+    var curToken = menuConfigData.textSpans[0];
+    var groupsSeen = {};
+    var groupsSeenOrdered = [];
+    var count = 0, i;
+    while(count < 10 && curToken !== null){
+        if(curToken.hasAttribute('data-group-id')){
+            var groupId = curToken.getAttribute('data-group-id');
+            if(groupsSeen[groupId] === undefined){
+                groupsSeen[groupId] = true;
+                groupsSeenOrdered.push(groupId);
+                count++;
+            }
+        }
+
+        // We're still in the current content page.
+        if(curToken.previousSibling !== null){
+            curToken = curToken.previousSibling;
+
+        // We might be at a content page border; move curToken to the end of the 
+        // previous page.
+        } else if(curToken.parentElement.getAttribute('data-page') !== '0') {
+            curToken = curToken.parentElement.previousSibling.lastChild;
+
+        // We've hit the beginning.
+        } else {
+           break;
+        }
+    }
+
+    // This section will only be shown if there's at least one entity to list.
+    if(count > 0){
+        for(i = 0; i < count; i++){
+            var groupId = groupsSeenOrdered[i];
+            var group = annotationManager.groups[groupId];
+            $recentlyMentionedEntitiesChecklist.append(makeEntityModalChecklist(groupId, group.entities, 'addMentionEntityRadioOption'));
+        }
+        $recentlyMentionedEntitiesDiv.show();
+    }
+
+    // Make a list of ALL the entities.
     for(groupId in annotationManager.groups){
         var group = annotationManager.groups[groupId];
-        $('#addMentionEntitySelectorChecklist').append(makeEntityModalChecklist(groupId, group.entities, 'addMentionEntityRadioOption'));
+        $allEntitiesChecklist.append(makeEntityModalChecklist(groupId, group.entities, 'addMentionEntityRadioOption'));
     }
 
     $('#addMentionModalOpener').click();
@@ -818,11 +865,62 @@ var confirmAddMention = function() {
 }
 
 var openReassignMentionModal = function() {
-    $('#reassignMentionEntityChecklist').empty();
+    var $allEntitiesChecklist = $('#reassignMentionEntitySelectorChecklist');
+    var $recentlyMentionedEntitiesDiv = $('#reassignMentionModal .recentlySeenWrapper');
+    var $recentlyMentionedEntitiesChecklist = $recentlyMentionedEntitiesDiv.find('ul');
+    $allEntitiesChecklist.empty();
+    $recentlyMentionedEntitiesChecklist.empty();
+    $recentlyMentionedEntitiesDiv.hide();
+
+    // First, add the 10 most recently mentioned entities/groups (prior to the
+    // selection). 
+    console.log($('#text-panel [data-location-id='+ 
+                        menuConfigData.selectedMentions[
+                            menuConfigData.selectedMentions.length-1] +']'));
+    var curToken = $('#text-panel [data-location-id='+ 
+                        menuConfigData.selectedMentions[
+                            menuConfigData.selectedMentions.length-1] +']')[0];
+    var groupsSeen = {};
+    var groupsSeenOrdered = [];
+    var count = 0, i;
+    while(count < 10 && curToken !== null){
+        if(curToken.hasAttribute('data-group-id')){
+            var groupId = curToken.getAttribute('data-group-id');
+            if(groupsSeen[groupId] === undefined){
+                groupsSeen[groupId] = true;
+                groupsSeenOrdered.push(groupId);
+                count++;
+            }
+        }
+
+        // We're still in the current content page.
+        if(curToken.previousSibling !== null){
+            curToken = curToken.previousSibling;
+
+        // We might be at a content page border; move curToken to the end of the 
+        // previous page.
+        } else if(curToken.parentElement.getAttribute('data-page') !== '0') {
+            curToken = curToken.parentElement.previousSibling.lastChild;
+
+        // We've hit the beginning.
+        } else {
+           break;
+        }
+    }
+
+    // This section will only be shown if there's at least one entity to list.
+    if(count > 0){
+        for(i = 0; i < count; i++){
+            var groupId = groupsSeenOrdered[i];
+            var group = annotationManager.groups[groupId];
+            $recentlyMentionedEntitiesChecklist.append(makeEntityModalChecklist(groupId, group.entities, 'reassignMentionEntityRadioOption'));
+        }
+        $recentlyMentionedEntitiesDiv.show();
+    }
 
     for(groupId in annotationManager.groups){
         var group = annotationManager.groups[groupId];
-        $('#reassignMentionEntitySelectorChecklist').append(makeEntityModalChecklist(groupId, group.entities, 'reassignMentionEntityRadioOption'));
+        $allEntitiesChecklist.append(makeEntityModalChecklist(groupId, group.entities, 'reassignMentionEntityRadioOption'));
     }
 
     $('#reassignMentionModalOpener').click();
@@ -1558,5 +1656,8 @@ $(document).ready(function(){
 
 
     // Autofocus the first input of a modal.
-    $('.modal').on('shown.bs.modal',()=>{$(this).find('input').focus()});
+    $('.modal').on('shown.bs.modal',function(){
+        console.log('focusing on the first input.');
+        $(this).find('input')[0].focus();
+    });
 });

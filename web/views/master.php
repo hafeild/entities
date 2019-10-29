@@ -117,7 +117,13 @@ global $user;
               <h4 class="modal-title">Add Mention</h4>
             </div>
             <div class="modal-body">
-              <ul id='addMentionEntitySelectorChecklist'>
+               <div class="recentlySeenWrapper">
+                <h2>Most recently mentioned entities</h2>
+                <ul class="recentlySeenList"></ul>
+                <hr/>
+              </div>
+              <h2>All entities</h2>
+              <ul id="addMentionEntitySelectorChecklist">
               </ul>
             </div>
             <div class="modal-footer">
@@ -140,6 +146,13 @@ global $user;
               <h4 class="modal-title">Reassign Mention</h4>
             </div>
             <div class="modal-body">
+              <div class="recentlySeenWrapper">
+                <h2>Most recently mentioned entities</h2>
+                <ul class="recentlySeenList"></ul>
+                <hr/>
+              </div>
+
+              <h2>All entities</h2>
               <ul id='reassignMentionEntitySelectorChecklist'>
               </ul>
             </div>
