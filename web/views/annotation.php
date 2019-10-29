@@ -312,7 +312,6 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     <div id="annotation-panels">
         <div id="entity-panel-wrapper">
             <div id="entity-panel">
-                Entities go here...
                 <div id="entity-list">
                 </div>
                 <script>
@@ -347,7 +346,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                     <li><a id="graph-export-graphml" href="#">graphML</a></li>
                 </ul>
             </div>
-            <button id="graph-export" class="btn">Export</button>
+            <!-- <button id="graph-export" class="btn">Export</button> -->
             <svg id="network-svg"></svg>
             <script>
                 networkViz.init();
