@@ -306,6 +306,15 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
     <?php } ?>
 
+<span id="graph-export" class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Export network
+    <span class="caret"></span></button>
+    <ul id="graph-export-dropdown" class="dropdown-menu">
+        <li class="graph-export-option" id="graph-export-tsv">TSV</li>
+        <li class="graph-export-option" id="graph-export-graphml">graphML</li>
+    </ul>
+</span>
+
 </div> <!-- /.header -->
 
 <div id="annotation-panels-wrapper">
@@ -338,14 +347,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
 
         <div id="network-panel">
-            <div id="graph-export" class="dropdown">
-                <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Export As
-                <span class="caret"></span></button>
-                <ul id="graph-export-dropdown" class="dropdown-menu">
-                    <li class="graph-export-option" id="graph-export-tsv">TSV</li>
-                    <li class="graph-export-option" id="graph-export-graphml">graphML</li>
-                </ul>
-            </div>
+            
             <svg id="network-svg"></svg>
             <script>
                 networkViz.init();
