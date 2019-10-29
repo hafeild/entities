@@ -878,7 +878,7 @@ var addEntityFromSelection = function() {
     // window.location.reload(true);
 }
 
-var openAddTieModal = function() {
+var openAddTieModal = function(e) {
 
     if (menuConfigData.textSpans.length < 1) { return; }
 
@@ -907,13 +907,12 @@ var openAddTieModal = function() {
     if (startToken < 1) { startToken = 1;}
     var curSpan = $("span[data-token=" + startToken.toString() + "]");
     var curSpanClone = null;
+
     // don't start on puncutative tokens
     while (curSpan.prev() !== null && curSpan.prev() !== undefined &&
            curSpan.prev().length !== 0 && curSpan.prev().html().trim() !== "") {
                 curSpan = curSpan.prev();
     }
-
-
     while (curSearch < objectSearchWindowSize) {
         if (curSpan === null || curSpan === undefined || curSpan.length===0) { break; }
         if (typeof curSpan.attr('data-token') !== typeof undefined && typeof curSpan.attr('data-token') !== typeof null) {curSearch++;}
@@ -921,8 +920,8 @@ var openAddTieModal = function() {
         curSpanClone = curSpan.clone();
         if (curSpan.html().trim() !== "" && parseInt(curSpan.attr('data-token')) >= parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && parseInt(curSpan.attr('data-token')) <= parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token"))) {
             curSpanClone.addClass('text-primary');
-            tieNameBox.attr('placeholder', tieNameBox.attr('placeholder') + curSpan.html() + " ").blur();
             curSearch--;
+            tieNameBox.attr('placeholder', tieNameBox.attr('placeholder') + curSpan.html() + " ").blur();
         }
         spanList.push(curSpanClone); 
         curSpan = curSpan.next();
@@ -947,25 +946,70 @@ var openAddTieModal = function() {
     }
     */
 
-    var objects = "";
+    var objects = [];
+    var objectsAsString = "";
+    var preselectOne = null;
+    var preselectTwo = null;
+
+    console.log(parseInt($(menuConfigData.textSpans[0]).attr("data-token")));
 
     spanList.forEach(span => {
         tieModalTextArea.append(span.clone());
         if (span.hasClass('entity')) {
-            objects += ('<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
+            console.log(span);
+            if (parseInt(span.attr('data-token')) < parseInt($(menuConfigData.textSpans[0]).attr("data-token"))) {
+                preselectOne = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
+                '<span class="unselectable">' + span.html() + '</span></li>';
+            }
+            if (parseInt(span.attr('data-token')) > parseInt($(menuConfigData.textSpans[0]).attr("data-token"))) {
+                preselectTwo = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
+                '<span class="unselectable">' + span.html() + '</span></li>';
+            }
+            objects.push('<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
                 '<span class="unselectable">' + span.html() + '</span></li>');
         }
     });
 
-    objects += "<li class='list-group-item disabled' style='text-align: center;'><span style='text-align: center;'>--- Entities ---</span></li>";
+    objects.push("<li class='list-group-item disabled' style='text-align: center;'><span style='text-align: center;'>--- Entities ---</span></li>");
 
     for (entity in annotation_data.annotation.entities) {
-        objects += ('<li class="tie-object list-group-item" data-entity-id="' + entity.toString() + '">' + 
+        objects.push('<li class="tie-object list-group-item" data-entity-id="' + entity.toString() + '">' + 
                 '<span class="unselectable">' + annotation_data.annotation.entities[entity].name + '</span></li>');
     }
 
-    dropdownOne.append(objects);
-    dropdownTwo.append(objects);
+    objectsAsString = objects.join("");
+    dropdownOne.append(objectsAsString);
+    dropdownTwo.append(objectsAsString);
+
+    if (typeof preselectOne !== typeof null && typeof preselectOne !== typeof undefined) {
+        preselectOne = $(preselectOne);
+        var mention = $('#tieModalTextArea').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']');  
+        mention.addClass('selectedTieObject');
+        mention.addClass('selectedEntity');
+
+        $('#tieObjectOneSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']').addClass("disabled");
+        $('#tieObjectTwoSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']').addClass("disabled");
+        menuConfigData.tieObjectOne = $('#tieObjectOneSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']');
+        var dropdownText = preselectOne.find('span').html();
+        if (preselectOne.attr('data-entity-id') !== undefined && preselectOne.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
+        $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+
+        if (typeof preselectTwo !== typeof null && typeof preselectTwo !== typeof undefined) {
+            preselectTwo = $(preselectTwo);
+            var mention = $('#tieModalTextArea').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');  
+            mention.addClass('selectedTieObject');
+            mention.addClass('selectedEntity');
+
+            $('#tieObjectTwoSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']').addClass("disabled");
+            $('#tieObjectOneSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']').addClass("disabled");
+            preselectTwo.addClass("disabled");
+            menuConfigData.tieObjectTwo = $('#tieObjectTwoSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');
+            var dropdownText = preselectTwo.find('span').html();
+            if (preselectTwo.attr('data-entity-id') !== undefined && preselectTwo.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
+            $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+        }
+    }
+    console.log(menuConfigData.tieObjectOne);
 
     $('#addTieModalOpener').click();
 }
@@ -982,6 +1026,7 @@ var highlightTieModalTextArea = function(e) {
 
 var tieModalObjectChosen = function(e) {
     var object = $(this);
+
     var mention = $('#tieModalTextArea').find('[data-location-id=' + object.attr('data-location-id') + ']');  
     mention.addClass('selectedTieObject');
     mention.addClass('selectedEntity');
@@ -1000,6 +1045,7 @@ var tieModalObjectChosen = function(e) {
         object.addClass("disabled");
         $('#tieObjectTwoSelector').find('[data-location-id=' + object.attr('data-location-id') + ']').addClass("disabled");
         menuConfigData.tieObjectOne = object;
+        console.log(menuConfigData.tieObjectOne);
         var dropdownText = object.find('span').html();
         if (object.attr('data-entity-id') !== undefined && object.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
         $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
@@ -1356,7 +1402,7 @@ var exportAsTSV = function() {
             var curEdge = [nodes[edge.source].label, nodes[edge.target].label, edge.label, edge.weight, edge.is_directed.toString()];
             //if (!(used[curLink[0] + curLink[1]] === true)) {
                 rows.push(curEdge);
-                used[curEdge[0] + curEdge[1] + edge.label] = true;
+                //used[curEdge[0] + curEdge[1] + edge.label] = true;
             //}
         } 
     });

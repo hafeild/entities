@@ -342,9 +342,9 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
             <div id="graph-export" class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Export As
                 <span class="caret"></span></button>
-                <ul class="dropdown-menu">
-                    <li id="graph-export-tsv">TSV</li>
-                    <li id="graph-export-graphml">graphML</li>
+                <ul id="graph-export-dropdown" class="dropdown-menu">
+                    <li class="graph-export-option" id="graph-export-tsv">TSV</li>
+                    <li class="graph-export-option" id="graph-export-graphml">graphML</li>
                 </ul>
             </div>
             <svg id="network-svg"></svg>
