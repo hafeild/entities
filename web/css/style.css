@@ -485,12 +485,24 @@ span.selectedEntity.end-token {
 
 #graph-export {
     position: relative;
-    /* z-index: 10000; */
+    /* z-index: 1; */
 }
 
 .tie-object:hover {
     cursor: pointer;
     background-color: #0066aa;
+}
+
+.tie-text {
+    text-decoration: underline;
+    -webkit-text-decoration-color: salmon;
+    text-decoration-color: salmon;
+
+    text-decoration-thickness: 3px;
+}
+
+.tie-text:hover {
+    cursor: alias;
 }
 
 .dropdown-menu.tieObjectSelector {         

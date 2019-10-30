@@ -361,6 +361,7 @@ var locationsByPages = [];
 
     // Highlight locations for this page.
     highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
+    highlightTiesInContent(locationsByPages[pageIndex], $newPageElm);
 }
 
 /**
@@ -457,6 +458,45 @@ var locationsByPages = [];
    }
 }
 
+/**
+ * Highlights ties in the given text content element. This relies on the global `annotation_data`
+ * variable being properly initialized and maintained.
+ *
+ * @param {jQuery Element} The element to highlight entities in.
+ */
+ var highlightTiesInContent = function(locationKeys, $element){
+    var ties = annotation_data.annotation.ties;
+    console.log(annotation_data.annotation);
+
+    $.each(ties, function(index, tie) {
+        // look in given text content element for non-entity tags between start and end of tie
+        $element.find('span').filter(function() {
+            return parseInt($(this).attr("data-token")) >= tie.start;
+        }).filter(function() {
+            return parseInt($(this).attr("data-token")) <= tie.end;
+        }).not('.entity').wrap(function() {
+            $(this).addClass('tie-text');
+            // add tie key for reference
+            if ($(this).attr('tie-refs') === undefined || $(this).attr('tie-refs') === null) {
+                $(this).attr('tie-refs', "");
+            } else if (!$(this).attr('tie-refs').includes(index.toString())) {
+                $(this).attr('tie-refs', $(this).attr('tie-refs') + index.toString() + " ");
+            }
+            // highlight spaces, too
+            if ($(this).prev().html().trim() === "") {
+                $(this).prev().addClass('tie-text');
+                // add tie key for reference
+                if ($(this).attr('tie-refs') === undefined || $(this).attr('tie-refs') === null) {
+                    $(this).attr('tie-refs', "");
+                } else if (!$(this).attr('tie-refs').includes(index.toString())) {
+                    $(this).attr('tie-refs', $(this).attr('tie-refs') + index.toString() + " ");
+                }
+            }
+        });
+    });
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MANUAL ANNOTATION MANIPULATION FUNCTIONS
@@ -489,13 +529,12 @@ var existingEntityClicked = function(event) {
     $('[data-id=' + groupId + ']').filter('li').find('input').filter('[data-id=' + entityId + ']').prop('checked', 1);
 
     var contextMenuOptions = [];
-    var optionNumber = 0;
 
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisMentionHover'><a class='context-menu__link'><i>This Mention \></i></a></li>";
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisEntityHover'><a class='context-menu__link'><i>This Entity \></i></a></li>";
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option thisGroupHover'><a class='context-menu__link'><i>This Group \></i></a></li>";
+    contextMenuOptions.push("<li class='context-menu__item hover-option thisMentionHover'><a class='context-menu__link'><i>This Mention \></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item hover-option thisEntityHover'><a class='context-menu__link'><i>This Entity \></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item hover-option thisGroupHover'><a class='context-menu__link'><i>This Group \></i></a></li>");
     if (menuConfigData.numSelectedEntities > 1) {
-        contextMenuOptions[optionNumber++] = "<li class='context-menu__item hover-option selectedHover'><a class='context-menu__link'><i>Selected \></i></a></li>";
+        contextMenuOptions.push("<li class='context-menu__item hover-option selectedHover'><a class='context-menu__link'><i>Selected \></i></a></li>");
     }
     
     openContextMenu(contextMenuOptions, clickedEntity);
@@ -517,11 +556,10 @@ var checkSelectedText = function(event) {
     var newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
 
     var contextMenuOptions = [];
-    var optionNumber = 0;
 
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i>Add Entity</i></a></li>";
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i>Add Mention</i></a></li>";
-    contextMenuOptions[optionNumber++] = "<li class='context-menu__item'><a class='context-menu__link addTieOption'><i>Add Tie</i></a></li>";
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i>Add Entity</i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i>Add Mention</i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i>Add Tie</i></a></li>");
 
     menuConfigData.textSpans = textSpans;
     menuConfigData.newGroupID = newGroupID;
@@ -536,6 +574,7 @@ function getSelectedSpans() {
     var spanCount = 0;
 
     sel = window.getSelection();
+    console.log(sel);
 
     if (sel.anchorNode.nodeValue.trim() == "") {
         console.log("anchor");
@@ -556,6 +595,10 @@ function getSelectedSpans() {
         startSpan = endSpan;
         endSpan = temp;
     } 
+
+    if (!$(startSpan).is('span') || !$(endSpan).is('span')) {
+        return [];
+    }
 
     if (startSpan === endSpan) {
         spans = [];
@@ -607,7 +650,7 @@ var groupListCheckboxClicked = function() {
 }
 
 var openContextMenu = function(options, clickedEntity) {
-    if (options == null) return;
+    if (options === null || options === undefined) return;
 
     var active = "context-menu--active";
 
@@ -623,7 +666,7 @@ var openContextMenu = function(options, clickedEntity) {
         menuOpen = 1;
         menu.classList.add(active);
 
-        if (clickedEntity == null) {
+        if (clickedEntity === null || clickedEntity === undefined) {
             var menuPosition = getPositionForMenu(event);
         } else {
             var menuPosition = getPositionForMenu(event, clickedEntity);
@@ -644,7 +687,41 @@ var openContextMenu = function(options, clickedEntity) {
     }
 }
 
+var openTieContextMenu = function(e) {
+    closeContextMenu();
+
+    var contextMenuOptions = [];
+
+    var tieRefs = $(this).attr('tie-refs');
+    if (tieRefs === undefined || tieRefs === null) {return;}
+    tieRefs = tieRefs.trim().split(' ');
+
+    tieRefs.forEach(function(tieRef) {
+        var tie = annotation_data.annotation.ties[tieRef];
+        // get names of entities involved in tie
+        if (typeof tie.source_entity.entity_id !== typeof null && typeof tie.source_entity.entity_id !== typeof undefined) {
+            var entityNameOne = annotation_data.annotation.entities[tie.source_entity.entity_id].name;
+        } else {
+            var entityNameOne = annotation_data.annotation.entities[annotation_data.annotation.locations[tie.source_entity.location_id].entity_id].name;
+        }
+        if (typeof tie.target_entity.entity_id !== typeof null && typeof tie.target_entity.entity_id !== typeof undefined) {
+            var entityNameTwo = annotation_data.annotation.entities[tie.target_entity.entity_id].name;
+        } else {
+            var entityNameTwo = annotation_data.annotation.entities[annotation_data.annotation.locations[tie.target_entity.location_id].entity_id].name;
+        }
+        contextMenuOptions.push("<li class='context-menu__item hover-option tieHover' tie-ref='" + tieRef + "'><a class='context-menu__link'><i> "
+            + entityNameOne + " --\> " + entityNameTwo + " \></i></a></li>");
+    });
+
+    openContextMenu(contextMenuOptions);
+}
+
 var closeContextMenu = function() {
+    // unhighlight previously highlighted tie mentions if they exist
+    if (menuConfigData.tieMentionHoveredOne !== null || menuConfigData.tieMentionHoveredOne !== undefined) {
+        $('[data-location-id="' + menuConfigData.tieMentionHoveredOne + '"]').removeClass('selectedEntity');
+        $('[data-location-id="' + menuConfigData.tieMentionHoveredTwo + '"]').removeClass('selectedEntity');
+    }
     if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
         !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
         menuOpen = 0;
@@ -661,37 +738,57 @@ var openHoverMenu = function(e) {
     var hoverMenu = $('.context-menu-hover');
     var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
     var options = [];
-    var optionNumber = 0;
     var locationMultiplier = 1;
 
     if (hoverOption.hasClass('thisMentionHover')) {
-        options[optionNumber++] = "<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>";
-        options[optionNumber++] = "<li class='context-menu__item reassignMentionOption'><a class='context-menu__link'><i>Reassign</i></a></li>";
+        options.push("<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>");
+        options.push("<li class='context-menu__item reassignMentionOption'><a class='context-menu__link'><i>Reassign</i></a></li>");
 
         locationMultiplier = 1;
     }
     else if (hoverOption.hasClass('thisEntityHover')) {
-        options[optionNumber++] = "<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>";
-        options[optionNumber++] = "<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>";
+        options.push("<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>");
+        options.push("<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>");
 
         locationMultiplier = 2;
     }
     else if (hoverOption.hasClass('thisGroupHover')) {
-        options[optionNumber++] = "<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>";
-        options[optionNumber++] = "<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>";
+        options.push("<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>");
+        options.push("<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>");
 
         locationMultiplier = 3;
     }
     else if (hoverOption.hasClass('selectedHover')) {
         if (menuConfigData.numSelectedEntities > 1) {
-            options[optionNumber++] = "<li class='context-menu__item groupEntitiesOption'><a class='context-menu__link'><i>Group Entites</i></a></li>";
+            options.push("<li class='context-menu__item groupEntitiesOption'><a class='context-menu__link'><i>Group Entites</i></a></li>");
         }
         if (menuConfigData.selectedGroups.length > 1) {
-            options[optionNumber++] = "<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i>Combine Groups Here</i></a></li>";
-            options[optionNumber++] = "<li class='context-menu__item deleteSelectedGroupsOption'><a class='context-menu__link'><i>Delete Selected Groups</i></a></li>";
+            options.push("<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i>Combine Groups Here</i></a></li>");
+            options.push("<li class='context-menu__item deleteSelectedGroupsOption'><a class='context-menu__link'><i>Delete Selected Groups</i></a></li>");
         }
 
         locationMultiplier = 4;
+    }
+    else if (hoverOption.hasClass('tieHover')) {
+        options.push("<li class='context-menu__item editTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i>Edit Tie</i></a></li>");
+        options.push("<li class='context-menu__item deleteTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i>Delete Tie</i></a></li>");
+
+        // base locationMultiplier off of number of context menu options
+        $(hoverOption.parent()).children().each(function() {
+            if (!hoverOption.is($(this))) {locationMultiplier++;}
+            else {return false;}
+        });
+
+        // unhighlight previously highlighted mentions if they exist
+        if (menuConfigData.tieMentionHoveredOne !== null || menuConfigData.tieMentionHoveredOne !== undefined) {
+            $('[data-location-id="' + menuConfigData.tieMentionHoveredOne + '"]').removeClass('selectedEntity');
+            $('[data-location-id="' + menuConfigData.tieMentionHoveredTwo + '"]').removeClass('selectedEntity');
+        }
+        menuConfigData.tieMentionHoveredOne = annotation_data.annotation.ties[hoverOption.attr('tie-ref')].source_entity.location_id;
+        menuConfigData.tieMentionHoveredTwo = annotation_data.annotation.ties[hoverOption.attr('tie-ref')].target_entity.location_id;
+        // highlight mentions if they exist
+        $('[data-location-id="' + menuConfigData.tieMentionHoveredOne + '"]').addClass('selectedEntity');
+        $('[data-location-id="' + menuConfigData.tieMentionHoveredTwo + '"]').addClass('selectedEntity');
     }
 
     hoverMenuItems.empty();
@@ -785,6 +882,10 @@ var makeEntityModalChecklist = function(groupId, entities, radioOptionName) {
 }
 
 var openAddMentionModal = function() {
+    if (menuConfigData.textSpans.length < 1) {
+        return;
+    }
+    
     var $allEntitiesChecklist = $('#addMentionEntitySelectorChecklist');
     var $recentlyMentionedEntitiesDiv = $('#addMentionModal .recentlySeenWrapper');
     var $recentlyMentionedEntitiesChecklist = $recentlyMentionedEntitiesDiv.find('ul');
@@ -926,10 +1027,6 @@ var openReassignMentionModal = function() {
     $('#reassignMentionModalOpener').click();
 }
 
-//////////
-//   TODO
-//   FIX THIS
-//////////
 var confirmReassignMention = function() {
     console.log("In confirmReassignMention");
 
@@ -951,12 +1048,16 @@ var confirmReassignMention = function() {
     resetMenuConfigData();
 
     // TEMPORARY
-    // window.location.reload(true);
+    window.location.reload(true);
 }
 
 var addEntityFromSelection = function() {
-    closeContextMenu();
     console.log("In addEntityFromSelection");
+    closeContextMenu();
+    
+    if (menuConfigData.textSpans.length < 1) {
+        return;
+    }
 
     var spans = menuConfigData.textSpans;
     var name = "";
@@ -1031,6 +1132,9 @@ var openAddTieModal = function(e) {
                 curSpan = curSpan.next();
     }
 
+    // set tooltip of tie name box to show entire label
+    tieNameBox.attr('title', tieNameBox.attr('placeholder'));
+
     // old method for pushing spans to text window
     /*
     for (var i = startToken; i <= endToken; i++) {
@@ -1059,7 +1163,7 @@ var openAddTieModal = function(e) {
                 preselectOne = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
                 '<span class="unselectable">' + span.html() + '</span></li>';
             }
-            if (parseInt(span.attr('data-token')) > parseInt($(menuConfigData.textSpans[0]).attr("data-token"))) {
+            if (parseInt(span.attr('data-token')) > parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && preselectTwo === null) {
                 preselectTwo = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
                 '<span class="unselectable">' + span.html() + '</span></li>';
             }
@@ -1079,33 +1183,33 @@ var openAddTieModal = function(e) {
     dropdownOne.append(objectsAsString);
     dropdownTwo.append(objectsAsString);
 
+    // preselect objects closest to selected text area, if they exist
     if (typeof preselectOne !== typeof null && typeof preselectOne !== typeof undefined) {
         preselectOne = $(preselectOne);
         var mention = $('#tieModalTextArea').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']');  
         mention.addClass('selectedTieObject');
         mention.addClass('selectedEntity');
 
+        // disable this mention in dropdowns
         $('#tieObjectOneSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']').addClass("disabled");
-        $('#tieObjectTwoSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']').addClass("disabled");
         menuConfigData.tieObjectOne = $('#tieObjectOneSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']');
         var dropdownText = preselectOne.find('span').html();
         if (preselectOne.attr('data-entity-id') !== undefined && preselectOne.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
         $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+    }
+    if (typeof preselectTwo !== typeof null && typeof preselectTwo !== typeof undefined) {
+        preselectTwo = $(preselectTwo);
+        var mention = $('#tieModalTextArea').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');  
+        mention.addClass('selectedTieObject');
+        mention.addClass('selectedEntity');
 
-        if (typeof preselectTwo !== typeof null && typeof preselectTwo !== typeof undefined) {
-            preselectTwo = $(preselectTwo);
-            var mention = $('#tieModalTextArea').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');  
-            mention.addClass('selectedTieObject');
-            mention.addClass('selectedEntity');
-
-            $('#tieObjectTwoSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']').addClass("disabled");
-            $('#tieObjectOneSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']').addClass("disabled");
-            preselectTwo.addClass("disabled");
-            menuConfigData.tieObjectTwo = $('#tieObjectTwoSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');
-            var dropdownText = preselectTwo.find('span').html();
-            if (preselectTwo.attr('data-entity-id') !== undefined && preselectTwo.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
-            $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
-        }
+        // disable this mention in dropdowns
+        $('#tieObjectTwoSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']').addClass("disabled");
+        preselectTwo.addClass("disabled");
+        menuConfigData.tieObjectTwo = $('#tieObjectTwoSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');
+        var dropdownText = preselectTwo.find('span').html();
+        if (preselectTwo.attr('data-entity-id') !== undefined && preselectTwo.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
+        $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
     }
     console.log(menuConfigData.tieObjectOne);
 
@@ -1213,8 +1317,18 @@ var confirmAddTie = function() {
 
     resetMenuConfigData();
 
-    // TEMPORARY
-    // window.location.reload(true);
+    window.location.reload(true);
+}
+
+var deleteSelectedTie = function(e) {
+    console.log("In deleteSelectedTie");
+    closeContextMenu();
+
+    // removeTie(TieID, callback);
+    console.log($(this).attr('tie-ref'));
+    annotationManager.removeTie($(this).attr('tie-ref'), null);
+
+    resetMenuConfigData();
 }
 
 var combineSelectedEntities = function() {
@@ -1322,12 +1436,6 @@ var deleteSelectedGroups = function() {
 
     // TEMPORARY
     // window.location.reload(true);
-}
-
-var deleteSelectedTie = function() {
-    console.log("In deleteSelectedTie");
-
-    resetMenuConfigData();
 }
 
 var groupSelectedEntities = function() {
@@ -1641,6 +1749,8 @@ $(document).ready(function(){
 
     $(document).on('click', '.addTieOption', openAddTieModal);
     $(document).on('click', '#confirmAddTie', confirmAddTie);
+    $(document).on('click', '.deleteTieOption', deleteSelectedTie)
+    $(document).on('click', '.tie-text', openTieContextMenu)
     $(document).on('click', '.tie-object', tieModalObjectChosen)
     $(document).on('mouseenter', '.tie-object', highlightTieModalTextArea)
     $(document).on('mouseleave', '.tie-object', highlightTieModalTextArea)
@@ -1649,6 +1759,7 @@ $(document).ready(function(){
     $(document).on('mouseenter', '.thisEntityHover', openHoverMenu);
     $(document).on('mouseenter', '.thisGroupHover', openHoverMenu);
     $(document).on('mouseenter', '.selectedHover', openHoverMenu);
+    $(document).on('mouseenter', '.tieHover', openHoverMenu);
 
     $(document).on('click', '#graph-export-tsv', exportAsTSV);
     $(document).on('click', '#graph-export-graphml', exportAsGraphML);
