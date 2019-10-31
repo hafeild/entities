@@ -92,9 +92,10 @@ function hasAnnotationPermission($annotationId, $permissionLevel, $userId=null){
     }
 
     $annotation = lookupAnnotation($annotationId);
+    $text = getTextMetadata($annotation["text_id"]);
 
     $isPublic = $annotation["is_public"] === null 
-        ? hasTextPermission($annotation["text_id"], $permissionLevel, $userId)
+        ? $text["is_public"] == "1"
         : $annotation["is_public"] == "1";
 
     // Check if the resource is public.

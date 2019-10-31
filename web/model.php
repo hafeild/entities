@@ -140,16 +140,23 @@ function getTextMetadata($id){
 
 /**
  * Adds a new text to the metadata table as well as to the file system in the
- * text_storage location specified in the configuration file (see $CONFIG).
+ * text_storage location specified in the configuration file (see $CONFIG). If 
+ * the text exists and the error flags are not set, an error will occur. If
+ * the tokenization_error flag is set, then no error will occur and the existing
+ * text entry will be returned.
  * 
  * @param md5sum The MD5 sum of the text file.
  * @param file The current (temporary) path to the text file on disk.
  * @param title The title of the text.
  * @param user_id The id of the user adding the text.
+ *
+ * @return The text metadata. 
  */
 function addText($md5sum, $file, $title, $user_id){
     global $CONFIG;
     $dbh = connectToDB();
+    try{
+
     $dbh->beginTransaction();
 
     // Check if another file with this signature exists; if not, add the file.
@@ -161,15 +168,22 @@ function addText($md5sum, $file, $title, $user_id){
     checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
     $row = $statement->fetch(\PDO::FETCH_ASSOC);
     if($row){
-        $dbh->rollBack();
-        error("This text has already been uploaded.", $row);
+        // Check if the text exists, but in error mode.
+        if($row["tokenization_error"] == "1"){
+            $dbh->commit();
+            return $row;
+
+        // No error with book; can't overwrite!
+        } else {
+            $dbh->rollBack();
+            error("This text has already been uploaded.", $row);
+        }
+
     } else {
         $statement = $dbh->prepare("insert into texts".
             "(title,md5sum,created_at,uploaded_by, tokenization_in_progress, ". 
-            "tokenization_error) ".
-            "values(:title, :md5sum, :time, :user_id, '0', '0')");
-        checkForStatementError($dbh, $statement, 
-            "Error preparing upload db statement.");
+            "tokenization_error,updated_at) ".
+            "values(:title, :md5sum, :time, :user_id, '0', '0', :time)");
         $statement->execute(array(
             ":md5sum"  => $md5sum, 
             ":title"   => $title,
@@ -185,14 +199,22 @@ function addText($md5sum, $file, $title, $user_id){
             $dbh->rollBack();
             error("Could not create a directory for the new text.");
         } else {
+            chmod($CONFIG->text_storage, 0770);
+            chmod($CONFIG->text_storage ."/$id", 0770);
             if(!move_uploaded_file($file, $CONFIG->text_storage ."/$id/original.txt")){
                 $dbh->rollBack();
                 error("Could not move the uploaded file on the server.");
             } else {
+                chmod($CONFIG->text_storage ."/$id/original.txt", 0770);
                 $dbh->commit();
                 return getTextMetadata($id);
             }
         }
+    }
+    } catch(Exception $e){
+        $dbh->rollBack();
+        error("Error adding text metadata: ". $e->getMessage(),
+            ["In addText($md5sum, $file, $title, $user_id)"]);
     }
 }
 
@@ -292,8 +314,8 @@ function addNewUser($username, $password){
 
     try {
         $statement = $dbh->prepare(
-            "insert into users(username, password, created_at) ".
-            "values(:username, :password, :time)");
+            "insert into users(username, password, created_at, updated_at) ".
+            "values(:username, :password, :time, :time)");
 
         $success = $statement->execute(array(
             ":username" => $username, 
@@ -499,7 +521,7 @@ function addTextPermission($userId, $textId, $permission){
             ":text_id"    => $textId,
             ":user_id"    => $userId,
             ":permission" => $permission,
-            ":time" => curDateTime
+            ":time" => curDateTime()
         ]);
         $permissionId = $dbh->lastInsertId();
 

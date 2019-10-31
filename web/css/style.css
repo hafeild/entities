@@ -236,6 +236,36 @@ body {
     top: 0px; */
 }
 
+#tieModalTextArea {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    white-space: pre-wrap;
+    font-size: 14pt;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    width: 100%;
+    padding: 1em;
+    margin: 0 auto;
+    margin-bottom: 20px;
+
+    max-height: 400px;
+    overflow-y: auto;
+
+    border-style: solid;
+    border-width: 2px;
+
+
+    /* height: 200px; */
+    /* max-height: 200px; */
+    /* width: 40vw;
+    position: absolute;
+    left: 30vw;
+    bottom: 0px;
+    top: 0px; */
+}
+
 #entity-panel-wrapper{
     width: 30vw;
     display: table-cell;
@@ -310,13 +340,18 @@ button.annotated-entity {
 }
 
 span.selectedEntity {
-    border: 3px dashed #21303b;
+    border-style: solid;
+    border-width: 3px;
+
+    border-image: linear-gradient(to right, #f857a6, #ff5858);
+    border-image-slice: 1;
+
     border-left: none;
     border-right: none;
 
-    box-sizing:border-box;
-    -moz-box-sizing:border-box;
-    -webkit-box-sizing:border-box;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
 }
 
 span.selectedEntity.start-token {
@@ -436,7 +471,7 @@ span.selectedEntity.end-token {
     top: 40px;
     left: 200px;
     right: 200px;
-    z-index: 10000;
+    /* z-index: 10000; */
     box-sizing: border-box;
 }
 
@@ -446,4 +481,47 @@ span.selectedEntity.end-token {
 
 .floating-error {
     width: 100% !important;
+}
+
+#graph-export {
+    position: relative;
+    /* z-index: 1; */
+}
+
+.tie-object:hover {
+    cursor: pointer;
+    background-color: #0066aa;
+}
+
+.tie-text {
+    text-decoration: underline;
+    -webkit-text-decoration-color: salmon;
+    text-decoration-color: salmon;
+
+    text-decoration-thickness: 3px;
+}
+
+.tie-text:hover {
+    cursor: alias;
+}
+
+.dropdown-menu.tieObjectSelector {         
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.annotation-method {
+    color: #999;
+    font-style: italic;
+}
+
+.graph-export-option {
+    margin: 0 20%;
+    padding: 0;
+    text-align: left;
+}
+
+.graph-export-option:hover {
+    background-color: #d3d3d3;
+    cursor: pointer;
 }

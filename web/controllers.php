@@ -202,26 +202,28 @@ public static function postText($path, $matches, $params, $format){
     // Create a metadata entry for this text.
     $text = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
 
-    // Give the user ownership over the text.
-    addTextPermission($user["id"], $text["id"], $PERMISSIONS["OWNER"]);
-
-    // Add a root annotation.
-    $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
-        // new stdClass() forces the empty array to show up as an object in the 
-        // JSON.
-        "last_entity_id"=> 0,
-        "last_group_id" => 0,
-        "last_tie_id"   => 0,
-        "entities"      => new stdClass(), 
-        "groups"        => new stdClass(),
-        "locations"     => new stdClass(),
-        "ties"          => new stdClass()
-    ], "unannotated", generateAnnotationMethodMetadata("unannotated", []),
-    generateAnnotationLabel("unannotated", []));
+    // If this text already existed, but had an error during tokenization, 
+    // we don't need to create new permission errors or root annotaitons.
+    if($text["tokenization_error"] == "0"){
+        // Give the user ownership over the text.
+        addTextPermission($user["id"], $text["id"], $PERMISSIONS["OWNER"]);
+    
+        // Add a root annotation.
+        $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
+            // new stdClass() forces the empty array to show up as an object in the 
+            // JSON.
+            "last_entity_id"=> 0,
+            "last_group_id" => 0,
+            "last_tie_id"   => 0,
+            "entities"      => new stdClass(), 
+            "groups"        => new stdClass(),
+            "locations"     => new stdClass(),
+            "ties"          => new stdClass()
+        ], "unannotated", generateAnnotationMethodMetadata("unannotated", []),
+        generateAnnotationLabel("unannotated", []));
+    }
 
     // Kick off the processing.
-    // $result = Controllers::processText($text["id"], $md5sum, $rootAnnotationId,
-    //     $user["id"]);
     $result = Controllers::tokenizeText($text["id"], $md5sum);
 
     if($result["success"] === true){
@@ -821,6 +823,7 @@ public static function editAnnotation($path, $matches, $params, $format){
     // If the annotation JSON is being updated, extract that data and define the
     // updater needed by the annotation model function.
     if(array_key_exists("data", $params)){
+        error_log("Updating annotation $annotationId: ${params["data"]}.");
         $data = json_decode($params["data"], true);
 
         // Update the annotation.

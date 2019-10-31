@@ -4,6 +4,8 @@
 // Date:    10-Oct-2018
 // Purpose: Holds cross-file helpers and parses the config file. 
 
+require_once("controllers.php");
+
 // Read in the config file.
 $CONFIG_FILE = "../conf.json";
 $configFD = fopen($CONFIG_FILE, "r") or 

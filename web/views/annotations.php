@@ -266,11 +266,11 @@ function printUserPermissionControls($permissionUser){
                 function traverseInOrder($node){
                     $annotation = $node["data"];
                     ?>
-                    <li>(<?= $annotation["annotation_id"] ?>) 
-                        [<?= $annotation["method"] ?>] 
+                    <li> 
                         <a href="/texts/<?= $annotation["text_id"] ?>/annotations/<?= $annotation["annotation_id"] ?>"
                         >"<?= ($annotation["label"] == "" ? ("annotation ". $annotation["annotation_id"]) : $annotation["label"]) ?>"</a> 
-                        <?= ($annotation["method"] == "manual" ? (" annotated by ". $annotation["username"]) : "") ?>
+                        <span class="annotation-method"><?= $annotation["method"] ?><?= ($annotation["method"] == "manual" ? (", annotated by ". $annotation["username"]) : "") ?>
+                        </span>
                     <?php
                     // TODO -- update this logic to indicate if the root annotation
                     // has been tokenized or not. That's needed to continue...
