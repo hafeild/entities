@@ -144,6 +144,13 @@ $routes = [
         "DELETE",
         "#^annotations/(\d+)/permissions/(\d+)#",
         "Controllers::deleteAnnotationPermission"
+    ),
+
+    // Study.
+    Controllers::generateRoute(
+        "GET",
+        "#^study/login#",
+        "Controllers::studyLogin"
     )
 
 
