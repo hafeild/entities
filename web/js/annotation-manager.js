@@ -1,3 +1,8 @@
+// File:    annotation-manager.js
+// Author:  Hank Feild
+// Date:    Sep-2019
+// Purpose: Takes care of operations on the annotation data and syncing with the 
+//          server.
 
 /**
  * Manages the annotation object on the frontend and sends changes to the
@@ -81,12 +86,12 @@ var AnnotationManager = function(annotation_data){
             var entity = self.entities[entityId];
 
             // Remove from groups.
-            group = SVGDefsElement.groups[entity.group_id];
+            group = self.groups[entity.group_id];
             if(size(group.entities) === 1 && 
                 group.entities[entityId] !== undefined){
 
                 delete self.groups[entity.group_id];
-                changes.groups[entity.groupId] = "DELETE";
+                changes.groups[entity.group_id] = "DELETE";
             }
 
             // Remove from ties.
@@ -282,7 +287,7 @@ var AnnotationManager = function(annotation_data){
      */
     self.groupEntities = function(entityIds, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var newGroupId = ++annotation.last_group_id;
+        var newGroupId = (++annotation.last_group_id).toString();
         var selectedEntities = {};
         var selectedGroups = {};
         var groupId, entityId;
@@ -321,6 +326,10 @@ var AnnotationManager = function(annotation_data){
             // Update group id.
             changes.last_group_id = newGroupId;
 
+            changes.groups[newGroupId] = {
+                name: null,
+                entities: {}
+            };
             self.groups[newGroupId] = {
                 name: null,
                 entities: {}
@@ -340,9 +349,9 @@ var AnnotationManager = function(annotation_data){
 
                 // Use this entity's name for the group name if not already set.
                 if(self.groups[newGroupId].name == null){
-                    self.groups[newGroupId] = {name:  
-                        self.entities[entityId].name};
                     self.groups[newGroupId].name = 
+                        self.entities[entityId].name;
+                    changes.groups[newGroupId].name =
                         self.entities[entityId].name;
                 }
             }   
@@ -526,7 +535,7 @@ var AnnotationManager = function(annotation_data){
         };
 
         // Add convenience link from the entity to the mention.
-        var entity = self.entities[entity_id];
+        var entity = self.entities[entityId];
         if(entity.locations === undefined){
             entity.locations = {};
         }
@@ -553,7 +562,7 @@ var AnnotationManager = function(annotation_data){
      *                                 * jqXHR
      *                                 * textStatus
      */
-    self.removeMention = function(locationId){
+    self.removeMention = function(locationId, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var location, nodeEntity, node, 
             nodes = {source_entity: 1, target_entity: 1};
@@ -610,13 +619,17 @@ var AnnotationManager = function(annotation_data){
      *                                 * textStatus
      */
     self.updateMention = function(locationId, updatedMention, callback){
+        console.log('In updateMention', locationId, updatedMention, '...');
+
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var fields = ['start', 'end', 'entity_id'],field;
+        var fields = ['start', 'end', 'entity_id'];
         var location = self.locations[locationId];
         var nodes = {source_entity: 1, target_entity: 1}, node, nodeEntity;
 
+        changes.locations[locationId] = {};
+
         // Update the fields.
-        for(field in fields){
+        fields.forEach(field => {
             if(updatedMention[field] !== undefined){
                 // If this is the entity_id field, update the old and new 
                 // entity.
@@ -629,9 +642,9 @@ var AnnotationManager = function(annotation_data){
 
                 location[field] = updatedMention[field];
                 // Mark change.
-                changes.locations[field] = location[field];
+                changes.locations[locationId][field] = location[field];
             }
-        }
+        });
 
         // Sync with server.
         sendChangesToServer(changes, callback);
@@ -681,7 +694,7 @@ var AnnotationManager = function(annotation_data){
         var tieId = `${++annotation.last_tie_id}`;
 
         // Add a placeholder for the tie data and mark the change.
-        self.ties[tieId] = {};
+        self.ties[tieId] = {source_entity: {}, target_entity: {}};
         changes.last_tie_id = annotation.last_tie_id;
 
         // Let updateTie do all the heavy lifting...
@@ -725,20 +738,26 @@ var AnnotationManager = function(annotation_data){
      *                         AnnotationManager calls.
      */
     self.updateTie = function(tieId, updatedTie, callback, changes){
+        console.log(tieId, updatedTie, changes);
+
         var basicFields = ['start', 'end', 'label', 'weight', 'directed'],field;
         var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = self.ties[tieId];
+        var i;
 
         if(changes === undefined){
             changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         }
 
+        changes.ties[tieId] = {};
+
         // Update the simple fields.
-        for(field in basicFields){
-            if(updatedMention[field] !== undefined){
+        for(i = 0; i < basicFields.length; i++){
+            field = basicFields[i];
+            if(updatedTie[field] !== undefined){
                 tie[field] = updatedTie[field];
                 // Mark change.
-                changes.ties[field] = location[field];
+                changes.ties[tieId][field] = updatedTie[field];
             }
         }
 
@@ -746,21 +765,37 @@ var AnnotationManager = function(annotation_data){
         for(node in nodes){
             if(updatedTie[node] !== undefined){
                 // Remove convenience links.
-                if(tie[node].location_id !== undefined){
-                    delete self.locations[tie[node].location_id].ties[tieId];
-                } else if(tie[node].entity_id !== undefined) {
-                    delete self.entities[tie[node].entity_id].ties[tieId];
+                if (Object.keys(tie).length > 0) {
+                    if(tie[node].location_id !== undefined){
+                        delete self.locations[tie[node].location_id].ties[tieId];
+                    } else if(tie[node].entity_id !== undefined) {
+                        delete self.entities[tie[node].entity_id].ties[tieId];
+                    }
                 }
 
                 // Add in new convenience links.
                 if(updatedTie[node].location_id !== undefined){
                     tie[node] = {location_id: updatedTie[node].location_id};
+
+                    // In case this is the first tie the location has been 
+                    // associated with.
+                    if(self.locations[tie[node].location_id].ties == undefined){
+                        self.locations[tie[node].location_id].ties = {};
+                    }
                     self.locations[tie[node].location_id].ties[tieId] = tie;
+
+                    // In case this is the first tie this entity has been 
+                    // associated with.
+                    if(self.entities[self.locations[tie[node].location_id].
+                        entity_id].ties == undefined) {
+                            self.entities[self.locations[tie[node].location_id].
+                        entity_id].ties = {};
+                    }
                     self.entities[self.locations[tie[node].location_id].
                         entity_id].ties[tieId] = tie;
 
                     // Mark changes.
-                    changes.ties[node] = {
+                    changes.ties[tieId][node] = {
                         location_id: updatedTie[node].location_id
                     };
                 } else if(updatedTie[node].entity_id !== undefined){
@@ -768,7 +803,7 @@ var AnnotationManager = function(annotation_data){
                     self.entities[tie[node].entity_id].ties[tieId] = tie;
 
                     // Mark changes.
-                    changes.ties[node] = {
+                    changes.ties[tieId][node] = {
                         entity_id: updatedTie[node].entity_id
                     };
                 }
@@ -795,10 +830,12 @@ var AnnotationManager = function(annotation_data){
      */
     self.removeTie = function(tieId, callback){
         var changes = {
-            entities: {}, groups: {}, locations: {}, ties: {tieId: "DELETE"}
+            entities: {}, groups: {}, locations: {}, ties: {}
         };
         var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = self.ties[tieId];
+
+        changes.ties[tieId] = 'DELETE';
 
         // Update the *_entity fields.
         for(node in nodes){
@@ -815,6 +852,177 @@ var AnnotationManager = function(annotation_data){
         // Sync with server.
         sendChangesToServer(changes, callback);
     };
+
+    /**
+     * Packages the entity group and tie information into a graph. Undirected
+     * edges have the source and target ordered alphabetically. Example usage:
+     * 
+     * Generate one edge per tie (no de-duplication):
+     *      graph = generateGraph();
+     * 
+     * Merge based on source/target pairs and directedness; sum weights:
+     *      graph = generateGraph('sum', ['source', 'target']);
+     * 
+     * Merge based on source/target pairs, directedness, and label; sum weights:
+     *      graph = generateGraph('sum', ['source', 'target', 'label']);
+     *  
+     * @param {string} mergeMethod The method to use to combine weights, one
+     *                             of sum, max, min, first, last, or null 
+     *                             (default). Use null to indicate that no 
+     *                             merging should occur; also leave keyFields 
+     *                             null. In the case of sum, the label is taken
+     *                             from the first tie with a key found.
+     *                              
+     * @param {string[]} tieKeyFields An array of the tie fields to use as a
+     *                                unique identifier when combining. For
+     *                                example, specifying null or ['id']
+     *                                would cause each tie to appear in the
+     *                                output, whereas ['source','target'] will
+     *                                combine all edges of the same directedness
+     *                                that share the same source and target 
+     *                                fields. Here are the valid fields:
+     * 
+     *                                  - source (source group id)
+     *                                  - target (target group id)
+     *                                  - id (the tie id)
+     *                                  - weight
+     *                                  - label
+     * 
+     *                                is_directed is always taken into account.
+     * 
+     * @return An object with these fields:
+     *          - is_directed (boolean; true if at least one edge)
+     *          - nodes (map of ids to node objects)
+     *              * id (group id -> object)
+     *                  - label (group name)
+     *          - edges (array of edge objects)
+     *              * key (based on the)
+     *                  - id (tie id)
+     *                  - label (tie label)
+     *                  - source (node id)
+     *                  - target (node id)
+     *                  - weight (number)
+     *                  - is_directed (boolean)
+     */
+    self.generateGraph = function(mergeMethod, tieKeyFields){
+        var tie, sourceGroupId, targetGroupId, tmp, keyValues, key, tieWeight;
+        var graph = {
+            is_directed: false,
+            nodes: {},
+            edges: {}
+        };
+
+        // Add nodes.
+        for(var groupId in self.groups){
+            graph.nodes[groupId] = {label: self.groups[groupId].name};
+        }
+
+        // Add edges.
+        if(!tieKeyFields){
+            tieKeyFields = ['id'];
+        }
+
+        tieKeyFields.push('is_directed');
+
+        for(var tieId in self.ties){
+            tie = self.ties[tieId];
+            sourceGroupId = 
+                self.getTieNodeEntity(tie.source_entity).group_id;
+            targetGroupId = 
+                self.getTieNodeEntity(tie.target_entity).group_id;
+            keyValues = [];
+            tieWeight = tie.weight === undefined ? 1.0 : tie.weight;
+
+            graph.is_directed = (tie.is_directed === true) || graph.is_directed;
+
+            // Alphabetize source/target nodes if undirected.
+            if(!tie.is_directed && self.groups[sourceGroupId].name > 
+                    self.groups[targetGroupId].name){
+                tmp = sourceGroupId;
+                sourceGroupId = targetGroupId;
+                targetGroupId = tmp;
+            }
+
+            // Generate the key.
+            tieKeyFields.forEach(function(field){
+                if(field == 'id'){
+                    keyValues.push(tieId);
+                } else if(field == 'source'){
+                    keyValues.push(sourceGroupId);
+                } else if(field == 'target'){
+                    keyValues.push(targetGroupId)
+                } else {
+                    keyValues.push(tie[field]);
+                }
+            });
+            key = keyValues.join("-");
+
+            // First add.
+            if(!graph.edges[key]){
+                graph.edges[key] = {
+                    id: tieId,
+                    label: !tie.label ? '' : tie.label,
+                    source: sourceGroupId,
+                    target: targetGroupId,
+                    weight: tieWeight,
+                    is_directed: tie.is_directed === true
+                }
+
+            // Subsequent add -- need to merge.
+            } else {
+
+                if(mergeMethod === null){
+                    console.log('Ack! There should be no need to merge, but '+
+                        `a duplicate key was discovered: ${key}.`);
+
+                // Methods that result in the current tie overriding the 
+                // existing edge.
+                } else if(mergeMethod == 'last' || 
+                        (mergeMethod == 'min' && 
+                            tieWeight < graph.edges[key].weight) || 
+                        (mergeMethod == 'max' &&
+                            tieWeight > graph.edges[key].weight)){
+                    graph.edges[key] = {
+                        id: tieId,
+                        label: !tie.label ? '' : tie.label,
+                        source: sourceGroupId,
+                        target: targetGroupId,
+                        weight: tieWeight,
+                        is_directed: tie.is_directed === true
+                    }
+
+                // Sum weights
+                } else if(mergeMethod == 'sum'){
+                    graph.edges[key].weight +=  tieWeight;
+                }
+                
+            }
+
+        }
+
+        return graph;
+
+    };
+
+    /**
+     * Finds the entity associated with a tie node (source_entity or 
+     * target_entity).
+     * 
+     * @param tieNode Either the source_entity or target_entity of a tie object.
+     * @return The entity object for the given tie node (one of source_entity or
+     * target_entity in the tie object).
+     */
+    self.getTieNodeEntity = function(tieNode) {
+            if(tieNode.entity_id !== undefined){
+                return self.entities[tieNode.entity_id];
+            } else if(tieNode.location_id != undefined){
+                if(self.locations[tieNode.location_id].entity_id !== undefined){
+                    return self.entities[
+                        self.locations[tieNode.location_id].entity_id];
+                }
+            }
+            return null;
+        }
 
     ////////////////////////////////////////////////////////////////////////////
     // Helpers, etc.
@@ -854,6 +1062,7 @@ var AnnotationManager = function(annotation_data){
      *                                 * textStatus
      */
     var sendChangesToServer = function(changes, callback){
+        console.log('sending changes to server', changes);
         $.post({
             url: `/json/annotations/${self.annotation_data.annotation_id}`,
             data: {_method: 'PATCH', data: JSON.stringify(changes)},
@@ -914,7 +1123,7 @@ var AnnotationManager = function(annotation_data){
      * Adds a map of ties to corresponding location and entity entries.
      */
     var linkTiesToLocationsAndEntities = function(){
-        var tieId, nodes = {source_entity: 1, target_entity: 1};
+        var tieId, nodes = {source_entity: 1, target_entity: 1}, node;
 
         for(tieId in self.ties){
             var tie = self.ties[tieId];

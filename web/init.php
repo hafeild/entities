@@ -4,6 +4,8 @@
 // Date:    10-Oct-2018
 // Purpose: Holds cross-file helpers and parses the config file. 
 
+require_once("controllers.php");
+
 // Read in the config file.
 $CONFIG_FILE = "../conf.json";
 $configFD = fopen($CONFIG_FILE, "r") or 
@@ -15,6 +17,19 @@ fclose($configFD);
 
 require_once("model.php");
 
+
+// Current user data.
+$user = null;
+
+// Get user credentials (if currently logged in).
+if(array_key_exists("WEI", $_COOKIE)){
+    if($_COOKIE["WEI"] != ""){
+        $user = getUserInfoByAuthToken($_COOKIE["WEI"]);
+    }
+}
+
+
+
 // Annotation methods and their associated labels.
 $validMethods = [
     "manual"             => ["automatic" => false, "root_only" => false], 
@@ -24,6 +39,14 @@ $validMethods = [
     "booknlp+tie-window" => ["automatic" => true,  "root_only" => true]
 ];
 
+/**
+ * Determines the label to give to an annotation. Includes pertinent information
+ * about the method and arguments to the method.
+ * 
+ * @param method The method of annotation (e.g., manual, booknlp, etc.).
+ * @param args Additional arguments for the method (e.g., n for tie-window).
+ * @return The label to give the annotation.
+ */
 function generateAnnotationLabel($method, $args){
     $label = "";
     if($method == "manual")
@@ -38,6 +61,23 @@ function generateAnnotationLabel($method, $args){
     return $label;
 }
 
+/**
+ * Determines the metadata for an annotation. Includes pertinent information
+ * about the method and arguments to the method.
+ * 
+ * @param method The method of annotation (e.g., manual, booknlp, etc.).
+ * @param args Additional arguments for the method (e.g., n for tie-window).
+ * @return The metadata for the annotation; may include the following fields:
+ *          - entity_extraction
+ *              * algorithm
+ *              * version
+ *              * parameters
+ *          - tie_extraction
+ *              * algorithm
+ *              * version
+ *              * parameters
+ *                  - n
+ */
 function generateAnnotationMethodMetadata($method, $args){
     // $data = [];
     if($method == "manual")
@@ -83,16 +123,6 @@ $validProcessors = [
     "token"   => 1,
     "tie-window" => 1
 ];
-
-
-$user = null;
-
-// Get user credentials (if currently logged in).
-if(array_key_exists("WEI", $_COOKIE)){
-    if($_COOKIE["WEI"] != ""){
-        $user = getUserInfoByAuthToken($_COOKIE["WEI"]);
-    }
-}
 
 
 /**

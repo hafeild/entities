@@ -190,8 +190,8 @@ public class WindowTieProcessor extends Processor {
             for(Location loc2 : annotation.locations.tailMap(loc1.id).values()){
                 try{
                     if(loc2.start - loc1.start <= n &&
-                            annotation.entities.get(loc1.entityId).groupId != 
-                            annotation.entities.get(loc2.entityId).groupId) {
+                         !annotation.entities.get(loc1.entityId).groupId.equals(
+                            annotation.entities.get(loc2.entityId).groupId)) {
                         Tie tie = new Tie();
                         tie.start = loc1.start;
                         tie.end = loc2.end;
