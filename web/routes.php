@@ -6,8 +6,7 @@
 
 require_once("controllers.php");
 require_once("init.php");
-require_once("model.php");
-require_once("model-annotations-sql.php");
+require_once("models/model-init.php");
 require_once("permissions.php");
 
 
@@ -146,12 +145,22 @@ $routes = [
         "Controllers::deleteAnnotationPermission"
     ),
 
-    // Study.
+    //////////////////////////////////////////////
+    // Studies
+    ///////////////
+
+    // Study login.
     Controllers::generateRoute(
         "GET",
         "#^study/login#",
         "Controllers::studyLogin"
-    )
+    ),
+
+    // Main study page -- lists the studies a subject is associated with.
+    Controllers::generateRoute(
+        "GET", 
+        "#^studies/?(\?.*)?$#", 
+        'Controllers::getStudies')
 
 
 #     "entities" => array("method" => "POST", "call" => addEntity),

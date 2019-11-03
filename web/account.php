@@ -5,7 +5,6 @@
 // Purpose: Handles signing up, logging in, and logging out.
 
 require_once("init.php");
-require_once("model.php");
 
 // Maps actions to the functions that will carry them out.
 $ACTION_MAP = array(
@@ -53,6 +52,7 @@ function signup($data){
  * Logs the user in. Requires that $data has the following keys:
  *  - username
  *  - password
+ *  - study_login (optional; if "1", redirects to study homepage)
  */
 function login($data){
     global $user;
@@ -72,7 +72,11 @@ function login($data){
     else
         setcookie("WEI", $authToken);
 
-    redirectToApp();
+    if(array_key_exists("study_login", $data) && $data["study_login"] == "1"){
+        redirectToStudy();
+    } else {
+        redirectToApp();
+    }
 }
 
 /**
@@ -120,6 +124,13 @@ function redirectToSignup($error="", $message="") {
  */
 function redirectToApp($error="", $message="") {
     redirectToPage("/", $error, $message);
+}
+
+/**
+ * Redirects to the main study page, adding in provided errors or messages.
+ */
+function redirectToStudy($error="", $message="") {
+    redirectToPage("/studies", $error, $message);
 }
 
 /**
