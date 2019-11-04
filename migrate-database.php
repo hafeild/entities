@@ -22,7 +22,7 @@ $migrations = [
     "makeUsersTextsAnnotationsTables",
     "renameTextUploadedAtColumn",
     "updateUsersTextsAnnotationsTables",
-    "addPermissionsTables"
+    "addPermissionsTables",
     "addStudyTables"
 ];
 

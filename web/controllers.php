@@ -1393,6 +1393,11 @@ public static function redirectTo($url, $error=null, $message=null){
 }
 
 
+public static function studyLogin($path, $matches, $params, $format){
+    require("study-login.html");
+}
+
+
 }
 
 ?>

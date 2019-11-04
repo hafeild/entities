@@ -1,10 +1,9 @@
 <?php
-// File:    model-annotations-sql.php
+// File:    annotations.php
 // Author:  Hank Feild
 // Date:    15-Oct-2018
 // Purpose: Handles model operations for the text annotation API. 
 
-require_once("model.php");
 
 /**
  * Makes a connection to the annotation database.
@@ -434,3 +433,190 @@ function getBlankSlateAnnotation($textId){
             ["In lookupAnnotationsByText($textId)"]);
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Annotation permissions.
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Extracts the permission data for the given user and annotation. 
+ * 
+ * @param userId The id of the user.
+ * @param annotationId The id of the annotation.
+ * @return An associative array of permission data with these fields:
+ *      * id (permission id)
+ *      * user_id
+ *      * annotation_id
+ *      * permission
+ *      * created_at
+ */
+function getAnnotationPermission($userId, $annotationId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select * from annotation_permissions ". 
+            "where annotation_id = :annotation_id and user_id = :user_id");
+        $statement->execute([
+            ":annotation_id" => $annotationId,
+            ":user_id" => $userId
+        ]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        error("There was an error retrieving permissions for the given ". 
+            "annotation: ". $e->getMessage());
+    }
+}
+
+/**
+ * Extracts the data for the given annotation permission id. 
+ * 
+ * @param permissionId The id of the annotation permission.
+ * @return An associative array of permission data with these fields:
+ *      * id (permission id)
+ *      * user_id
+ *      * text_id
+ *      * permission
+ *      * created_at
+ */
+function getAnnotationPermissionById($permissionId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select * from annotation_permissions ". 
+            "where id = :id");
+        $statement->execute([
+            ":id" => $permissionId
+        ]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        error("There was an error retrieving the given permission: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Extracts the permission data for the given annotation. 
+ * 
+ * @param annotationId The id of the text.
+ * @return An list of associative arrays of permission data with these fields:
+ *      * id (permission id)
+ *      * user_id
+ *      * username
+ *      * annotation_id
+ *      * permission
+ *      * created_at
+ */
+function getAnnotationPermissions($annotationId){
+
+    try{
+        $dbh = connectToDB();
+        $statement = $dbh->prepare("select annotation_permissions.*, username ". 
+            "from annotation_permissions ". 
+            "join users on user_id = users.id ". 
+            "where annotation_id = :annotation_id");
+        $statement->execute([
+            ":annotation_id" => $annotationId
+        ]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e){
+        error("There was an error retrieving permissions on the given ". 
+            "annotation: ". $e->getMessage());
+    }
+}
+
+/**
+ * Adds an annotation permission.
+ * 
+ * @param userId The id of the user to add the permission for.
+ * @param annotationId The id of the annotation to add the permission to.
+ * @param permission The permission level (integer):
+ *                      - 0: none
+ *                      - 1: read
+ *                      - 2: write
+ *                      - 3: owner
+ * @return The id of the newly created permission.
+ */
+function addAnnotationPermission($userId, $annotationId, $permission){
+    $dbh = connectToDB();
+    $dbh->beginTransaction();
+
+    try {
+        $statement = $dbh->prepare(
+            "insert into annotation_permissions". 
+                "(annotation_id, user_id, permission, created_at, updated_at) ". 
+                "values (:annotation_id, :user_id, :permission, :time, ". 
+                ":time)");
+        $success = $statement->execute([
+            ":annotation_id"    => $annotationId,
+            ":user_id"    => $userId,
+            ":permission" => $permission,
+            ":time" => curDateTime()
+        ]);
+
+        $permissionId = $dbh->lastInsertId();
+
+        $dbh->commit();
+
+        return $permissionId;
+
+    } catch(PDOException $e){
+        $dbh->rollback();
+        error("There was an error adding the annotation permission: ". 
+            $e->getMessage());
+    }
+}
+
+
+/**
+ * Updates the permission level of the given annotation permission. 
+ * 
+ * @param id The id of the annotation permission.
+ * @param permission The permission level (integer):
+ *                      - 0: none
+ *                      - 1: read
+ *                      - 2: write
+ *                      - 3: owner
+ */
+function setAnnotationPermission($id, $permission){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "update annotation_permissions set permission = :permission, ".
+                "updated_at = :updated_at where id = :id");
+        $success = $statement->execute([
+            ":id"    => $id,
+            ":permission" => $permission,
+            ":updated_at" => curDateTime()
+        ]);
+    } catch(PDOException $e){
+        error("There was an error updating the annotation permission: ". 
+            $e->getMessage());
+    }
+}
+
+/**
+ * Deletes the given annotation permission. 
+ * 
+ * @param id The id of the annotation permission.
+ */
+function deleteAnnotationPermission($id){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "delete from annotation_permissions where id = :id");
+        $success = $statement->execute([
+            ":id"    => $id
+        ]);
+    } catch(PDOException $e){
+        error("There was an error deleting the annotation permission: ". 
+            $e->getMessage());
+    }
+}
+
+?>
