@@ -1427,9 +1427,9 @@ public static function studyLogin($path, $matches, $params, $format){
  * @param matches Ignored.
  * @param params Ignored.
  * @param format If "html", loads the study homepage. If "json", generates a 
- *               JSON reponse as described above.
+ *               JSON response as described above.
  */
-public static function getStudyPages($path, $matches, $params, $format){
+public static function getStudies($path, $matches, $params, $format){
     global $users;
 
     $results = [
@@ -1440,8 +1440,8 @@ public static function getStudyPages($path, $matches, $params, $format){
     if($format == "json"){
         return $results;
     } else {
-        Controllers::render("EntiTies&mdash;Studies", "views/studies.php", 
-            $results, $errors, $messages);
+        Controllers::render("Studies&mdash;EntiTies", "views/studies.php", 
+            $results);
     }
 }
 
@@ -1470,9 +1470,9 @@ public static function getStudyPages($path, $matches, $params, $format){
  * @param matches The first match should be the study id.
  * @param params Ignored.
  * @param format If "html", loads the study homepage. If "json", generates a 
- *               JSON reponse as described above.
+ *               JSON response as described above.
  */
-public static function getStudyPages($path, $matches, $params, $format){
+public static function getSteps($path, $matches, $params, $format){
     global $users;
 
     $results = [

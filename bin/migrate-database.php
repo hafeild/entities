@@ -5,7 +5,7 @@
 // Purpose: Performs EntiTies database migrations. Currently tested with 
 //          sqlite and PostgreSQL.
 
-$CONFIG_FILE = "conf.json";
+$CONFIG_FILE = "config/settings.jsonc";
 $MIGRATION_FILE = ".entities-migration";
 $PERMISSIONS = [
     "NONE"  => 0,

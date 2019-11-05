@@ -1,7 +1,7 @@
-conf.json
+settings.jsonc
 book-nlp
 lib
-bin
+bin/edu
 old
 files
 .entities-migration

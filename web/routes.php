@@ -152,7 +152,7 @@ $routes = [
     // Study login.
     Controllers::generateRoute(
         "GET",
-        "#^study/login#",
+        "#^studies/login#",
         "Controllers::studyLogin"
     ),
 
@@ -160,7 +160,13 @@ $routes = [
     Controllers::generateRoute(
         "GET", 
         "#^studies/?(\?.*)?$#", 
-        'Controllers::getStudies')
+        'Controllers::getStudies'),
+
+    // Steps for a given study.
+    Controllers::generateRoute(
+        "GET", 
+        "#^studies/(\d+)/?(\?.*)?$#", 
+        'Controllers::getStudy')
 
 
 #     "entities" => array("method" => "POST", "call" => addEntity),

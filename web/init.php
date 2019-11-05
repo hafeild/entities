@@ -7,7 +7,7 @@
 require_once("controllers.php");
 
 // Read in the config file.
-$CONFIG_FILE = "../conf.json";
+$CONFIG_FILE = "../config/settings.jsonc";
 $configFD = fopen($CONFIG_FILE, "r") or 
     error("Error reading configuration file.");
 // Strip out comments before parsing the config file.

@@ -19,9 +19,10 @@ Clone this directory onto a webserver that has PHP 5.5+ and Java JDK 8 or
 higher installed. 
 
 ## Step 2. 
-Copy `conf-EXAMPLE.json` to `conf.json` and edit it. Note that you must
-choose where to store original texts (must be writable by the apache user) and
-what database to use to store metadata. Currently supported databases:
+Copy `config/settings-EXAMPLE.jsonc` to `config/settings.jsonc` and edit it.
+Note that you must choose where to store original texts (must be writable by the
+apache user) and what database to use to store metadata. Currently supported
+databases:
 
   * sqlite
   * PostgreSQL
@@ -32,7 +33,7 @@ last value set is used. You may use `//` to comment out lines.
 ## Step 3.
 Run the database migrations:
 
-    php migrate-database.php up
+    php bin/migrate-database.php up
 
 See [Database Migrations](#database-migrations) for details on migrations and 
 troubleshooting.
@@ -60,12 +61,12 @@ Make a copy or symlink to the `book-nlp/files/` directory in the
 ## Step 6.
 Download remaining dependencies and compile the Java side of things by running:
 
-    ./make.sh
+    bin/make.sh
 
 ## Step 7.
 Start the BookNLPServer by running the `run-java-server.sh` script:
 
-    ./run-java-server.sh
+    bin/run-java-server.sh
 
 # Development
 
@@ -81,10 +82,10 @@ number to something other than 3535 if you wish.
 
 # Using with Apache
 
-In order to route everything through `web/routes.php`, add the [`apache.conf`](apache.conf)
-configuration files to your sites (e.g., in `/etc/apache2/sites-available`),
-modify it to use your domain, adjust the `DOCUMENT_ROOT` path accordingly,
-then enable it:
+In order to route everything through `web/routes.php`, add the
+[`config/apache.conf`](config/apache.conf) configuration files to your sites
+(e.g., in `/etc/apache2/sites-available`), modify it to use your domain, adjust
+the `DOCUMENT_ROOT` path accordingly, then enable it:
 
 ```
 ## Note: this is the location on Ubuntu.

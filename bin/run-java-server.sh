@@ -1,6 +1,6 @@
 #!/bin/bash
 
-defaultConfig="-s conf.json"
+defaultConfig="-s config/settings.jsonc"
 sep=":"
 
 for arg in $@; do 

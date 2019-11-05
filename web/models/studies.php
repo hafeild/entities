@@ -32,13 +32,14 @@ function getStudies($userId=null){
     try {
         $statement = $dbh->prepare(
             "select studies.id as id, name, begin_at, end_at, ". 
-                "created_at, group_id from study_participants join studies ". 
-                "on study.id = study_id where user_id = :user_id");
+                "studies.created_at, group_id from study_participants ". 
+                "join studies on studies.id = study_id ". 
+                "where user_id = :user_id");
         $success = $statement->execute([
             ":user_id" => $userId
         ]);
            
-        return $statement->fetch(PDO::FETCH_ASSOC);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
         error("There was an error reading study info from the database",
             [$e->getMessage()]);
@@ -113,7 +114,7 @@ function getSteps($studyId, $userId=null){
             ":user_id" => $userId
         ]);
            
-        return $statement->fetch(PDO::FETCH_ASSOC);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
         error("There was an error reading study info from the database",
             [$e->getMessage()]);
