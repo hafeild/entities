@@ -1,0 +1,97 @@
+// This is a sample study configuration file. Feed it as input to the 
+// bin/initialize-study.php script:
+//
+//      php bin/initialize-study.php study-config.jsonc
+//
+// That script will populate the database with new users (if necessary),
+// permissions, and study information in the database.
+[{
+    "name":  "Example study",
+
+    "starts_at": "2019-11-05 00:00:00 +5:00",
+    "ends_at": "2019-11-25 00:00:00 +5:00",
+
+    // The underlying texts you would like to use for the study.
+    "texts": {
+        "Dracula": {
+            // Use one of text_url or db_id, but not both.
+
+            // Use text_url if this text isn't already in the database.
+            "text_url": "/path/to/dracula.txt",
+            // Use db_id if this text is in the database; visit the text's page 
+            // on your EntiTies website and extract the id from the url. The
+            // format is: https://entities..../texts/:id, where :id is the 
+            // text id.
+            "db_id": null
+        }
+    },
+
+    // These are the annotations you want study subjects to interact with. 
+    // Each subject will work on their own fork of the annotation so their work
+    // does not collide.
+    "annotations": {
+        "dracula 1": {
+            "text_title": "Dracula",
+            "annotation_title": "Blank annotation",
+            "parameters": {"method": "manual"}
+        },
+        "dracula 2": {
+            "text_title": "Dracula",
+            "annotation_title": "Automatic annotation",
+            "parameters": {"method": "booknlp+tie-win", "n": 30}
+        },
+        // You can also point to an existing annotation. A fork will be made
+        // for each subject.
+        "another annotation": {
+            "db_id": 1
+        }
+    },
+    
+
+    // Any users that do not exist will be created. Each user needs to be
+    // assigned to a group, and this will determine what tasks they see and in 
+    // what order (see the "steps" and "step_orderings" sections below).
+    "participants": [
+        {
+            "username": "participant1",
+            "group": "Group A"
+        },
+        {
+            "username": "participant2",
+            "group": "Group B"
+        }
+    ],
+    
+    // These are the specific tasks or set of steps you want participants to
+    // perform. The order of these is defined in a later section and is
+    // specified per group.
+    "steps": {
+        "pre_questionnaire": {
+            "link_description": "Pre-study questionnaire",
+            // Enter either a url OR annotation_id.
+            "url": "https://a-survey-link.com",
+            "annotation": null
+        },
+        "annotation 1": {
+            "link_description": "Annotate Dracula from scrach",
+            "annotation": "dracula 1"
+        },
+        "annotation 2": {
+            "link_description": "Correct automatic Dracula annotation",
+            "annotation": "dracula 2"
+        },
+        "post_questionnaire": {
+            "link_description": "Post-study questionnaire",
+            // Enter either a url OR annotation_id.
+            "url": "https://a-survey-link.com"
+        },
+    },
+
+    // Maps group names to the sequence of steps to be displayed for each user 
+    // in the given group.
+    "step_orderings": {
+        "Group A": ["pre_questionnaire", "annotation 1", "annotation 2", "post_questionnaire"],
+        "Group B": ["pre_questionnaire", "annotation 2", "annotation 1", "post_questionnaire"]
+    }
+
+}]
