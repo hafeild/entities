@@ -1392,10 +1392,102 @@ public static function redirectTo($url, $error=null, $message=null){
     die('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url='. $url .'"></head></html>');
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Study controller functions.
+////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Loads the study login page.
+ * 
+ * @param path Ignored.
+ * @param matches Ignored.
+ * @param params Ignored.
+ * @param format Ignored.
+ */
 public static function studyLogin($path, $matches, $params, $format){
     require("study-login.html");
 }
+
+/**
+ * Fetches a list of the studies the currently logged in user is associated 
+ * with, either as the study homepage or as a JSON list of studies depending on
+ * the value of the format parameter. The data structure created to be returned 
+ * as JSON or passed on to the view looks like this:
+ * 
+ *   - success (true/false)
+ *   - studies (array of objects, one per study the user is associated with)
+ *      * id
+ *      * name
+ *      * begin_at
+ *      * end_at
+ *      * created_at
+ *      * group_id 
+ * 
+ * @param path Ignored.
+ * @param matches Ignored.
+ * @param params Ignored.
+ * @param format If "html", loads the study homepage. If "json", generates a 
+ *               JSON reponse as described above.
+ */
+public static function getStudyPages($path, $matches, $params, $format){
+    global $users;
+
+    $results = [
+        "success" => true,
+        "studies" => getStudies($users["id"])
+    ];
+
+    if($format == "json"){
+        return $results;
+    } else {
+        Controllers::render("EntiTies&mdash;Studies", "views/studies.php", 
+            $results, $errors, $messages);
+    }
+}
+
+/**
+ * Fetches the tasks for the currently logged in user and study, either as a
+ * study page or as a JSON list of tasks depending on
+ * the value of the format parameter. The data structure created to be returned 
+ * as JSON or passed on to the view looks like this:
+ * 
+ *   - success (true/false)
+ *   - study
+ *      * id
+ *      * name
+ *      * begin_at
+ *      * end_at
+ *      * created_at
+ *      * group_id 
+ *   - tasks (list of task objects)
+ *      * id
+ *      * is_complete
+ *      * ordering
+ *      * url
+ *      * 
+ * 
+ * @param path Ignored.
+ * @param matches The first match should be the study id.
+ * @param params Ignored.
+ * @param format If "html", loads the study homepage. If "json", generates a 
+ *               JSON reponse as described above.
+ */
+public static function getStudyPages($path, $matches, $params, $format){
+    global $users;
+
+    $results = [
+        "success" => true,
+        "studies" => getStudies($users["id"])
+    ];
+
+    if($format == "json"){
+        return $results;
+    } else {
+        Controllers::render("EntiTies&mdash;Studies", "views/studies.php", 
+            $results, $errors, $messages);
+    }
+}
+
 
 
 }
