@@ -81,16 +81,25 @@
 //                                  the step will link to a fork of the 
 //                                  annotation specified. Use this OR "url", but
 //                                  not both.
-//          - step_orderings -- TODO
+//          - step_orderings -- A map of group names -> an ordered list of steps
+//                              to display for that group.
+//              * "group name" -- Should align with the group name from the 
+//                                participants section (see above).
+//                  - (array) -- An ordered list of step labels (see the step 
+//                               section above). This is the order in which the
+//                               steps will be shown to subjects in the
+//                               corresponding group. You do not need to list 
+//                               every step for every group.
 
 
 // Check arguments.
 if(count($argv) == 1 || $argv[1] == "-h"){
     die("Usage: php initialize-study.php <study config file>|-h ". 
-        "[<study config file> ...]\n\n");
+        "[<study config file> ...]\n\n". 
+        "See the comment at the top of this script for format details.\n\n");
 }
 
-for($i = 1; $i < count($argv)){
+for($i = 1; $i < count($argv); $i++){
     // Read in the configuration file.
     $configFile = $argv[$i];
     $configFD = fopen($configFile, "r") or 
@@ -116,10 +125,117 @@ for($i = 1; $i < count($argv)){
 
 
 /**
- * Processes each study in the file. 
+ * Processes the given study settings, creating users, tokenizing texts, 
+ * processing annotations, forking annotations, setting permissions, and
+ * filling out the study-related database tables as necessary.
  */
 function processStudy($study){
     print "Processing ${study["name"]}\n";
 
 }
+
+/**
+ * Loads any texts that aren't already in the database. Each text object is
+ * updated with the text's id in the `texts` table under the field `db_id`.
+ * 
+ * @param study The study object. This is updated in place (see above).
+ */
+function loadTexts(&$study) {
+
+}
+
+/**
+ * Processes any annotations that aren't already in the database. Each
+ * annotation object is updated with the annotation's id in the `annotations`
+ * table under the field `db_id`.
+ * 
+ * @param study The study object. This is updated in place (see above).
+ */
+function addAnnotations(&$study){
+
+}
+
+
+/**
+ * Adds a new entry to the `studies` table. The id of the study is added to a
+ * field named `db_id` in the $study parameter.
+ * 
+ * @param study The study object. This is updated in place (see above).
+ */
+function addStudy(&$study){
+
+}
+
+/**
+ * Adds a new entries to the `study_groups` table. The id of each created group
+ * is added under a field named `db_id` in the associated group of the $study
+ * object passed in. Assumes the study has been added to the database and has a
+ * corresponding `db_id` key.
+ * 
+ * @param study The study object. This is updated in place (see above).
+ */
+function addStudyGroups(&$study){
+
+}
+
+/**
+ * Creates users listed in the `participants` section of the passed in map if
+ * necessary and creates a new entry in the `study_participants` table. Each
+ * participant object is updated with the user's id under the key `db_id`.
+ * Assumes the study and groups have been added to the database and each have a
+ * corresponding `db_id` key.
+ * 
+ * @param study The study object. This is updated in place (see above).
+ */
+function createParticipants(&$study){
+
+}
+
+
+/**
+ * Adds a new entries to the `study_steps` table. The id of each created step
+ * is added under a field named `db_id` in the associated group of the $study
+ * object passed in. Assumes the study, groups, and annotations have been added
+ * to the database and each have a corresponding `db_id` key.
+ * 
+ * @param study The study object. This is updated in place (see above).
+ */
+function addStudySteps(&$study){
+
+}
+
+/**
+ * Adds the step orderings for each group. Assumes the study, groups, and
+ * steps have been added to the database and each have a `db_id` key.
+ * 
+ * @param study The study object.
+ */
+function addStepOrderings(&$study){
+
+}
+
+/**
+ * Adds one entry to the `study_participant_steps` table for each step a 
+ * participant's group has specified. This forks the annotation (when 
+ * appropriate) associated with the study_step. Assumes each step has been added
+ * to the database and has a corresponding `db_id` key in the study object.
+ * 
+ * @param study The study object.
+ */
+function addParticipantSteps(&$study){
+
+}
+
+/**
+ * Creates a fork of the given annotation, then assigns permissions so that only
+ * the given user can access it.
+ * 
+ * @param annotationId The id of the annotation to fork.
+ * @param userId The id of the user who should have access.
+ * @return The id of the forked annotation.
+ */
+function forkAnnotation($annotationId, $userId){
+
+}
+
 ?>
