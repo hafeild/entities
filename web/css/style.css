@@ -395,7 +395,7 @@ span.selectedEntity.end-token {
   z-index: 10;
   padding: 12px 0;
   width: 240px;
-  background-color: #fff;
+  background-color: RGBA(97, 97, 97, 0.8);
   border: solid 1px #dfdfdf;
   box-shadow: 1px 1px 2px #cfcfcf;
 }
@@ -423,12 +423,12 @@ span.selectedEntity.end-token {
 .context-menu__link {
   display: block;
   padding: 4px 12px;
-  color: #0066aa;
+  color: white;
   text-decoration: none;
 }
 
 .context-menu__link:hover {
-  color: #fff;
+  color: white;
   background-color: #0066aa;
   text-decoration: none;
   cursor: pointer;
@@ -495,14 +495,18 @@ span.selectedEntity.end-token {
 
 .tie-text {
     text-decoration: underline;
-    -webkit-text-decoration-color: salmon;
-    text-decoration-color: salmon;
+    -webkit-text-decoration-color: DodgerBlue;
+    text-decoration-color: DodgerBlue;
 
     text-decoration-thickness: 3px;
 }
 
 .tie-text:hover {
     cursor: alias;
+}
+
+#tieObjectTwoDropdown {
+    float: right;
 }
 
 .dropdown-menu.tieObjectSelector {         

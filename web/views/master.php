@@ -211,7 +211,7 @@ global $user;
               <div class="row">
               </div>
               <div class="row" id="tieModalObjectSelectors">
-                <div class="col-sm-4">
+                <div class="col-sm-6">
                   <div class="dropdown">
                     <button class="btn btn-primary dropdown-toggle" id="tieObjectOneDropdown" type="button" data-toggle="dropdown">Object One
                     <span class="caret"></span></button>
@@ -220,10 +220,7 @@ global $user;
                     </ul>
                   </div>
                 </div>
-                <div class="col-sm-4">
-                  <input name="tieNameBox" class="form-control" placeholder="" type="text" maxlength="512" id="tieNameBox"/>
-                </div>
-                <div class="col-sm-4">
+                <div class="col-sm-6">
                   <div class="dropdown">
                     <button class="btn btn-primary dropdown-toggle" id="tieObjectTwoDropdown" type="button" data-toggle="dropdown">Object Two
                     <span class="caret"></span></button>
@@ -232,6 +229,29 @@ global $user;
                     </ul>
                   </div>
                 </div>
+              </div>
+              <hr />
+              <div class="row" style="margin-top: 20px">
+                <div class="col-sm-4">
+                  <div style="float: left">
+                    <input name="tieWeightBox" class="form-control" value="1" type="number" id="tieWeightBox"/>
+                    <label style="width: 100%; text-align: center;" for="tieWeightBox">Weight</label>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div style="float: left">
+                    <input name="tieNameBox" class="form-control" placeholder="" type="text" maxlength="100" id="tieNameBox"/>
+                    <label style="width: 100%; text-align: center;" for="tieWeightBox">Label</label>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div class="form-check">
+                    <label class="form-check-label" for="tieDirectedToggle">
+                        Directed 
+                    </label>
+                    <input name="tieDirectedToggle" class="form-check-input" type="checkbox" id="tieDirectedToggle" />
+                  </div>
+                </div>        
               </div>
             </div>
             <div class="modal-footer">

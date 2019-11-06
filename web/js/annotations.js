@@ -3,7 +3,6 @@ var currentTextId = null;
 var annotation_data = null;
 var annotationManager = null;
 
-// Context Menu
 var menuConfigData = {
     textSpans: null,
     newGroupId: null,
@@ -15,11 +14,14 @@ var menuConfigData = {
     selectedGroups: [],
     numSelectedGroups: 0,
     tieObjectOne: null,
-    tieObjectTwo: null
+    tieObjectTwo: null,
+    tieMentionHoveredOne: null,
+    tieMentionHoveredTwo: null
 };
 var menuOpen = 0;
 var menu;
 var mouseClicked = 0;
+var menuTimer = null;
 
 var getTexts = function(){
     $.get({
@@ -510,7 +512,7 @@ var existingEntityClicked = function(event) {
     var groupId = clickedEntity.attr('data-group-id');
 
     if (clickedEntity.hasClass('selectedEntity')) {
-        deselectEntity(entityId);
+        deselectEntity(clickedEntity);
         menuConfigData.selectedGroups.splice(menuConfigData.selectedGroups.indexOf(groupId), 1);
         menuConfigData.selectedMentions.splice(menuConfigData.selectedMentions.indexOf(clickedEntity.attr('data-location-id')), 1);
 
@@ -520,7 +522,7 @@ var existingEntityClicked = function(event) {
         return;
     }
 
-    selectEntity(entityId);
+    selectEntity(clickedEntity);
     menuConfigData.selectedGroups.push(groupId);
     menuConfigData.selectedMentions.push(clickedEntity.attr('data-location-id'));
 
@@ -540,13 +542,44 @@ var existingEntityClicked = function(event) {
     openContextMenu(contextMenuOptions, clickedEntity);
 }
 
+
+function selectEntity(entity) {
+    entityId = entity.attr('data-entity-id');
+    menuConfigData.numSelectedEntities++;
+    menuConfigData.recentSelectedEntityId = entityId;
+    menuConfigData.recentSelectedEntity = entity;
+    menuConfigData.selectedEntities.push(entityId);
+
+    // Cannot use JQuery selector because entity isn't the only class
+    if (entity.hasClass('entity')) {
+        $('[data-location-id="' + entity.attr('data-location-id') + '"]').each(function() {
+            $(this).addClass('selectedEntity');
+        });
+    }
+}
+
+function deselectEntity(entity) {
+    entityId = entity.attr('data-entity-id');
+    // Remove entity from selection list
+    menuConfigData.numSelectedEntities--;
+    menuConfigData.selectedEntities.splice(menuConfigData.selectedEntities.indexOf(entityId), 1);
+    menuConfigData.recentSelectedEntity = null;
+    menuConfigData.recentSelectedEntityId = null;
+
+    // Cannot use JQuery selector because entity isn't the only class
+    if (entity.hasClass('entity')) {
+        $('[data-location-id="' + entity.attr('data-location-id') + '"]').each(function() {
+            $(this).removeClass('selectedEntity');
+        });
+    }
+}
+
 var checkSelectedText = function(event) {
     // if nothing is selected, return
     if (window.getSelection().toString() == "") return;
 
     var textSpans = [];
     var textSpans = getSelectedSpans();
-    console.log(textSpans);
 
     if (textSpans === []) {
         return;
@@ -574,16 +607,16 @@ function getSelectedSpans() {
     var spanCount = 0;
 
     sel = window.getSelection();
-    console.log(sel);
+    
+    if (typeof sel.anchorNode.nodeValue === typeof null || typeof sel.anchorNode.nodeValue === typeof undefined
+        || typeof sel.focusNode.nodeValue === typeof null || typeof sel.focusNode.nodeValue === typeof undefined) {return [];}
 
     if (sel.anchorNode.nodeValue.trim() == "") {
-        console.log("anchor");
         startSpan = $(sel.anchorNode.parentElement).prev()[0];
     } else {
         startSpan = sel.anchorNode.parentElement;
     }
     if (sel.focusNode.nodeValue.trim() == "") {
-        console.log("focus");
         endSpan = $(sel.focusNode.parentElement).prev()[0];
     } else {
         endSpan = sel.focusNode.parentElement;
@@ -721,6 +754,8 @@ var closeContextMenu = function() {
     if (menuConfigData.tieMentionHoveredOne !== null || menuConfigData.tieMentionHoveredOne !== undefined) {
         $('[data-location-id="' + menuConfigData.tieMentionHoveredOne + '"]').removeClass('selectedEntity');
         $('[data-location-id="' + menuConfigData.tieMentionHoveredTwo + '"]').removeClass('selectedEntity');
+        menuConfigData.tieMentionHoveredOne = null;
+        menuConfigData.tieMentionHoveredTwo = null;
     }
     if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
         !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
@@ -733,30 +768,78 @@ var closeContextMenu = function() {
     }
 }
 
-var openHoverMenu = function(e) {
-    var hoverOption = $(event.target).parent();
+var startHoverMenuTimer = function(e) {
+    if (typeof menuTimer === typeof null || typeof menuTimer === typeof undefined) { 
+        menuTimer = setTimeout(openHoverMenu, 150, $(e.target).parent());
+    }
+}
+
+var clearHoverMenuTimer = function(e) {
+    if (menuConfigData.tieMentionHoveredOne === null || menuConfigData.tieMentionHoveredOne === undefined) {
+        // unhighlight what's highlighted by hover menu
+        $('.selectedEntity').each(function() {
+            $(this).removeClass('selectedEntity');
+        })
+
+        // rehighlight what was specifically clicked
+        menuConfigData.selectedMentions.forEach(function(m) {
+            $('[data-location-id="' + m + '"]').each(function() {
+                $(this).addClass('selectedEntity');
+            });
+        }) 
+    }
+    
+    if (typeof menuTimer === typeof null || typeof menuTimer === typeof undefined) { return; }
+    clearTimeout(menuTimer);
+    menuTimer = null;
+}
+
+var openHoverMenu = function(hoverOption) {
+    if (!hoverOption.hasClass('tieHover') && (menuConfigData.recentSelectedEntity === null || menuConfigData.recentSelectedEntity === undefined)) {
+        return;
+    }
+
+    var entity = menuConfigData.recentSelectedEntity;
+
     var hoverMenu = $('.context-menu-hover');
     var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
     var options = [];
     var locationMultiplier = 1;
 
+    if (!hoverOption.hasClass('tieHover')) {
+        // unhighlight everything, preparing for more specific highlighting
+        $('[data-group-id="' + entity.attr('data-group-id') + '"]').each(function() {
+            $(this).removeClass('selectedEntity');
+        });
+    }
+
+    // base locationMultiplier off of number of context menu options
+    $(hoverOption.parent()).children().each(function() {
+        if (!hoverOption.is($(this))) {locationMultiplier++;}
+        else {return false;}
+    });
+
     if (hoverOption.hasClass('thisMentionHover')) {
         options.push("<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>");
         options.push("<li class='context-menu__item reassignMentionOption'><a class='context-menu__link'><i>Reassign</i></a></li>");
 
-        locationMultiplier = 1;
+        $('[data-location-id="' + entity.attr('data-location-id') + '"]').addClass('selectedEntity');
     }
     else if (hoverOption.hasClass('thisEntityHover')) {
         options.push("<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>");
         options.push("<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>");
 
-        locationMultiplier = 2;
+        $('[data-entity-id="' + entity.attr('data-entity-id') + '"]').each(function() {
+            $(this).addClass('selectedEntity');
+        });
     }
     else if (hoverOption.hasClass('thisGroupHover')) {
         options.push("<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>");
         options.push("<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>");
 
-        locationMultiplier = 3;
+        $('[data-group-id="' + entity.attr('data-group-id') + '"]').each(function() {
+            $(this).addClass('selectedEntity');
+        });
     }
     else if (hoverOption.hasClass('selectedHover')) {
         if (menuConfigData.numSelectedEntities > 1) {
@@ -767,17 +850,16 @@ var openHoverMenu = function(e) {
             options.push("<li class='context-menu__item deleteSelectedGroupsOption'><a class='context-menu__link'><i>Delete Selected Groups</i></a></li>");
         }
 
-        locationMultiplier = 4;
+        menuConfigData.selectedGroups.forEach(function(g) {
+            $('[data-group-id="' + g + '"]').each(function() {
+                $(this).addClass('selectedEntity');
+            });
+        });
     }
     else if (hoverOption.hasClass('tieHover')) {
         options.push("<li class='context-menu__item editTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i>Edit Tie</i></a></li>");
         options.push("<li class='context-menu__item deleteTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i>Delete Tie</i></a></li>");
 
-        // base locationMultiplier off of number of context menu options
-        $(hoverOption.parent()).children().each(function() {
-            if (!hoverOption.is($(this))) {locationMultiplier++;}
-            else {return false;}
-        });
 
         // unhighlight previously highlighted mentions if they exist
         if (menuConfigData.tieMentionHoveredOne !== null || menuConfigData.tieMentionHoveredOne !== undefined) {
@@ -808,7 +890,7 @@ var openHoverMenu = function(e) {
     hoverMenu.addClass("context-menu--active");
 }
 
-var closeHoverMenu = function(e) {
+var closeHoverMenu = function(e) {  
     var hoverMenu = $('.context-menu-hover');
     var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
 
@@ -832,35 +914,6 @@ function getPositionForMenu(e, clickedEntity) {
         x: offset.left + clickedEntity.width(),
         y: offset.top + clickedEntity.height()
     };
-}
-
-function selectEntity(entityId) {
-    menuConfigData.numSelectedEntities++;
-    menuConfigData.recentSelectedEntityId = entityId;
-    menuConfigData.selectedEntities.push(entityId);
-
-    // Function to find every token in entity
-    $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
-        // Cannot use JQuery selector because entity isn't the only class
-        if ($(this).hasClass('entity')) {
-            $(this).addClass('selectedEntity');
-        }
-    })
-}
-
-function deselectEntity(entityId) {
-    // Remove entity from selection list
-    menuConfigData.numSelectedEntities--;
-    menuConfigData.selectedEntities.splice(menuConfigData.selectedEntities.indexOf(entityId), 1);
-    menuConfigData.recentSelectedEntity = null;
-    menuConfigData.recentSelectedEntityId = null;
-
-    $('[data-entity-id=' + entityId + ']').filter('span').each(function() {
-        // Cannot use JQuery selector because entity isn't the only class
-        if ($(this).hasClass('entity')) {
-            $(this).removeClass('selectedEntity');
-        }
-    }) 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1011,10 +1064,11 @@ var openAddTieModal = function(e) {
     var curSpanClone = null;
 
     // don't start on puncutative tokens
-    while (curSpan.prev() !== null && curSpan.prev() !== undefined &&
-           curSpan.prev().length !== 0 && curSpan.prev().html().trim() !== "") {
+    while (curSpan.prev().prev() !== null && curSpan.prev().prev() !== undefined &&
+           curSpan.prev().prev().length !== 0 && curSpan.prev().html().trim() !== "") {
                 curSpan = curSpan.prev();
     }
+    curSpan = curSpan.prev();
     while (curSearch < objectSearchWindowSize) {
         if (curSpan === null || curSpan === undefined || curSpan.length===0) { break; }
         if (typeof curSpan.attr('data-token') !== typeof undefined && typeof curSpan.attr('data-token') !== typeof null) {curSearch++;}
@@ -1028,10 +1082,13 @@ var openAddTieModal = function(e) {
         spanList.push(curSpanClone); 
         curSpan = curSpan.next();
     }
+    curSpan = curSpan.prev();
     // don't end on punctuative tokens
     while (curSpan.next() !== null && curSpan.next() !== undefined &&
-           curSpan.next().length !== 0 && curSpan.next().html().trim() !== "") {
+           curSpan.next().length !== 0) {
                 spanList.push(curSpan.next().clone());
+                if (curSpan.next().html().trim() === "") {break};
+                console.log(curSpan.next());
                 curSpan = curSpan.next();
     }
 
@@ -1056,12 +1113,14 @@ var openAddTieModal = function(e) {
     var preselectOne = null;
     var preselectTwo = null;
 
-    console.log(parseInt($(menuConfigData.textSpans[0]).attr("data-token")));
+    // don't start on a space
+    if ($(spanList[0]).html().trim() === "") {
+        spanList.splice(0, 1);
+    }
 
     spanList.forEach(span => {
         tieModalTextArea.append(span.clone());
         if (span.hasClass('entity')) {
-            console.log(span);
             if (parseInt(span.attr('data-token')) < parseInt($(menuConfigData.textSpans[0]).attr("data-token"))) {
                 preselectOne = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
                 '<span class="unselectable">' + span.html() + '</span></li>';
@@ -1114,7 +1173,6 @@ var openAddTieModal = function(e) {
         if (preselectTwo.attr('data-entity-id') !== undefined && preselectTwo.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
         $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
     }
-    console.log(menuConfigData.tieObjectOne);
 
     $('#addTieModalOpener').click();
 }
@@ -1187,7 +1245,9 @@ var confirmAddTie = function() {
             end: 30, 
             source_entity: {location_id: "10_11"}, 
             target_entity: {entity_id: "5"}, 
-            label: "speak"
+            label: "speak",
+            weight: 3,
+            directed: true
         }
     */
     var tieData = {
@@ -1195,7 +1255,9 @@ var confirmAddTie = function() {
         end: parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr('data-token')),
         source_entity: null,
         target_entity: null,
-        label: $('#tieNameBox').val()
+        label: $('#tieNameBox').val(),
+        weight: parseFloat($('#tieWeightBox').val()),
+        directed: $('#tieDirectedToggle').is(':checked')
     }
 
     if (menuConfigData.tieObjectOne.attr('data-location-id') !== null && menuConfigData.tieObjectOne.attr('data-location-id') !== undefined) {
@@ -1212,8 +1274,6 @@ var confirmAddTie = function() {
     if (tieData.label === "") {
         tieData.label = $('#tieNameBox').attr('placeholder').trim();
     }
-
-    console.log(tieData);
 
     // addTie(tieData, callback)
     annotationManager.addTie(tieData, ()=>{window.location.reload(true);});
@@ -1658,11 +1718,19 @@ $(document).ready(function(){
     $(document).on('mouseenter', '.tie-object', highlightTieModalTextArea)
     $(document).on('mouseleave', '.tie-object', highlightTieModalTextArea)
 
-    $(document).on('mouseenter', '.thisMentionHover', openHoverMenu);
-    $(document).on('mouseenter', '.thisEntityHover', openHoverMenu);
-    $(document).on('mouseenter', '.thisGroupHover', openHoverMenu);
-    $(document).on('mouseenter', '.selectedHover', openHoverMenu);
-    $(document).on('mouseenter', '.tieHover', openHoverMenu);
+
+    $(document).on('mouseenter', '.thisMentionHover', startHoverMenuTimer);
+    $(document).on('mouseenter', '.thisMentionHover', startHoverMenuTimer);
+    $(document).on('mouseenter', '.thisEntityHover', startHoverMenuTimer);
+    $(document).on('mouseenter', '.thisGroupHover', startHoverMenuTimer);
+    $(document).on('mouseenter', '.selectedHover', startHoverMenuTimer);
+    $(document).on('mouseenter', '.tieHover', startHoverMenuTimer);
+    $(document).on('mouseleave', '.thisMentionHover', clearHoverMenuTimer);
+    $(document).on('mouseleave', '.thisMentionHover', clearHoverMenuTimer);
+    $(document).on('mouseleave', '.thisEntityHover', clearHoverMenuTimer);
+    $(document).on('mouseleave', '.thisGroupHover', clearHoverMenuTimer);
+    $(document).on('mouseleave', '.selectedHover', clearHoverMenuTimer);
+    $(document).on('mouseleave', '.tieHover', clearHoverMenuTimer);
 
     $(document).on('click', '#graph-export-tsv', exportAsTSV);
     $(document).on('click', '#graph-export-graphml', exportAsGraphML);
