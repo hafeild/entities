@@ -676,9 +676,9 @@ var deselectAllText = function() {
 
 var groupListCheckboxClicked = function() {
     if ($(this).is(":checked")) {
-        selectEntity($(this).attr("data-id"));
+        selectEntity($('[data-entity-id="' + $(this).attr("data-id") + '"]'));
     } else {
-        deselectEntity($(this).attr("data-id"));
+        deselectEntity($('[data-entity-id="' + $(this).attr("data-id") + '"]'));
     }
 }
 
