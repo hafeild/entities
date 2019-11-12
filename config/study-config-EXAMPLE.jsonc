@@ -47,6 +47,15 @@
         }
     },
     
+    // List general information about subject groups. Only specify db_id if the 
+    // group already exists in the database for this study (groups are study-
+    // specific).
+    "groups": {
+        "Group A": {},
+        "Group B": {
+            "db_id": 1
+        }
+    },
 
     // Any users that do not exist will be created. Each user needs to be
     // assigned to a group, and this will determine what tasks they see and in 
@@ -54,7 +63,10 @@
     "participants": [
         {
             "username": "participant1",
-            "group": "Group A"
+            "group": "Group A",
+            // You don't need to specify a password (see participant2 below);
+            // if you don't, one will be generated.
+            "password": "k23k23j299d012msdfj"
         },
         {
             "username": "participant2",

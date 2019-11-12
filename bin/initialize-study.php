@@ -62,9 +62,17 @@
 //                             extracting it from the URL; e.g., in 
 //                             https://myentities.com/texts/7/annotations/4, 4 
 //                             is the annotation id.
+//          - groups -- An map of group labels -> group info. Make empty objects 
+//                      ({}) if these are new groups.
+//              * "group label" -- The group label.
+//                  - db_id -- Optional. The id of the group in the study_groups 
+//                             table. This will be populated automatically if
+//                             not present.
 //          - participants -- An array of objects that describe a participant.
 //                            each object should have the following fields:
 //              * username -- If this doesn't exist, a new user will be created.
+//              * password -- Optional. If not provided, a random one will be
+//                            generated.
 //              * group -- The condition group to assign this participant to;
 //                         you can change what steps/tasks participants in a 
 //                         group see and in what order.
@@ -90,6 +98,11 @@
 //                               steps will be shown to subjects in the
 //                               corresponding group. You do not need to list 
 //                               every step for every group.
+
+
+require_once("controllers.php");
+require_once("init.php");
+require_once("models/model-init.php");
 
 
 // Check arguments.
@@ -128,20 +141,37 @@ for($i = 1; $i < count($argv); $i++){
  * Processes the given study settings, creating users, tokenizing texts, 
  * processing annotations, forking annotations, setting permissions, and
  * filling out the study-related database tables as necessary.
+ * 
+ * @param study The study object. This is updated in place to include ids of
+ *              many of the newly created objects.
  */
-function processStudy($study){
+function processStudy(&$study){
     print "Processing ${study["name"]}\n";
 
+    loadTexts($study);
+    addAnnotations($study);
+    addStudy($study);
+    addStudyGroups($study);
+    createParticipants($study);
+    addStudySteps($study);
+    addStepOrderings($study);
+    addParticipantSteps($study);
 }
 
 /**
  * Loads any texts that aren't already in the database. Each text object is
  * updated with the text's id in the `texts` table under the field `db_id`.
  * 
+ * WARNING: this is currently unimplemented.
+ * 
  * @param study The study object. This is updated in place (see above).
  */
 function loadTexts(&$study) {
+    print "Loading texts...";
 
+    // TODO
+
+    print "done!\n";
 }
 
 /**
@@ -149,10 +179,16 @@ function loadTexts(&$study) {
  * annotation object is updated with the annotation's id in the `annotations`
  * table under the field `db_id`.
  * 
+ * WARNING: this is currently unimplemented.
+ * 
  * @param study The study object. This is updated in place (see above).
  */
 function addAnnotations(&$study){
+    print "Loading annotations...";
 
+    // TODO;
+
+    print "done!\n";
 }
 
 
@@ -163,7 +199,12 @@ function addAnnotations(&$study){
  * @param study The study object. This is updated in place (see above).
  */
 function addStudy(&$study){
+    print "Adding study entry...";
 
+    $study["db_id"] = addStudy(
+        $study["name"], $study["starts_at"], $study["ends_at"]);
+
+    print "done!\n";
 }
 
 /**
@@ -175,7 +216,15 @@ function addStudy(&$study){
  * @param study The study object. This is updated in place (see above).
  */
 function addStudyGroups(&$study){
+    print "Adding study groups...";
 
+    foreach($study["groups"] as $groupLabel => &$groupInfo){
+        if(!array_key_exists("db_id", $groupInfo)){
+            $groupInfo["db_id"] = addGroup($study["db_id"], $groupLabel);
+        }
+    }
+
+    print "done!\n";
 }
 
 /**
@@ -188,7 +237,43 @@ function addStudyGroups(&$study){
  * @param study The study object. This is updated in place (see above).
  */
 function createParticipants(&$study){
+    print "Creating participants...";
 
+    foreach($study["participants"] as &$participant){
+        // Check that we have a group for this user.
+        if(!array_key_exists("group", $participant)){
+            print "The participant ${study["username"]} is missing a group.\n";
+            continue;
+        } else if(!array_key_exists($participant["group"], $study["groups"])){
+            print "Error while processing the participant ". $study["username"].
+                ": the group ${participant["group"]} does not exist under ". 
+                "'groups' in the configuration file.";
+            continue;
+        }
+
+        // See if we have a user id for this participant.
+        if(!array_key_exists("db_id", $participant) || 
+            $participant["db_id"] == null){
+
+            // Nope. Now we need to check if the user exists.
+            $participant["db_id"] = getUserInfo($participant["username"]);
+            
+            // Nope. Now we need to create a new one.
+            if($participant["db_id"] == null){
+                // Generate a password for the user if there's not one already.
+                if(!array_key_exists("password", $participant)){
+                    $participant["password"] = generatePassword();
+                }
+                $participant["db_id"] = addUser($participant["username"], 
+                    $participant["password"]);
+            }
+        }
+
+        addStudyParticipant($participant["db_id"], $study["db_id"], 
+            $study["groups"][$participant["group"]["db_id"]]);
+    }
+    
+    print "done!\n";
 }
 
 
@@ -201,7 +286,39 @@ function createParticipants(&$study){
  * @param study The study object. This is updated in place (see above).
  */
 function addStudySteps(&$study){
+    print "Adding study steps...";
 
+    foreach($study["steps"] as $label => &$stepInfo){
+        $url = null;
+        $annotationId = null;
+
+        if(array_key_exists("annotation", $stepInfo)){
+            // Make sure the annotation exists and has a db_id.
+            $annotationLabel = $stepInfo["annotation"];
+            if(!array_key_exists($annotationLabel, $study["annotations"])){
+                print "Error processing study step '$label': no annotation ". 
+                    "with the label '$annotationLabel' found in under the ". 
+                    "annotations section of the study configuration.\n";
+                continue;
+            } else if(!array_key_exists("db_id",  
+                $study["annotations"][annotationLabel])){
+                print "Error processing study step '$label': no db_id ". 
+                    "found for the annotation with label '$annotationLabel'\n";
+                continue;
+            }
+            $annotationId = $study["annotations"][annotationLabel]["db_id"];
+
+        } else if(array_key_exists("url", $stepInfo)){
+            $url = $stepInfo["url"];
+        }
+
+        $stepId = addStudyStep(
+            $stepInfo["link_description"], $annotationId, $url);
+        
+        $stepInfo["db_id"] = $stepId;
+    }
+
+    print "done!\n";
 }
 
 /**
@@ -211,7 +328,10 @@ function addStudySteps(&$study){
  * @param study The study object.
  */
 function addStepOrderings(&$study){
+    print "Adding step orderings...";
 
+
+    print "done!\n";
 }
 
 /**
@@ -223,7 +343,9 @@ function addStepOrderings(&$study){
  * @param study The study object.
  */
 function addParticipantSteps(&$study){
+    print "Adding participant steps...";
 
+    print "done!\n";
 }
 
 /**
@@ -236,6 +358,28 @@ function addParticipantSteps(&$study){
  */
 function forkAnnotation($annotationId, $userId){
 
+}
+
+/**
+ * Credit: Scott Arciszewski, taken from https://stackoverflow.com/a/31284266
+ * on 12-Nov-2019 then slightly modified by Hank Feild.
+ * 
+ * Generate a random string, using a cryptographically secure 
+ * pseudorandom number generator (random_int)
+ * 
+ * For PHP 7, random_int is a PHP core function
+ * 
+ * @param int $length      How many characters do we want?
+ * @return A random string
+ */
+function generatePassword($length=10){
+    $keyspace = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    $str = "";
+    $max = mb_strlen($keyspace, "8bit") - 1;
+    for ($i = 0; $i < $length; ++$i) {
+        $str .= $keyspace[random_int(0, $max)];
+    }
+    return $str;
 }
 
 ?>

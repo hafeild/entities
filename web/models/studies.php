@@ -7,6 +7,41 @@
 
 
 /**
+ * Adds a new study entry. 
+ * 
+ * @param name The study's name/label.
+ * @param beginTimestamp The time participants may begin the study. Should be in
+ *                       the format: "YYYY-MM-DD HH:MM:SS +HH:MM".
+ * @param endTimestamp The time after which participants may no longer engage in
+ *                     the study. Should be in the same format specified above.
+ * @return The id of the study.
+ */
+function addStudy($name, $beginTimestamp, $endTimestamp){
+    $dbh = connectToDB();
+
+    try {
+        $dbh->beginTransaction();
+        $statement = $dbh->prepare(
+            "insert into studies(name, begin_at, end_at, created_at) values ". 
+                "(:name, :begin_at, :end_at, :created_at)");
+        $success = $statement->execute([
+            ":name" => $name,
+            ":begin_at" => $beginTimestamp,
+            ":end_at" => $endTimestamp,
+            ":created_at" => curDateTime()
+        ]);
+        $id = $dbh->lastInsertId();
+        $dbh->commit();
+
+        return $id;
+    } catch(PDOException $e){
+        $dbh->rollback();
+        error("There was an error adding study info to the database",
+            [$e->getMessage()]);
+    }
+}
+
+/**
  * Retrieves info about the studies a user is associated with. 
  * 
  * @param userId The id of the user to lookup; if null, the id of the currently  
@@ -75,6 +110,72 @@ function getStudy($studyId){
 }
 
 /**
+ * Adds a new study group entry. 
+ * 
+ * @param studyId The id of the study to associate the new group with.
+ * @param label The group's label.
+ * @return The id of the group.
+ */
+function addStudyGroup($studyId, $label){
+    $dbh = connectToDB();
+
+    try {
+        $dbh->beginTransaction();
+        $statement = $dbh->prepare(
+            "insert into study_groups(study_id, label, created_at) values ". 
+                "(:study_id, :label, :created_at)");
+        $success = $statement->execute([
+            ":study_id" => $studyId,
+            ":label" => $label,
+            ":created_at" => curDateTime()
+        ]);
+        $id = $dbh->lastInsertId();
+        $dbh->commit();
+        
+        return $id;
+    } catch(PDOException $e){
+        $dbh->rollback();
+        error("There was an error adding study group info to the database",
+            [$e->getMessage()]);
+    }
+}
+
+/**
+ * Adds a new study step entry. 
+ * 
+ * @param label The step's label.
+ * @param baseAnnotationId The id of the annotation (if any) this step is 
+ *                         is associated with. Default: null.
+ * @param url The url (if any) this step will link to. Default: null.
+ * @return The id of the step.
+ */
+function addStudyStep($label, $baseAnnotationId=null, $url=null){
+    $dbh = connectToDB();
+
+    try {
+        $dbh->beginTransaction();
+        $statement = $dbh->prepare(
+            "insert into study_steps(label, base_annotation_id, ". 
+                "url, created_at) values ". 
+                "(:label, :base_annotation_id, :url, :created_at)");
+        $success = $statement->execute([
+            ":label"              => $label,
+            ":base_annotation_id" => $baseAnnotationId,
+            ":url"                => $url,
+            ":created_at"         => curDateTime()
+        ]);
+        $id = $dbh->lastInsertId();
+        $dbh->commit();
+        
+        return $id;
+    } catch(PDOException $e){
+        $dbh->rollback();
+        error("There was an error adding study group info to the database",
+            [$e->getMessage()]);
+    }
+}
+
+/**
  * Retrieves the list of steps/tasks for the given study and user. 
  * 
  * @param studyId The id of the study.
@@ -101,7 +202,7 @@ function getSteps($studyId, $userId=null){
 
     if($userId == null){
         if(!$user){
-            error("Cannot fetch studies withough a user id.");
+            error("Cannot fetch studies without a user id.");
         }
         $userId = $user["id"];
     } 
@@ -117,6 +218,34 @@ function getSteps($studyId, $userId=null){
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
         error("There was an error reading study info from the database",
+            [$e->getMessage()]);
+    }
+}
+
+/**
+ * Adds a new study participant entry.
+ * 
+ * @param userId The id of the user.
+ * @param studyId The id of the study the user will be a participant in.
+ * @param groupId The id of the group the participant is assigned to.
+ */
+function addStudyParticipant($userId, $studyId, $groupId){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "insert into study_participants(". 
+                "user_id, study_id, group_id, created_at) ". 
+                "values (:user_id, :study_id, :group_id, :created_at)");
+        $success = $statement->execute([
+            ":user_id" => $userId,
+            ":study_id" => $studyId,
+            ":group_id" => $groupId,
+            ":created_at" => curDateTime()
+        ]);
+        
+    } catch(PDOException $e){
+        error("There was an error adding participant info to the database",
             [$e->getMessage()]);
     }
 }
