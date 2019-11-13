@@ -4,6 +4,17 @@ body {
     height: 100%;
 }
 
+.caret-right {
+    border-bottom: 4px solid transparent;
+    border-top: 4px solid transparent;
+    border-left: 4px solid;
+    height: 0;
+    opacity: 0.3;
+    vertical-align: top;
+    width: 100%;
+    text-align: right;
+}
+
 body.account-page {
     display: -ms-flexbox;
     display: flex;
@@ -184,7 +195,7 @@ body {
     flex: 1;
     position: relative;
     box-sizing: border-box;
-    margin: 2em 0 0 -1em;
+    margin: 1em 0 0 -1em;
     padding: 0;
     /* display: table; */
 }
@@ -340,27 +351,28 @@ button.annotated-entity {
 }
 
 span.selectedEntity {
-    border-style: solid;
-    border-width: 3px;
-
-    border-image: linear-gradient(to right, #f857a6, #ff5858);
-    border-image-slice: 1;
-
-    border-left: none;
-    border-right: none;
+    border-top: 3px solid #ff2d50;
+    border-bottom: 3px solid #ff2d50;
 
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
 }
 
+span.selectedEntity-start {
+    border-right: none;
+}
+span.selectedEntity-end {
+    border-left: none;
+}
+
 span.selectedEntity.start-token {
-    border-left: 3px dashed #21303b;
+    border-left: 3px solid #ff2d50;
     margin-left: -3px;
 }
 
 span.selectedEntity.end-token {
-    border-right: 3px dashed #21303b;
+    border-right: 3px solid #ff2d50;
     margin-right: -3px;
 }
 
@@ -523,4 +535,10 @@ span.selectedEntity.end-token {
 .graph-export-option:hover {
     background-color: #d3d3d3;
     cursor: pointer;
+}
+
+.selectionInfo {
+    margin: 0 auto;
+    font-size: 14px;
+    font-style: italic;
 }

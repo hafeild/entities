@@ -305,8 +305,15 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
 
     <?php } ?>
-
 </div> <!-- /.header -->
+
+<br/>
+<div id="selectionInfoBox">
+    <p class="selectionInfo" id="entityInfoBox">0 entities selected</p>
+    <p class="selectionInfo" id="mentionInfoBox">0 aliases selected</p>
+    <p class="selectionInfo" id="groupInfoBox">0 groups selected</p>
+    <p class="selectionInfo" id="resetSelectionButton" style="text-decoration: underline; cursor: pointer">reset</p>
+</div>
 
 <div id="annotation-panels-wrapper">
     <div id="annotation-panels">

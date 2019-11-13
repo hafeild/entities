@@ -114,7 +114,7 @@ global $user;
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" id="addMentionModalClose" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Add Mention</h4>
+              <h4 class="modal-title">Add Alias</h4>
             </div>
             <div class="modal-body">
               <ul id='addMentionEntitySelectorChecklist'>
@@ -137,7 +137,7 @@ global $user;
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" id="reassignMentionModalClose" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Reassign Mention</h4>
+              <h4 class="modal-title">Reassign Alias</h4>
             </div>
             <div class="modal-body">
               <ul id='reassignMentionEntitySelectorChecklist'>
@@ -203,7 +203,7 @@ global $user;
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Create a tie between two objects</h4>
+              <h4 class="modal-title">Create a tie between two entities</h4>
             </div>
             <div class="modal-body" id="addTieModal-body">
               <div class="row" id="tieModalTextArea">
