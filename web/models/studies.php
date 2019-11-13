@@ -170,7 +170,7 @@ function addStudyStep($label, $baseAnnotationId=null, $url=null){
         return $id;
     } catch(PDOException $e){
         $dbh->rollback();
-        error("There was an error adding study group info to the database",
+        error("There was an error adding study step info to the database",
             [$e->getMessage()]);
     }
 }
@@ -222,6 +222,36 @@ function getSteps($studyId, $userId=null){
     }
 }
 
+
+/**
+ * Adds a new study step order entry. 
+ * 
+ * @param stepId The id of the step.
+ * @param groupId The id of the group this ordering belongs to.
+ * @param ordering The numeric order (rank) of the step for this study group --
+ *                 this indicates the order the step will be listed on the study
+ *                 page. The first step listed should have an order of 1.
+ */
+function addStudyStepOrdering($stepId, $groupId, $ordering){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "insert into study_step_orderings(step_id, group_id, ordering, ". 
+                "created_at) values ". 
+                "(:step_id, :group_id, :ordering, :created_at)");
+        $success = $statement->execute([
+            ":step_id"     => $stepId,
+            ":group_id"    => $group_id,
+            ":ordering"    => $ordering,
+            ":created_at"  => curDateTime()
+        ]);
+    } catch(PDOException $e){
+        error("There was an error adding step ordering info to the database",
+            [$e->getMessage()]);
+    }
+}
+
 /**
  * Adds a new study participant entry.
  * 
@@ -246,6 +276,37 @@ function addStudyParticipant($userId, $studyId, $groupId){
         
     } catch(PDOException $e){
         error("There was an error adding participant info to the database",
+            [$e->getMessage()]);
+    }
+}
+
+/**
+ * Adds a new study participant entry.
+ * 
+ * @param userId The id of the user.
+ * @param stepId The id of the step.
+ * @param annotationId The id of the participant-specific annotation (not the 
+ *                     base annotation id specified in the study_steps table). 
+ *                     This can be null, e.g., if the corresponding step isn't 
+ *                     associated with an annotation.
+ */
+function addStudyParticipantStep($userId, $stepId, $annotationId=null){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "insert into study_participant_steps(". 
+                "user_id, step_id, annotation_id, created_at) ". 
+                "values (:user_id, :step_id, :annotation_id, :created_at)");
+        $success = $statement->execute([
+            ":user_id" => $userId,
+            ":step_id" => $stepId,
+            ":annotation_id" => $annotationId,
+            ":created_at" => curDateTime()
+        ]);
+        
+    } catch(PDOException $e){
+        error("There was an error adding participant step info to the database",
             [$e->getMessage()]);
     }
 }

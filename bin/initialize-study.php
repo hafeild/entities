@@ -301,12 +301,12 @@ function addStudySteps(&$study){
                     "annotations section of the study configuration.\n";
                 continue;
             } else if(!array_key_exists("db_id",  
-                $study["annotations"][annotationLabel])){
+                    $study["annotations"][$annotationLabel])){
                 print "Error processing study step '$label': no db_id ". 
                     "found for the annotation with label '$annotationLabel'\n";
                 continue;
             }
-            $annotationId = $study["annotations"][annotationLabel]["db_id"];
+            $annotationId = $study["annotations"][$annotationLabel]["db_id"];
 
         } else if(array_key_exists("url", $stepInfo)){
             $url = $stepInfo["url"];
@@ -329,7 +329,43 @@ function addStudySteps(&$study){
  */
 function addStepOrderings(&$study){
     print "Adding step orderings...";
+    $i = 0;
 
+    foreach($study["step_orderings"] as $group => $ordering){
+        // Ensure the group exists and has a db_id. 
+        if(!array_key_exists($group, $study["groups"])){
+            print "Error processing step ordering for group '$group': ". 
+                "no group with that name found under 'groups' in the study ". 
+                "configuration.\n";
+            continue;
+        } else if(!array_key_exists("db_id", $study["groups"][$group])){
+            print "Error processing step ordering for group '$group': ". 
+                "no db_id found for this group\n";
+            continue;
+        }
+
+        $groupId = $study["groups"][$group]["db_id"];
+
+        for($i = 0; $i < count($ordering); $i++){
+            $step = $ordering[$i];
+
+            // Ensure the step exists and has a db_id.
+            if(!array_key_exists($step, $study["steps"])){
+                print "Error processing step ordering for group '$group': ". 
+                    "no step named '$step' found under 'steps' in the study ". 
+                    "configuration.\n";
+                continue;
+            } else if(!array_key_exists("db_id", $study["steps"][$step])){
+                print "Error processing step ordering for group '$group': ". 
+                    "no db_id found for step '$step'.\n";
+                continue;
+            }
+
+            // Add the step ordering to the 
+            addStudyStepOrdering($study["steps"][$step]["db_id"],
+                $groupId, $i+1);
+        }
+    }
 
     print "done!\n";
 }
@@ -345,6 +381,80 @@ function addStepOrderings(&$study){
 function addParticipantSteps(&$study){
     print "Adding participant steps...";
 
+    foreach($study["participants"] as $participant){
+        // Ensure the user has an id.
+        if(!array_key_exists("db_id", $participant)){
+            print "Error adding participant steps for participant '". 
+                $participant["username"] ."': no 'db_id' field!\n";
+            continue;
+        }
+
+        // Ensure that the group exists in the step_orderings map. 
+        if(!array_key_exists($participant["group"], $study["step_orderings"])){
+            print "Error adding participant steps for participant '". 
+                $participant["username"] ."': could not find a step ordering ". 
+                "for group '${participant["group"]}'\n";
+            continue;
+        }
+
+        // Go through each step associated with the participant's group.
+        foreach($study["step_orderings"][$participant["group"]] as $stepName){
+            if(!array_key_exists($stepName, $study["steps"])){
+                print "Error adding participant steps for participant '". 
+                    $participant["username"] ."': no step with name ". 
+                    "'$stepName' found in the 'steps' section of the study ". 
+                    "configuration.\n";
+                continue;
+            }
+
+            $step = $study["steps"][$stepName];
+
+            if(!array_key_exists("db_id", $step)){
+                print "Error adding participant steps for participant '". 
+                    $participant["username"] ."': the step named ". 
+                    "'$stepName' is missing a 'db_id' field.\n";
+                continue;
+            }
+
+            // If this step is associated with a URL, this will stay null. 
+            // Otherwise, we need to fork the base annotation.
+            $annotationId = null;
+
+            // Is this an annotation-based step?
+            if(array_key_exists("annotation", $step)){
+
+                // Ensure the annotation exists.
+                if(!array_key_exists($step["annotation"], 
+                        $study["annotations"])){
+                    print "Error adding participant steps for participant '". 
+                        $participant["username"] ."', step '$stepName': ". 
+                        "cannot find '${step["annotation"]}' in the ". 
+                        "annotations section of the configuration.\n";
+                    continue;
+                }
+
+                $annotation = $study["annotations"][$step["annotation"]];
+
+                if(!array_key_exists("db_id", $annotation)){
+                    print "Error adding participant steps for participant '". 
+                        $participant["username"] ."', step '$stepName': ". 
+                        "the annotation '${step["annotation"]}' is missing ". 
+                        "a 'db_id' field.\n";
+                    continue;
+                }
+
+                $annotationBaseId = $annotation["db_id"];
+
+                // Fork the base annotation for this step.
+                $annotationId = forkAnnotation($annotationBaseId, 
+                        $participant["db_id"]);
+            }
+
+            addStudyParticipantStep($participant["db_id"], $step["db_id"], 
+                $annotationId);
+        }
+    }
+
     print "done!\n";
 }
 
@@ -356,8 +466,20 @@ function addParticipantSteps(&$study){
  * @param userId The id of the user who should have access.
  * @return The id of the forked annotation.
  */
-function forkAnnotation($annotationId, $userId){
+function forkAnnotation($parentAnnotationId, $userId){
+    // Get the info about the parent annotation.
+    $parentAnnotation = lookupAnnotation($parentAnnotation);
 
+    // Create the new annotation, mirroring all the metadata from the parent.
+    $annotation = addAnnotation($userId, $parentAnnotation["text_id"],
+        $parentAnnotationId, $parentAnnotation["annotation"], 
+        $parentAnnotation["method"], $parentAnnotation["method_metadata"], 
+        $parentAnnotation["label"]);
+
+    // Make the annotation private.
+    $updateAnnotation($annotation["id"], $userId, null, false);
+
+    return $annotation["id"];
 }
 
 /**
