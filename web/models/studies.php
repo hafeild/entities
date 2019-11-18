@@ -71,7 +71,7 @@ function getStudies($userId=null){
 
     if($userId == null){
         if(!$user){
-            error("Cannot fetch studies withough a user id.");
+            error("Cannot fetch studies without a user id.");
         }
         $userId = $user["id"];
     } 
@@ -226,6 +226,7 @@ function addStudyStep($label, $baseAnnotationId=null, $url=null){
  *              - created_at
  *              - annotation_id
  *              - url
+ *              - order
  * 
  */
 function getSteps($studyId, $userId=null){
@@ -244,13 +245,16 @@ function getSteps($studyId, $userId=null){
                 "sps.started_at as started_at, ". 
                 "sps.completed_at as completed_at, ". 
                 "sps.created_at as created_at, ". 
-                "sps.annotation_id as annotation_id, ss.url as url ". 
+                "sps.annotation_id as annotation_id, ss.url as url, ". 
+                "sso.ordering as ordering ".
                 "from study_participants as sp ". 
                 "join study_step_orderings as sso ". 
-                "on group_id join study_steps as ss on sso.step_id = ss.id ". 
-                "join study_participant_steps on ". 
-                "ss.id = sps.step_id and sp.user_id = sps.user_id ". 
-                "where sp.user_id == :user_id");
+                "on sp.group_id = sso.group_id ". 
+                "join study_steps as ss on sso.step_id = ss.id ". 
+                "join study_participant_steps as sps on ". 
+                "ss.id = sps.step_id and sp.user_id = sps.user_id ".
+                "where sp.user_id = :user_id ". 
+                "order by ordering asc");
         $success = $statement->execute([
             ":user_id" => $userId
         ]);

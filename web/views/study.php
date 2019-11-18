@@ -9,22 +9,27 @@
     <ol id="step-list">
         <?php 
         $somethingMarkedReady = false;
-        foreach($data["study"]["steps"] as $step){
+        foreach($data["steps"] as $step){
         ?>
             <li data-step-id="<?= $step["id"] ?>">
                 <?php 
-                if($sttep["is_complete"] == "1" && !$somethingMarkedReady){
+                if(!$step["completed_at"] && !$somethingMarkedReady){
+                    $url = $step["url"];
+                    if(!$step["url"]){
+                        $url = "annotations/${step["annotation_id"]}";
+                    }
                 ?>
-                    <a href="<?= $step["url"] ?>">
-                        <?= $step["name"] ?>
+
+                    <a href="<?= $url ?>">
+                        <?= $step["label"] ?>
                     </a>
                 <?php 
                     $somethingMarkedReady = true;
                 } else {
                 ?>
-                    <span class="<?= $step["is_complete"] == "1" ? "completed" 
-                        : "pending" ?>"><?= $step["name"] ?></span>
-                        <?= $step["name"] ?>
+                    <span class="<?= $step["completed_at"] ? "completed" 
+                        : "pending" ?>"><?= $step["label"] ?></span>
+                        <?= $step["label"] ?>
                     </span>
                 <?php } ?>
             </li>

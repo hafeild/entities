@@ -1430,11 +1430,27 @@ public static function studyLogin($path, $matches, $params, $format){
  *               JSON response as described above.
  */
 public static function getStudies($path, $matches, $params, $format){
-    global $users;
+    global $user;
+
+    // Direct logged out visitors to the study login.
+    if($user == null) {
+        if($format == "html"){
+            // Reroute to the new annotation.
+            Controllers::redirectTo(
+                "/studies/login",
+                null, null);
+        } else {
+            return [
+                "success" => false,
+                "message" => "You must be logged in to view the requested page."
+            ];
+        }
+    }
+
 
     $results = [
         "success" => true,
-        "studies" => getStudies($users["id"])
+        "studies" => getStudies($user["id"])
     ];
 
     if($format == "json"){
@@ -1459,7 +1475,7 @@ public static function getStudies($path, $matches, $params, $format){
  *      * end_at
  *      * created_at
  *      * group_id 
- *   - tasks (list of task objects)
+ *   - steps (list of step objects)
  *      * id
  *      * is_complete
  *      * ordering
@@ -1472,19 +1488,26 @@ public static function getStudies($path, $matches, $params, $format){
  * @param format If "html", loads the study homepage. If "json", generates a 
  *               JSON response as described above.
  */
-public static function getSteps($path, $matches, $params, $format){
-    global $users;
+public static function getStudy($path, $matches, $params, $format){
+    global $user;
+
+    $study = getStudy($matches[1]);
+
+    if(!$study){
+        error("We cannot find a study with id '${matches[1]}. :-(");
+    }
 
     $results = [
         "success" => true,
-        "studies" => getStudies($users["id"])
+        "study" => $study,
+        "steps" => getSteps($study["id"], $user["id"])
     ];
 
     if($format == "json"){
         return $results;
     } else {
-        Controllers::render("EntiTies&mdash;Studies", "views/studies.php", 
-            $results, $errors, $messages);
+        Controllers::render("${study["name"]}&mdash;EntiTies",
+            "views/study.php", $results, null, null);
     }
 }
 

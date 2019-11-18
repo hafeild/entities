@@ -1,3 +1,10 @@
+<?php
+
+function prettyPrintTime($timestamp){
+    return date_format(date_create($timestamp), 'M. j, Y \a\t g:ia');
+}
+?>
+
 <div id="studies" class="page page-info">
     <h2>My Studies</h2>
 
@@ -18,8 +25,8 @@
             ?>
                 <li data-study-id="<?= $study["id"] ?>">
                     <a href="/studies/<?= $study["id"] ?>"><?= $study["name"] ?></a>
-                    (runs from <?= $study["begins_at"] ?> to 
-                    <?= $study["ends_at"] ?>)</li>
+                    (runs from <?= prettyPrintTime($study["begin_at"]) ?> to 
+                    <?= prettyPrintTime($study["end_at"]) ?>)</li>
             <?php } ?>
         </ul>
     <?php } ?>

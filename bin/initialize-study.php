@@ -100,6 +100,7 @@
 require_once(__DIR__ ."/../web/controllers.php");
 require_once(__DIR__ ."/../web/init.php");
 require_once(__DIR__ ."/../web/models/model-init.php");
+require_once(__DIR__ ."/../web/permissions.php");
 
 class StudyInitializer {
 
@@ -520,6 +521,8 @@ class StudyInitializer {
      * @return The id of the forked annotation.
      */
     function forkAnnotation($parentAnnotationId, $userId){
+        global $PERMISSIONS;
+
         // Get the info about the parent annotation.
         $parentAnnotation = lookupAnnotation($parentAnnotationId);
 
@@ -532,6 +535,8 @@ class StudyInitializer {
 
         // Make the annotation private.
         updateAnnotation($annotationId, $userId, null, false);
+        // Give the user write permissions for it.
+        addAnnotationPermission($userId, $annotationId, $PERMISSIONS["WRITE"]);
 
         return $annotationId;
     }
