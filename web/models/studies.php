@@ -18,9 +18,12 @@
  */
 function addStudy($name, $beginTimestamp, $endTimestamp){
     $dbh = connectToDB();
+    $useLocalTransaction = !$dbh->inTransaction();
 
     try {
-        $dbh->beginTransaction();
+        if($useLocalTransaction){
+            $dbh->beginTransaction();
+        }
         $statement = $dbh->prepare(
             "insert into studies(name, begin_at, end_at, created_at) values ". 
                 "(:name, :begin_at, :end_at, :created_at)");
@@ -31,13 +34,21 @@ function addStudy($name, $beginTimestamp, $endTimestamp){
             ":created_at" => curDateTime()
         ]);
         $id = $dbh->lastInsertId();
-        $dbh->commit();
+
+        if($useLocalTransaction){
+            $dbh->commit();
+        }
 
         return $id;
     } catch(PDOException $e){
-        $dbh->rollback();
-        error("There was an error adding study info to the database",
-            [$e->getMessage()]);
+        if($useLocalTransaction){
+            $dbh->rollback();
+            error("There was an error adding study info to the database",
+                [$e->getMessage()]);
+        } else {
+            throw new Exception("There was an error adding study info to ". 
+                "the database. ". $e->getMessage() . ".");
+        }
     }
 }
 
@@ -118,9 +129,13 @@ function getStudy($studyId){
  */
 function addStudyGroup($studyId, $label){
     $dbh = connectToDB();
+    $useLocalTransaction = !$dbh->inTransaction();
 
     try {
-        $dbh->beginTransaction();
+
+        if($useLocalTransaction){ 
+            $dbh->beginTransaction(); 
+        }
         $statement = $dbh->prepare(
             "insert into study_groups(study_id, label, created_at) values ". 
                 "(:study_id, :label, :created_at)");
@@ -130,13 +145,21 @@ function addStudyGroup($studyId, $label){
             ":created_at" => curDateTime()
         ]);
         $id = $dbh->lastInsertId();
-        $dbh->commit();
+
+        if($useLocalTransaction){
+            $dbh->commit();
+        }
         
         return $id;
     } catch(PDOException $e){
-        $dbh->rollback();
-        error("There was an error adding study group info to the database",
-            [$e->getMessage()]);
+        if($useLocalTransaction){
+            $dbh->rollback();
+            error("There was an error adding study group info to the database",
+                [$e->getMessage()]);
+        } else {
+            throw new Exception("There was an error adding study group info ". 
+                "to the database. ". $e->getMessage() .".");
+        }
     }
 }
 
@@ -151,9 +174,13 @@ function addStudyGroup($studyId, $label){
  */
 function addStudyStep($label, $baseAnnotationId=null, $url=null){
     $dbh = connectToDB();
+    $useLocalTransaction = !$dbh->inTransaction();
 
     try {
-        $dbh->beginTransaction();
+
+        if($useLocalTransaction){ 
+            $dbh->beginTransaction(); 
+        }
         $statement = $dbh->prepare(
             "insert into study_steps(label, base_annotation_id, ". 
                 "url, created_at) values ". 
@@ -165,13 +192,22 @@ function addStudyStep($label, $baseAnnotationId=null, $url=null){
             ":created_at"         => curDateTime()
         ]);
         $id = $dbh->lastInsertId();
-        $dbh->commit();
+
+        if($useLocalTransaction){
+            $dbh->commit();
+        }
         
         return $id;
     } catch(PDOException $e){
-        $dbh->rollback();
-        error("There was an error adding study step info to the database",
-            [$e->getMessage()]);
+
+        if($useLocalTransaction){
+            $dbh->rollback();
+            error("There was an error adding study step info to the database",
+                [$e->getMessage()]);
+        } else {
+            throw new Exception("There was an error adding study step info to ". 
+                "the database. ". $e->getMessage() .".");
+        }
     }
 }
 
@@ -181,19 +217,15 @@ function addStudyStep($label, $baseAnnotationId=null, $url=null){
  * @param studyId The id of the study.
  * @param userId The id of the user to lookup; if null, the id of the currently  
  *               logged in user is used.
- * @return Info about the study and the associated steps in the order they are 
- *         assigned for the user:
- *           - study (object with the following fields)
- *              * id
- *              * name
- *              * begin_at
- *              * end_at
- *              * created_at
- *              * group_id
- *           - steps (array of step objects, each with the following fields)
- *              * id
- *              * label
- *              * created_at
+ * @return Info about the steps associated with the specified study in the order
+ *         they are assigned for the user:
+ *              - id (of the step)
+ *              - label
+ *              - started_at
+ *              - completed_at
+ *              - created_at
+ *              - annotation_id
+ *              - url
  * 
  */
 function getSteps($studyId, $userId=null){
@@ -208,9 +240,17 @@ function getSteps($studyId, $userId=null){
     } 
     try {
         $statement = $dbh->prepare(
-            "select studies.id as study_id, name, begin_at, end_at, ". 
-                "created_at, group_id from study_participants join studies ". 
-                "on study.id = study_id where user_id = :user_id");
+            "select ss.id as id, ss.label as label, ". 
+                "sps.started_at as started_at, ". 
+                "sps.completed_at as completed_at, ". 
+                "sps.created_at as created_at, ". 
+                "sps.annotation_id as annotation_id, ss.url as url ". 
+                "from study_participants as sp ". 
+                "join study_step_orderings as sso ". 
+                "on group_id join study_steps as ss on sso.step_id = ss.id ". 
+                "join study_participant_steps on ". 
+                "ss.id = sps.step_id and sp.user_id = sps.user_id ". 
+                "where sp.user_id == :user_id");
         $success = $statement->execute([
             ":user_id" => $userId
         ]);
@@ -222,6 +262,38 @@ function getSteps($studyId, $userId=null){
     }
 }
 
+
+/**
+ * Retrieves info about a participant step. 
+ * 
+ * @param userId The id of the user (participant).
+ * @param stepId The id of the step.
+ * @return An object with these fields:
+ *              - step_id
+ *              - user_id
+ *              - started_at
+ *              - completed_at
+ *              - created_at
+ *              - annotation_id
+ */
+function getStudyParticipantStep($userId, $stepId){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "select * from study_participant_steps where user_id = :user_id ". 
+                "and step_id = :step_id");
+        $success = $statement->execute([
+            ":user_id" => $userId,
+            ":step_id" => $stepId
+        ]);
+           
+        return $statement->fetch(PDO::FETCH_ASSOC);
+    } catch(PDOException $e){
+        error("There was an error reading study participant step info from ". 
+            "the database", [$e->getMessage()]);
+    }
+}
 
 /**
  * Adds a new study step order entry. 
@@ -242,7 +314,7 @@ function addStudyStepOrdering($stepId, $groupId, $ordering){
                 "(:step_id, :group_id, :ordering, :created_at)");
         $success = $statement->execute([
             ":step_id"     => $stepId,
-            ":group_id"    => $group_id,
+            ":group_id"    => $groupId,
             ":ordering"    => $ordering,
             ":created_at"  => curDateTime()
         ]);
@@ -281,6 +353,36 @@ function addStudyParticipant($userId, $studyId, $groupId){
 }
 
 /**
+ * Retrieves info about a study participant. 
+ * 
+ * @param userId The id of the user (participant).
+ * @param studyId The id of the study.
+ * @return An object with these fields:
+ *              - user_id
+ *              - group_id
+ *              - study_id
+ *              - created_at
+ */
+function getStudyParticipant($userId, $studyId){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "select * from study_participants where user_id = :user_id ". 
+                "and study_id = :study_id");
+        $success = $statement->execute([
+            ":user_id" => $userId,
+            ":study_id" => $studyId
+        ]);
+           
+        return $statement->fetch(PDO::FETCH_ASSOC);
+    } catch(PDOException $e){
+        error("There was an error reading study participant info from ". 
+            "the database", [$e->getMessage()]);
+    }
+}
+
+/**
  * Adds a new study participant entry.
  * 
  * @param userId The id of the user.
@@ -308,6 +410,37 @@ function addStudyParticipantStep($userId, $stepId, $annotationId=null){
     } catch(PDOException $e){
         error("There was an error adding participant step info to the database",
             [$e->getMessage()]);
+    }
+}
+
+
+/**
+ * Retrieves info about a study step. 
+ * 
+ * @param stepId The id of the step.
+ * @param groupId The id of the group this ordering is for.
+ * @return An object with these fields:
+ *              - step_id
+ *              - group_id
+ *              - created_at
+ *              - ordering
+ */
+function getStudyStepOrdering($stepId, $groupId){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "select * from study_step_orderings where step_id = :step_id ". 
+                "and group_id = :group_id");
+        $success = $statement->execute([
+            ":group_id" => $groupId,
+            ":step_id" => $stepId
+        ]);
+           
+        return $statement->fetch(PDO::FETCH_ASSOC);
+    } catch(PDOException $e){
+        error("There was an error reading study step ordering info from ". 
+            "the database", [$e->getMessage()]);
     }
 }
 

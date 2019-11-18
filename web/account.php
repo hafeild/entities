@@ -4,7 +4,7 @@
 // Date:    Nov. 2018
 // Purpose: Handles signing up, logging in, and logging out.
 
-require_once("init.php");
+require_once(__DIR__ ."/init.php");
 
 // Maps actions to the functions that will carry them out.
 $ACTION_MAP = array(

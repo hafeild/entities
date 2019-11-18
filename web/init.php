@@ -7,7 +7,7 @@
 require_once("controllers.php");
 
 // Read in the config file.
-$CONFIG_FILE = "../config/settings.jsonc";
+$CONFIG_FILE = __DIR__ ."/../config/settings.jsonc";
 $configFD = fopen($CONFIG_FILE, "r") or 
     error("Error reading configuration file.");
 // Strip out comments before parsing the config file.
@@ -15,7 +15,7 @@ $CONFIG = json_decode(preg_replace("#(^[ \t]*//.*$)|(^\s*$)#m", "\n",
     fread($configFD,filesize($CONFIG_FILE))));
 fclose($configFD);
 
-require_once("models/model-init.php");
+require_once(__DIR__ ."/models/model-init.php");
 
 
 // Current user data.

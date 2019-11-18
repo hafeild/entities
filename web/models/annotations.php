@@ -316,8 +316,11 @@ function lookupAnnotation($id){
  */
 function updateAnnotation($annotationId, $userId, $updater, $isPublic = null){
     $dbh = connectToAnnotationDB();
+    $useLocalTransaction = !$dbh->inTransaction();
 
-    $dbh->beginTransaction();
+    if($useLocalTransaction){
+        $dbh->beginTransaction();
+    }
 
     $annotationData = lookupAnnotation($annotationId);
 
@@ -342,12 +345,19 @@ function updateAnnotation($annotationId, $userId, $updater, $isPublic = null){
                 " where id = :id");
 
         $statement->execute($params);
-        $dbh->commit();
+        if($useLocalTransaction){
+            $dbh->commit();
+        }
 
     } catch(Exception $e){
-        $dbh->rollback();
-        error("Error updating annotation: ". $e->getMessage(),
-            ["In updateAnnotation($annotationId, $userId, updater)"]);
+        if($useLocalTransaction){
+            $dbh->rollback();
+            error("Error updating annotation: ". $e->getMessage(),
+                ["In updateAnnotation($annotationId, $userId, updater)"]);
+        } else {
+            throw new Exception("Error updating annotation: ". 
+                $e->getMessage() .".");
+        }
     }
 }
 
@@ -542,7 +552,11 @@ function getAnnotationPermissions($annotationId){
  */
 function addAnnotationPermission($userId, $annotationId, $permission){
     $dbh = connectToDB();
-    $dbh->beginTransaction();
+    $useLocalTransaction = !$dbh->inTransaction();
+    
+    if($useLocalTransaction){
+        $dbh->beginTransaction();
+    }
 
     try {
         $statement = $dbh->prepare(
@@ -559,14 +573,21 @@ function addAnnotationPermission($userId, $annotationId, $permission){
 
         $permissionId = $dbh->lastInsertId();
 
-        $dbh->commit();
+        if($useLocalTransaction){
+            $dbh->commit();
+        }
 
         return $permissionId;
 
     } catch(PDOException $e){
-        $dbh->rollback();
-        error("There was an error adding the annotation permission: ". 
-            $e->getMessage());
+        if($useLocalTransaction){
+            $dbh->rollback();
+            error("There was an error adding the annotation permission: ". 
+                $e->getMessage());
+        } else {
+            throw new Exception("There was an error adding the annotation ". 
+                "permission: ". $e->getMessage() .".");
+        }
     }
 }
 

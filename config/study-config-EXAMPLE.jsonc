@@ -51,9 +51,16 @@
     // group already exists in the database for this study (groups are study-
     // specific).
     "groups": {
-        "Group A": {},
+        "Group A": {
+            // Lists the sequence of steps (see the `steps` section below) that 
+            // participants in this group will be given.
+            "step_ordering": ["pre_questionnaire", "annotation 1", 
+                "annotation 2", "post_questionnaire"]
+        },
         "Group B": {
-            "db_id": 1
+            "db_id": 1,
+            "step_ordering": ["pre_questionnaire", "annotation 2", 
+                "annotation 1", "post_questionnaire"]
         }
     },
 
@@ -97,13 +104,6 @@
             // Enter either a url OR annotation_id.
             "url": "https://a-survey-link.com"
         }
-    },
-
-    // Maps group names to the sequence of steps to be displayed for each user 
-    // in the given group.
-    "step_orderings": {
-        "Group A": ["pre_questionnaire", "annotation 1", "annotation 2", "post_questionnaire"],
-        "Group B": ["pre_questionnaire", "annotation 2", "annotation 1", "post_questionnaire"]
     }
 
 }]

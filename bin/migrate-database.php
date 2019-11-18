@@ -564,7 +564,7 @@ function addStudyTables($dbh, $direction="up"){
                              : "id integer primary key autoincrement,").
                 "study_id integer,".
                 "user_id integer,".
-                "label varchar(255),".
+                "label text,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
                 "foreign key(study_id) references studies(id)".
@@ -576,12 +576,11 @@ function addStudyTables($dbh, $direction="up"){
         $dbh->exec("create table study_steps(".
                 ($isPostgres ? "id serial primary key," 
                              : "id integer primary key autoincrement,").
-                "group_id integer,".
+                "url text,".
                 "base_annotation_id integer,".
-                "label varchar(255),".
+                "label text,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
-                "foreign key(group_id) references study_groups(id),".
                 "foreign key(base_annotation_id) references annotations(id)".
             ")"
         );
@@ -617,15 +616,19 @@ function addStudyTables($dbh, $direction="up"){
 
         // Create study_participant_progress table.
         print "Creating study_participant_progress table...\n";
-        $dbh->exec("create table study_participant_progress(".
+        $dbh->exec("create table study_participant_steps(".
                 "user_id integer,".
                 "step_id integer,".
+                "annotation_id integer default NULL,".
+                ($isPostgres ? "started_at timestamp default NULL," 
+                             : "started_at datetime default NULL,").
                 ($isPostgres ? "completed_at timestamp default NULL," 
                              : "completed_at datetime default NULL,").
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
                 "primary key(user_id, step_id),".
                 "foreign key(user_id) references users(id),".
+                "foreign key(annotation_id) references annotations(id),".
                 "foreign key(step_id) references study_steps(id)".
             ")"
         );
@@ -653,7 +656,7 @@ function addStudyTables($dbh, $direction="up"){
 
         // Delete study_participant_progress table.
         print "Removing study_participant_progress table...\n";
-        $dbh->exec("drop table study_participant_progress");
+        $dbh->exec("drop table study_participant_steps");
 
         // Delete study_participants table.
         print "Removing study_participants table...\n";
