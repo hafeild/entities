@@ -579,9 +579,11 @@ function addStudyTables($dbh, $direction="up"){
                 "url text,".
                 "base_annotation_id integer,".
                 "label text,".
+                "study_id integer,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
-                "foreign key(base_annotation_id) references annotations(id)".
+                "foreign key(base_annotation_id) references annotations(id),".
+                "foreign key(study_id) references studies(id)".
             ")"
         );
 
@@ -602,12 +604,13 @@ function addStudyTables($dbh, $direction="up"){
         // Create study_participants table.
         print "Creating study_participants table...\n";
         $dbh->exec("create table study_participants(".
+                ($isPostgres ? "id serial primary key," 
+                             : "id integer primary key autoincrement,").
                 "study_id integer,".
                 "user_id integer,".
                 "group_id integer,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
-                "primary key(study_id, user_id),".
                 "foreign key(study_id) references studies(id),".
                 "foreign key(user_id) references users(id),".
                 "foreign key(group_id) references study_groups(id)".
@@ -615,9 +618,9 @@ function addStudyTables($dbh, $direction="up"){
         );
 
         // Create study_participant_progress table.
-        print "Creating study_participant_progress table...\n";
+        print "Creating study_participant_steps table...\n";
         $dbh->exec("create table study_participant_steps(".
-                "user_id integer,".
+                "study_participant_id integer,".
                 "step_id integer,".
                 "annotation_id integer default NULL,".
                 ($isPostgres ? "started_at timestamp default NULL," 
@@ -626,8 +629,9 @@ function addStudyTables($dbh, $direction="up"){
                              : "completed_at datetime default NULL,").
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
-                "primary key(user_id, step_id),".
-                "foreign key(user_id) references users(id),".
+                "primary key(study_participant_id, step_id),".
+                "foreign key(study_participant_id) references ". 
+                    "study_participants(id),".
                 "foreign key(annotation_id) references annotations(id),".
                 "foreign key(step_id) references study_steps(id)".
             ")"
@@ -638,12 +642,13 @@ function addStudyTables($dbh, $direction="up"){
         $dbh->exec("create table study_data(".
                 ($isPostgres ? "id serial primary key," 
                              : "id integer primary key autoincrement,").
-                "user_id integer,".
+                "study_participant_id integer,".
                 "step_id integer,".
                 ($isPostgres ? "created_at timestamp," 
                              : "created_at datetime,").
                 "data text,".
-                "foreign key(user_id) references users(id),".
+                "foreign key(study_participant_id) references " . 
+                    "study_participants(id),".
                 "foreign key(step_id) references study_steps(id)".
             ")"
         );
