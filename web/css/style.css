@@ -525,3 +525,23 @@ span.selectedEntity.end-token {
     background-color: #d3d3d3;
     cursor: pointer;
 }
+
+.completed-step-form {
+    display: inline-block;
+}
+
+#step-list .completed, .completion-message {
+    color: green;
+}
+
+#step-list .pending {
+    color: #888;
+}
+
+.completion-message {
+    margin-top: 3em;
+    display: block;
+    text-align: center;
+    width: 100%;
+    font-size: 140%;
+}

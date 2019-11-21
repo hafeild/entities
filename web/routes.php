@@ -166,12 +166,27 @@ $routes = [
     Controllers::generateRoute(
         "GET", 
         "#^studies/(\d+)/?(\?.*)?$#", 
-        'Controllers::getStudy')
+        'Controllers::getStudy'),
+
+    // Gets an study step.
+    Controllers::generateRoute(
+        "GET", 
+        "#^studies/(\d+)/steps/(\d+)/?$#", 
+        'Controllers::getStudyStep'),
+
+    // Marks a step as complete.
+    Controllers::generateRoute(
+        "POST", 
+        "#^studies/(\d+)/steps/(\d+)/complete/?$#", 
+        'Controllers::markStudyStepCompleted'),
+
+    // Logs study interactions.
+    Controllers::generateRoute(
+        "POST", 
+        "#^studies/(\d+)/steps/(\d+)/data/?$#", 
+        'Controllers::logStudyData')
 
 
-#     "entities" => array("method" => "POST", "call" => addEntity),
-
-    // Check progress of file
 ];
 
 // echo "Path: $path<br>\n";

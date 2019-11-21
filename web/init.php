@@ -186,3 +186,15 @@ function confirmUserLoggedIn(){
         error("Must be logged in to add a text.");
     }
 }
+
+/**
+ * Prints a time in the format:
+ * 
+ * Jan. 15, 2019 at 5:32 pm
+ * 
+ * @param timestamp A timestamp in a normal timestamp format (one acceptable by 
+ *                  date_format). E.g., YYYY-MM-DD HH:MM:SS:ssss +HH:MM.
+ */
+function prettyPrintTime($timestamp){
+    return date_format(date_create($timestamp), 'M. j, Y \a\t g:ia');
+}

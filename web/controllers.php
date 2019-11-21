@@ -742,7 +742,8 @@ public static function getAnnotation($path, $matches, $params, $format){
         Controllers::render("Annotations", "views/annotation.php", 
             [
                 "annotation" => $annotation,
-                "text" => $text
+                "text" => $text,
+                "is_study" => false
             ],
             [], [], "annotation-page"
         );
@@ -1416,7 +1417,8 @@ public static function studyLogin($path, $matches, $params, $format){
  * 
  *   - success (true/false)
  *   - studies (array of objects, one per study the user is associated with)
- *      * id
+ *      * study_id
+ *      * participant_id
  *      * name
  *      * begin_at
  *      * end_at
@@ -1468,6 +1470,8 @@ public static function getStudies($path, $matches, $params, $format){
  * as JSON or passed on to the view looks like this:
  * 
  *   - success (true/false)
+ *   - message (if error encountered)
+ *   - additional_data
  *   - study
  *      * id
  *      * name
@@ -1480,7 +1484,7 @@ public static function getStudies($path, $matches, $params, $format){
  *      * is_complete
  *      * ordering
  *      * url
- *      * 
+ *      * participant_id
  * 
  * @param path Ignored.
  * @param matches The first match should be the study id.
@@ -1490,6 +1494,9 @@ public static function getStudies($path, $matches, $params, $format){
  */
 public static function getStudy($path, $matches, $params, $format){
     global $user;
+    if(count($matches) < 1){
+        error("Must include the id of the study in URI.");
+    }
 
     $study = getStudy($matches[1]);
 
@@ -1511,6 +1518,228 @@ public static function getStudy($path, $matches, $params, $format){
     }
 }
 
+/**
+ * Marks a study step as completed for the currently logged in user.  The data
+ * structure created to be returned as JSON looks like
+ * this:
+ * 
+ *   - success (true/false)
+ *   - message (if error encountered)
+ *   - additional_data
+ * 
+ * @param path Ignored.
+ * @param matches The first match should be the study id, the second the step 
+ *                id.
+ * @param params Ignored.
+ * @param format If "html", loads the study steps page. If "json", generates a 
+ *               JSON response as described above.
+ */
+public static function markStudyStepCompleted($path, $matches, $params,$format){
+    global $user;
+    if(count($matches) < 2){
+        error("Must include the id of the study and the step in URI.");
+    }
+
+    $studyId = $matches[1];
+    $stepId = $matches[2];
+
+    // Check that the user is associated with the given study step for this
+    // study.
+    $participant = getStudyParticipant($user["id"], $studyId);
+    if(!$participant){
+        error("You do not appear to be associated with study $studyId.");
+    }
+
+    $step = getStudyParticipantStep($participant["participant_id"], $stepId);
+    if(!$step){
+        error("We cannot find a the requested step in the database! ". 
+            "(id = $stepId).");
+    }
+
+    if($step["completed_at"] != null){
+        error("It looks like you completed this step already: ". 
+            prettyPrintTime($step["completed_at"]) . ".");
+    }
+    markStudyStepCompleted($participant["participant_id"], $stepId);
+
+    if($format == "json"){
+        return ["success" => true];
+    } else {
+        Controllers::redirectTo("/studies/$studyId", null, null);
+    }
+}
+
+/**
+ * Marks a study step as started for the currently logged in user.  The data
+ * structure created to be returned as JSON looks like
+ * this:
+ * 
+ *   - success (true/false)
+ *   - message (if error encountered)
+ *   - additional_data
+ * 
+ * @param path Ignored.
+ * @param matches The first match should be the study id, the second the step 
+ *                id.
+ * @param params Ignored.
+ * @param format If "html", loads the study steps page. If "json", generates a 
+ *               JSON response as described above.
+ */
+public static function markStudyStepStarted($path, $matches, $params,$format){
+    global $user;
+    if(count($matches) < 2){
+        error("Must include the id of the study and the step in URI.");
+    }
+
+    $studyId = $matches[1];
+    $stepId = $matches[2];
+
+    // Check that the user is associated with the given study step for this
+    // study.
+    $participant = getStudyParticipant($user["id"], $studyId);
+    if(!$participant){
+        error("You do not appear to be associated with study $studyId.");
+    }
+
+    $step = getStudyParticipantStep($participant["participant_id"], $stepId);
+    if(!$step){
+        error("We cannot find a the requested step in the database! ". 
+            "(id = $stepId).");
+    }
+
+    if($step["started_at"] != null){
+        error("It looks like you started this step already: ". 
+            prettyPrintTime($step["started_at"]) . ".");
+    }
+    markStudyStepStarted($participant["participant_id"], $stepId);
+
+    if($format == "json"){
+        return ["success" => true];
+    } else {
+        Controllers::redirectTo("/studies/", null, null);
+    }
+}
+
+public static function logStudyData($path, $matches, $params, $format){
+    global $user;
+
+    // $studyId = $params
+    // $stepId = 
+}
+
+
+/**
+ * Retrieves the study step with the given id. If the request format is 'html',
+ * the views/annotation.php page is rendered with the associate annotation_data
+ * (see below) in the global $data variable, or if the step is a url, a page 
+ * refresh is performed. If the format is 'json', the following object is
+ * returned:
+ * 
+ *      - success (true)
+ *      - step_data
+ *          * participant_id 
+ *          * step_id
+ *          * started_at
+ *          * completed_at
+ *          * created_at
+ *          * annotation_id
+ *          * study_id
+ *          * label
+ *          * url
+ *          * base_annotation_id
+ *      - annotation_data (can be null)
+ *          * annotation_id
+ *          * parent_annotation_id
+ *          * text_title
+ *          * text_id
+ *          * username (owner)
+ *          * user_id  (owner)
+ *          * method
+ *          * label
+ *          * created_at
+ *          * updated_at
+ *          * automated_method_in_progress
+ *          * automated_method_error
+ *          * annotation
+ *              - entities
+ *              - groups
+ *              - ties
+ *              - locations
+ * 
+ * @param path Ignored.
+ * @param matches First group should contain the annotation id.
+ * @param params The request parameters. Ignored.
+ * @param format The format of the response, 'json' or 'html'.
+ * @return If format is 'json', returns an associative array with the fields
+ *         outlines above; otherwise, returns nothing.
+ */
+public static function getStudyStep($path, $matches, $params, $format){
+    global $user;
+    
+    if(count($matches) < 2){
+        error("Must include the id of the study and the step in URI.");
+    }
+
+    $studyId = $matches[1];
+    $stepId = $matches[2];
+
+
+    // Check that the user is associated with the given study step for this
+    // study.
+    $participant = getStudyParticipant($user["id"], $studyId);
+    if(!$participant){
+        error("You do not appear to be associated with study $studyId.");
+    }
+
+    $step = getStudyParticipantStep($participant["participant_id"], $stepId);
+    if(!$step){
+        error("We cannot find a the requested step in the database! ". 
+            "(id = $stepId).");
+    }
+
+    $annotation = null;
+    if($step["annotation_id"]){
+        $annotation = lookupAnnotation($matches[1]);
+
+        // Verify this annotation exists.
+        if(!$annotation){
+            error("We could not find an annotation with id ${matches[1]}.");
+        }
+
+        // Verify the user has permission to view this annotation.
+        if(!canViewAnnotation($annotation["annotation_id"])){
+            error("You do not have permission to view this annotation.");
+        }
+    }
+
+    if(!$step["started_at"]){
+        markStudyStepStarted($step["participant_id"], $stepId);
+    }
+
+    if($format == "json"){
+        return [
+            "success" => true,
+            "step_data" => $step,
+            "annotation_data" => $annotation
+        ];
+    } else {
+        if($annotation){
+            $text = getTextMetadata($annotation["text_id"]);
+            $text["content_file"] = getTextContentFilename($annotation["text_id"]);
+            Controllers::render("Annotations", "views/annotation.php", 
+                [
+                    "annotation" => $annotation,
+                    "text" => $text,
+                    "is_study" => $studyId !== null,
+                    "step_data" => $step
+                ],
+                [], [], "annotation-page"
+            );
+        } else {
+            Controllers::redirectTo($step["url"], null, null);
+        }
+    }
+}
 
 
 }

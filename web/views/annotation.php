@@ -80,9 +80,19 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     </h2>
     Annotation by <?= $data["annotation"]["username"] ?> <br/>
 
+    <?php // For study annotations only. ?>
+    <?php if($data["is_study"]) { ?>
+        <form class="completed-step-form" method="post" 
+            action="/studies/<?= $data["step_data"]["study_id"] ?>/steps/<?= $data["step_data"]["step_id"] ?>/complete" onsubmit="return confirm('Are you sure you are completed annotating this text? Changes cannot be made once you\'ve selected \'OK\'.');">
+            <button class="btn btn-danger btn-md 
+                finished-annotating-button">
+                Finished annotating</button>
+        </form>
+    <?php } ?>
 
-    <!-- Fork. -->
-    <?php if($user != null){ // Begin logged-in user only section. ?>
+
+    <?php // Fork. Only available to logged in users and non-study annotations. ?>
+    <?php if($user != null && !$data["is_study"]){ // Begin logged-in user only section. ?>
 
 
         <!-- Button trigger modal -->
