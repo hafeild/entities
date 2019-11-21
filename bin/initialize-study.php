@@ -313,7 +313,8 @@ class StudyInitializer {
                 continue;
             }
 
-            addStudyParticipant($participant["db_id"], $study["db_id"], 
+            $participant["participant_id"] = addStudyParticipant(
+                $participant["db_id"], $study["db_id"], 
                 $study["groups"][$participant["group"]]["db_id"]);
         }
         
@@ -364,7 +365,7 @@ class StudyInitializer {
                 $url = $stepInfo["url"];
             }
 
-            $stepId = addStudyStep(
+            $stepId = addStudyStep( $study["db_id"],
                 $stepInfo["link_description"], $annotationId, $url);
             
             $stepInfo["db_id"] = $stepId;
@@ -436,10 +437,10 @@ class StudyInitializer {
 
         foreach($study["participants"] as $participant){
             // Ensure the user has an id.
-            if(!array_key_exists("db_id", $participant)){
+            if(!array_key_exists("participant_id", $participant)){
                 throw new Exception("Error adding participant steps for ". 
-                    "participant '${participant["username"]}': no 'db_id' ". 
-                    "field!");
+                    "participant '${participant["username"]}': no ". 
+                    "'participant_id' field!");
             }
 
             // Go through each step associated with the participant's group.
@@ -465,7 +466,7 @@ class StudyInitializer {
                 // Skip if this participant+step combo has already been 
                 // processed (i.e., there's already an entry in the database).
                 if(getStudyParticipantStep(
-                        $participant["db_id"], $step["db_id"])){
+                        $participant["participant_id"], $step["db_id"])){
                     continue;
                 }
 
@@ -504,8 +505,8 @@ class StudyInitializer {
                             $participant["db_id"]);
                 }
 
-                addStudyParticipantStep($participant["db_id"], $step["db_id"], 
-                    $annotationId);
+                addStudyParticipantStep($participant["participant_id"], 
+                    $step["db_id"], $annotationId);
             }
         }
 
