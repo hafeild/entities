@@ -11,7 +11,9 @@ global $user;
     <title><?= $title ?></title>
     <link rel="stylesheet" href="/css/style.css"/>
     <link rel="stylesheet" href="/css/colors.css"/>
+    <link rel="stylesheet" href="/css/restyle.css"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretty-checkbox@3.0/dist/pretty-checkbox.min.css" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script src="/js/messages.js"></script>
 </head>
@@ -26,7 +28,7 @@ global $user;
 
     <!-- Fixed navbar -->
     <nav class="navbar navbar-default navbar-fixed-top">
-        <div class="container">
+        <div class="<?= $view == "views/annotation.php" ? "" : "container" ?>">
             <div class="navbar-header">
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
                 <span class="sr-only">Toggle navigation</span>
@@ -114,10 +116,16 @@ global $user;
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" id="addMentionModalClose" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Add Alias</h4>
+              <h4 class="modal-title">Add Mention</h4>
             </div>
             <div class="modal-body">
-              <ul id='addMentionEntitySelectorChecklist'>
+               <div class="recentlySeenWrapper">
+                <h2>Most recently mentioned entities</h2>
+                <ul class="modalSelector recentlySeenList"></ul>
+                <hr/>
+              </div>
+              <h2>All entities</h2>
+              <ul class="modalSelector" id="addMentionEntitySelectorChecklist">
               </ul>
             </div>
             <div class="modal-footer">
@@ -137,10 +145,17 @@ global $user;
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" id="reassignMentionModalClose" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Reassign Alias</h4>
+              <h4 class="modal-title">Reassign Mention</h4>
             </div>
             <div class="modal-body">
-              <ul id='reassignMentionEntitySelectorChecklist'>
+              <div class="recentlySeenWrapper">
+                <h2>Most recently mentioned entities</h2>
+                <ul class="modalSelector recentlySeenList"></ul>
+                <hr/>
+              </div>
+
+              <h2>All entities</h2>
+              <ul class="modalSelector" id='reassignMentionEntitySelectorChecklist'>
               </ul>
             </div>
             <div class="modal-footer">
@@ -184,7 +199,7 @@ global $user;
               <h4 class="modal-title">Move Entity to Group</h4>
             </div>
             <div class="modal-body" id="groupSelectorModal-body">
-              <ul id='groupSelectorChecklist'>
+              <ul class="modalSelector" id='groupSelectorChecklist'>
               </ul>
             </div>
             <div class="modal-footer">
@@ -232,6 +247,7 @@ global $user;
               </div>
               <hr />
               <div class="row" style="margin-top: 20px">
+                <div class="col-sm-1"></div>
                 <div class="col-sm-4">
                   <div style="float: left">
                     <input name="tieWeightBox" class="form-control" value="1" type="number" id="tieWeightBox"/>
@@ -244,12 +260,16 @@ global $user;
                     <label style="width: 100%; text-align: center;" for="tieWeightBox">Label</label>
                   </div>
                 </div>
-                <div class="col-sm-4">
+                <div class="col-sm-3" style="margin-top: 10px;">
                   <div class="form-check">
-                    <label class="form-check-label" for="tieDirectedToggle">
-                        Directed 
-                    </label>
-                    <input name="tieDirectedToggle" class="form-check-input" type="checkbox" id="tieDirectedToggle" />
+                    <div class="pretty p-switch p-fill">
+                      <input name="tieDirectedToggle" class="form-check-input" type="checkbox" id="tieDirectedToggle" />
+                      <div class="state p-primary">
+                        <label style="width: 100%; text-align: center;" class="form-check-label" for="tieDirectedToggle">
+                            Directed 
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>        
               </div>
@@ -262,12 +282,60 @@ global $user;
         </div>
       </div>  
 
+      <!-- Tie Selector Modal -->
+      <div class="modal fade" id="editTieModal" role="dialog">
+        <div class="modal-dialog">
+        
+          <!-- Tie Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Edit Tie</h4>
+            </div>
+            <div class="modal-body" id="editTieModal-body">
+              <div class="row" style="margin-top: 20px">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-4">
+                  <div style="float: left">
+                    <input name="tieWeightBox" class="form-control" value="1" type="number" id="edit-tieWeightBox"/>
+                    <label style="width: 100%; text-align: center;" for="tieWeightBox">Weight</label>
+                  </div>
+                </div>
+                <div class="col-sm-4">
+                  <div style="float: left">
+                    <input name="tieNameBox" class="form-control" placeholder="" type="text" maxlength="100" id="edit-tieNameBox"/>
+                    <label style="width: 100%; text-align: center;" for="tieWeightBox">Label</label>
+                  </div>
+                </div>
+                <div class="col-sm-3" style="margin-top: 10px;">
+                  <div class="form-check">
+                    <div class="pretty p-switch p-fill">
+                      <input name="tieDirectedToggle" class="form-check-input" type="checkbox" id="edit-tieDirectedToggle" />
+                      <div class="state p-primary">
+                        <label style="width: 100%; text-align: center;" class="form-check-label" for="tieDirectedToggle">
+                            Directed 
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>        
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="confirmEditTie" data-dismiss="modal">Confirm</button>
+            </div>
+          </div>
+          
+        </div>
+      </div> 
+
       <!-- hidden buttons that allows for the bootstrap modal to open -->
       <button class="hidden-modal-button" id="addMentionModalOpener" data-toggle="modal" data-target="#addMentionModal">
       <button class="hidden-modal-button" id="reassignMentionModalOpener" data-toggle="modal" data-target="#reassignMentionModal">
       <button class="hidden-modal-button" id="changeGroupnameModalOpener" data-toggle="modal" data-target="#changeGroupNameModal">
       <button class="hidden-modal-button" id="groupSelectorModalOpener" data-toggle="modal" data-target="#groupSelectorModal">
       <button class="hidden-modal-button" id="addTieModalOpener" data-toggle="modal" data-target="#addTieModal">
+      <button class="hidden-modal-button" id="editTieModalOpener" data-toggle="modal" data-target="#editTieModal">  
 
 
 </body>

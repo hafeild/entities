@@ -305,21 +305,29 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
 
     <?php } ?>
+
+<span id="graph-export" class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Export network
+    <span class="caret"></span></button>
+    <ul id="graph-export-dropdown" class="dropdown-menu">
+        <li class="graph-export-option" id="graph-export-tsv">TSV</li>
+        <li class="graph-export-option" id="graph-export-graphml">graphML</li>
+    </ul>
+</span>
 </div> <!-- /.header -->
 
-<br/>
+<br id="selection-info-box-marker"/>
 <div id="selectionInfoBox">
     <p class="selectionInfo" id="entityInfoBox">0 entities selected</p>
-    <p class="selectionInfo" id="mentionInfoBox">0 aliases selected</p>
-    <p class="selectionInfo" id="groupInfoBox">0 groups selected</p>
-    <p class="selectionInfo" id="resetSelectionButton" style="text-decoration: underline; cursor: pointer">reset</p>
+    <p class="selectionInfo" id="mentionInfoBox">0 mentions selected</p>
+    <p class="selectionInfo" id="groupInfoBox">0 alias groups selected</p>
+    <p class="selectionInfo" id="resetSelectionButton" style="display: inline-block; text-decoration: underline; cursor: pointer">reset</p>
 </div>
 
 <div id="annotation-panels-wrapper">
     <div id="annotation-panels">
         <div id="entity-panel-wrapper">
             <div id="entity-panel">
-                Entities go here...
                 <div id="entity-list">
                 </div>
                 <script>
@@ -342,18 +350,12 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                 // For testing only!
                 // findTies(30);
             </script>
+            <span id="fullscreen-button" onclick="openNav()"><span class="glyphicon glyphicon-fullscreen"/></span>    
         </div>
 
 
         <div id="network-panel">
-            <div id="graph-export" class="dropdown">
-                <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Export As
-                <span class="caret"></span></button>
-                <ul id="graph-export-dropdown" class="dropdown-menu">
-                    <li class="graph-export-option" id="graph-export-tsv">TSV</li>
-                    <li class="graph-export-option" id="graph-export-graphml">graphML</li>
-                </ul>
-            </div>
+            
             <svg id="network-svg"></svg>
             <script>
                 networkViz.init();
@@ -363,3 +365,31 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     </div>
 </div>
 
+<div id="fullscreenTextOverlay" class="overlay">
+  <a href="javascript:void(0)" id="overlayCloseButton" class="closebtn" onclick="closeNav()">&times;</a>
+  <h2 id="overlay-text-title">
+      <a style="display: inline-block; color: #337ab7;" href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= 
+          $data["text"]["title"] ?>"</em> Annotations</a> : 
+          <?= $data["annotation"]["label"] == "" ? 
+              ("Annotation ". $data["annotation"]["annotation_id"]) : 
+              $data["annotation"]["label"] ?>
+  </h2>  
+  <div id="fullscreenTextOverlayContent" class="overlay-content">
+
+  </div>
+  <script>
+    function openNav() {
+        $("#text-panel").detach().appendTo('#fullscreenTextOverlayContent');
+        $('#selectionInfoBox').detach().insertAfter('#overlay-text-title');
+        $('#selectionInfoBox').addClass('selectionBox-inOverlay');
+        $('#fullscreenTextOverlay').css("width", "100%");
+    }
+
+    function closeNav() {
+        $('#fullscreenTextOverlay').css("width", "0%");
+        $("#text-panel").detach().appendTo('#text-panel-wrapper');
+        $('#selectionInfoBox').detach().insertAfter('#selection-info-box-marker');
+        $('#selectionInfoBox').removeClass('selectionBox-inOverlay');
+    }
+    </script>
+</div>
