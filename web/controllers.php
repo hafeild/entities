@@ -42,6 +42,14 @@ public static function getTexts($path, $matches, $params, $format,
         $data = [],  $errors = [], $messages = []){
     global $user;
 
+    // Redirect the user to the studies page if they are a study participant.
+    if($user){
+        $userStudies = getStudies($user["id"]);
+        if($userStudies && count($userStudies) > 0){
+            Controllers::redirectTo("/studies/");
+        }
+    }
+
     $startID = getWithDefault($params, "start_id", 1);
     $endID = getWithDefault($params, "end_id", -1);
     $count = getWithDefault($params, "count", -1);
