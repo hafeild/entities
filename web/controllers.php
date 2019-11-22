@@ -1630,9 +1630,39 @@ public static function markStudyStepStarted($path, $matches, $params,$format){
 
 public static function logStudyData($path, $matches, $params, $format){
     global $user;
+    if(count($matches) < 2){
+        error("Must include the id of the study and the step in URI.");
+    }
 
-    // $studyId = $params
-    // $stepId = 
+    if(!array_key_exists("data", $params)){
+        error("There must be a parameter named 'data' containing the ". 
+              "data to log.");
+    }
+
+    $data = $params["data"];
+    $studyId = $matches[1];
+    $stepId = $matches[2];
+
+    // Check that the user is associated with the given study step for this
+    // study.
+    $participant = getStudyParticipant($user["id"], $studyId);
+    if(!$participant){
+        error("You do not appear to be associated with study $studyId.");
+    }
+
+    $step = getStudyParticipantStep($participant["participant_id"], $stepId);
+    if(!$step){
+        error("We cannot find a the requested step in the database! ". 
+            "(id = $stepId).");
+    }
+
+    addStudyData($participant["participant_id"], $stepId, $data);
+
+    if($format == "json"){
+        return ["success" => true];
+    } else {
+        Controllers::redirectTo("/studies/", null, null);
+    }
 }
 
 

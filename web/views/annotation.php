@@ -4,6 +4,10 @@
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 
+<?php if($data["is_study"]) { ?>
+<script src="/js/study-logging.js"></script>
+<?php } ?>
+
 
 <?php 
 /**
@@ -70,7 +74,11 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
 <div class="header page-info" 
     data-uri="/annotations/<?= 
-        $data["annotation"]["annotation_id"] ?>">
+        $data["annotation"]["annotation_id"] ?>"
+    <?php if($data["is_study"]) { ?>
+    data-study-uri="/studies/<?= $data["step_data"]["study_id"] ?>/steps/<?= $data["step_data"]["step_id"] ?>""
+    <?php } ?>
+    >
     <h2>
         <a href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= 
             $data["text"]["title"] ?>"</em> Annotations</a> : 

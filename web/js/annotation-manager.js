@@ -1063,6 +1063,9 @@ var AnnotationManager = function(annotation_data){
      */
     var sendChangesToServer = function(changes, callback){
         console.log('sending changes to server', changes);
+
+        $(document).trigger('entities:annotation', changes);
+
         $.post({
             url: `/json/annotations/${self.annotation_data.annotation_id}`,
             data: {_method: 'PATCH', data: JSON.stringify(changes)},
