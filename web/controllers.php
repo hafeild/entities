@@ -1675,7 +1675,7 @@ public static function logStudyData($path, $matches, $params, $format){
  */
 public static function getStudyStep($path, $matches, $params, $format){
     global $user;
-    
+
     if(count($matches) < 2){
         error("Must include the id of the study and the step in URI.");
     }
@@ -1699,11 +1699,11 @@ public static function getStudyStep($path, $matches, $params, $format){
 
     $annotation = null;
     if($step["annotation_id"]){
-        $annotation = lookupAnnotation($matches[1]);
+        $annotation = lookupAnnotation($step["annotation_id"]);
 
         // Verify this annotation exists.
         if(!$annotation){
-            error("We could not find an annotation with id ${matches[1]}.");
+            error("We could not find an annotation with id ${step["annotation_id"]}.");
         }
 
         // Verify the user has permission to view this annotation.
