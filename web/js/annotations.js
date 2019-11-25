@@ -557,9 +557,9 @@ var checkSelectedText = function(event) {
 
     var contextMenuOptions = [];
 
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i>Add Entity</i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i>Add Mention</i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i>Add Tie</i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i><span id=\"addEntity\">Add Entity</span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i><span id=\"addMention\">Add Mention</span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i><span id=\"addTie\">Add Tie</span></i></a></li>");
 
     menuConfigData.textSpans = textSpans;
     menuConfigData.newGroupID = newGroupID;
@@ -680,6 +680,10 @@ var openContextMenu = function(options, clickedEntity) {
         var menuWidth = menu.offsetWidth;
         var menuHeight = menu.offsetHeight;
 
+        $(document).trigger('entities.context-menu-opened', 
+            {contents: contextMenu.html()});
+
+
         return false;
     } else {
         closeContextMenu();
@@ -717,6 +721,7 @@ var openTieContextMenu = function(e) {
 }
 
 var closeContextMenu = function() {
+    
     // unhighlight previously highlighted tie mentions if they exist
     if (menuConfigData.tieMentionHoveredOne !== null || menuConfigData.tieMentionHoveredOne !== undefined) {
         $('[data-location-id="' + menuConfigData.tieMentionHoveredOne + '"]').removeClass('selectedEntity');
@@ -729,11 +734,14 @@ var closeContextMenu = function() {
 
         $('.context-menu__items').html("");
 
+        $(document).trigger('entities.context-menu-closed');
+
         closeHoverMenu();
     }
 }
 
 var openHoverMenu = function(e) {
+    
     var hoverOption = $(event.target).parent();
     var hoverMenu = $('.context-menu-hover');
     var hoverMenuItems = $('.context-menu-hover').find('.context-menu__items');
@@ -741,20 +749,20 @@ var openHoverMenu = function(e) {
     var locationMultiplier = 1;
 
     if (hoverOption.hasClass('thisMentionHover')) {
-        options.push("<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i>Delete</i></a></li>");
-        options.push("<li class='context-menu__item reassignMentionOption'><a class='context-menu__link'><i>Reassign</i></a></li>");
+        options.push("<li class='context-menu__item deleteMentionOption'><a class='context-menu__link'><i><span id=\"deleteMention\">Delete</span></i></a></li>");
+        options.push("<li class='context-menu__item reassignMentionOption'><a class='context-menu__link'><i><span id=\"reassignMention\">Reassign</span></i></a></li>");
 
         locationMultiplier = 1;
     }
     else if (hoverOption.hasClass('thisEntityHover')) {
-        options.push("<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i>Delete</i></a></li>");
-        options.push("<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i>Move to Group</i></a></li>");
+        options.push("<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i><span d=\"deleteEntity\">Delete</span></i></a></li>");
+        options.push("<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i><span>id=\"moveEntityToGroup\">Move to Group</span></i></a></li>");
 
         locationMultiplier = 2;
     }
     else if (hoverOption.hasClass('thisGroupHover')) {
-        options.push("<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i>Delete</i></a></li>");
-        options.push("<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i>Change Group Name</i></a></li>");
+        options.push("<li class='context-menu__item deleteGroupOption'><a class='context-menu__link'><i><span id=\"deleteGroup\">Delete</span></i></a></li>");
+        options.push("<li class='context-menu__item changeGroupNameOption'><a class='context-menu__link'><i><span id=\"changeGroupName\">Change Group Name</span></i></a></li>");
 
         locationMultiplier = 3;
     }
@@ -763,15 +771,15 @@ var openHoverMenu = function(e) {
             options.push("<li class='context-menu__item groupEntitiesOption'><a class='context-menu__link'><i>Group Entites</i></a></li>");
         }
         if (menuConfigData.selectedGroups.length > 1) {
-            options.push("<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i>Combine Groups Here</i></a></li>");
-            options.push("<li class='context-menu__item deleteSelectedGroupsOption'><a class='context-menu__link'><i>Delete Selected Groups</i></a></li>");
+            options.push("<li class='context-menu__item combineSelectedGroupsOption'><a class='context-menu__link'><i><span id=\"combineSelectedGroups\">Combine Groups Here</span></i></a></li>");
+            options.push("<li class='context-menu__item deleteSelectedGroupsOption'><a class='context-menu__link'><i><span id=\"deleteSelectedGroups\">Delete Selected Groups</span></i></a></li>");
         }
 
         locationMultiplier = 4;
     }
     else if (hoverOption.hasClass('tieHover')) {
-        options.push("<li class='context-menu__item editTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i>Edit Tie</i></a></li>");
-        options.push("<li class='context-menu__item deleteTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i>Delete Tie</i></a></li>");
+        options.push("<li class='context-menu__item editTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i><span id=\"editTie\">Edit Tie</span></i></a></li>");
+        options.push("<li class='context-menu__item deleteTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i><span id=\"deleteTie\">Delete Tie</span></i></a></li>");
 
         // base locationMultiplier off of number of context menu options
         $(hoverOption.parent()).children().each(function() {
@@ -806,6 +814,9 @@ var openHoverMenu = function(e) {
     }
 
     hoverMenu.addClass("context-menu--active");
+
+    $(document).trigger('entities.hover-menu-opened', {contents: hoverMenu.html()});
+
 }
 
 var closeHoverMenu = function(e) {
@@ -815,6 +826,8 @@ var closeHoverMenu = function(e) {
     hoverMenuItems.empty();
 
     hoverMenu.removeClass("context-menu--active");
+    $(document).trigger('entities.hover-menu-closed');
+
 }
 
 function getPositionForMenu(e, clickedEntity) {

@@ -338,7 +338,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 <div id="annotation-panels-wrapper">
     <div id="annotation-panels">
         <div id="entity-panel-wrapper">
-            <div id="entity-panel">
+            <div id="entity-panel" class="panel">
                 <div id="entity-list">
                 </div>
                 <script>
@@ -352,7 +352,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
         <div id="text-panel-wrapper">
             <!-- Text goes here... -->
-            <div id="text-panel">
+            <div id="text-panel" class="panel">
                 <span id="end-marker"></span>
             </div>
             <script>
@@ -364,7 +364,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
         </div>
 
 
-        <div id="network-panel">
+        <div id="network-panel" class="panel">
             
             <svg id="network-svg"></svg>
             <script>

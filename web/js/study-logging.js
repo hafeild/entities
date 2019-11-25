@@ -62,25 +62,83 @@ var StudyLogger = function(syncInterval){
      * events with the server.
      */
     function init(){
+        // Start up.
         self.log(null, {name: 'pageload'});
 
         intervalTimerId = setInterval(syncEvents, syncInterval);
         studyURI = $('.page-info').data('study-uri');
 
+        // Changes to the annotation (generic).
         $(document).on('entities:annotation', (event, changes)=>
             self.log(event,{
                 name: 'annotation', 
                 changes: changes
         }));
 
+        // Page blurs.
         $(document).on('blur', (event, changes)=>self.log(event, {
             name: 'blur'
         }));
-
+        // Page focuses.
         $(document).on('focus', (event, changes)=>self.log(event, {
             name: 'focus'
         }));
 
+        // Modal opened.
+        // TODO give all modal launchers a name attribute.
+        $(document).on('show.bs.modal',  (event)=>self.log(event, {
+            name: 'modal-opened', modal: event.target.id
+        }));
+
+        // Modal closed.
+        // TODO give all modals a name attribute.
+        $(document).on('hide.bs.modal',  (event)=>self.log(event, {
+            name: 'modal-closed', modal: event.target.id
+        }));
+
+        // Text panel enlargement.
+
+        // Button press.
+        $(document).on('click', (event)=>{
+            if(event.originalEvent === undefined) return;
+            // console.log('click event', event.target, event);
+            self.log(event, {
+                name: 'click', 
+                id: event.target.id,
+                tag: event.target.tagName, 
+                panel: $(event.target).parents('.panel').attr('id'),
+                pageX: event.pageX,
+                pageY: event.pageY,
+                clientX: event.clientX, 
+                clientY: event.clientY, 
+                outerHTML: event.target.outerHTML,
+                targetBoundingBox: event.target.getBoundingClientRect()
+        })});
+
+        // Scrolling.
+        $('#text-panel').on('scroll', (event)=>self.log(event, {
+            name: 'scroll', panel: 'text-panel', 
+            boundingBox: event.target.getBoundingClientRect(),
+            scrollTop: event.target.scrollTop
+        }));
+
+        // Menu interactions.
+        $(document).on('entities.context-menu-opened', (event, data)=>self.log(event, {
+            name: 'context-menu-opened', contents: data.contents
+        }));
+        $(document).on('entities.context-menu-closed', (event)=>self.log(event, {
+            name: 'context-menu-closed'
+        }));        
+        $(document).on('entities.hover-menu-opened', (event, data)=>self.log(event, {
+            name: 'hover-menu-opened', contents: data.contents
+        }));
+        $(document).on('entities.hover-menu-closed', (event)=>self.log(event, {
+            name: 'hover-menu-closed'
+        }));
+
+        // Network interactions.
+
+        // Mouse movements.
 
     }
 
