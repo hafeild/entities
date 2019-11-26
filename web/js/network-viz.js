@@ -170,6 +170,12 @@ var networkViz = (function(){
      * if the meta or ctrl keys are pressed.
      */
     function dragstarted() {
+        $(document).trigger('entities.network-drag-started', {
+            group_id: d3.event.subject.id, 
+            name: d3.event.subject.name,
+            x: d3.event.subject.x, 
+            y: d3.event.subject.y
+        });
         console.log('In dragstarted', d3.event.sourceEvent);
         //if(d3.event.sourceEvent.metaKey || d3.event.sourceEvent.ctrKey) {
             movingNode = true;
@@ -177,6 +183,7 @@ var networkViz = (function(){
 
             // Freeze the network.
             if(!readjustOnMove){
+                $(document).trigger('entities.network-freeze');
                 for(var i = 0; i < networkData.nodes.length; i++){
                     networkData.nodes[i].fx = networkData.nodes[i].x;
                     networkData.nodes[i].fy = networkData.nodes[i].y;
@@ -207,6 +214,12 @@ var networkViz = (function(){
      */
     function dragended() {
         if(movingNode){
+            $(document).trigger('entities.network-drag-ended', {
+                group_id: d3.event.subject.id, 
+                name: d3.event.subject.name, 
+                x: d3.event.subject.x, 
+                y: d3.event.subject.y
+            });
             if (!d3.event.active) simulation.alphaTarget(0);
             //   d3.event.subject.fx = null;
             //   d3.event.subject.fy = null;
@@ -296,8 +309,20 @@ var networkViz = (function(){
                 .on("drag", dragged)
                 .on("end", dragended))
             .on('mouseover', function(d, i, n){ 
+                 $(document).trigger('entities.network-node-mouseover', {
+                    group_id: d.id, 
+                    name: d.name,
+                    x: d.x,
+                    y: d.y
+                });
                 d3.select(this).classed('node-hover', true); })
             .on('mouseout', function(d, i, n){ 
+                 $(document).trigger('entities.network-node-mouseout', {
+                    group_id: d.id, 
+                    name: d.name,
+                    x: d.x,
+                    y: d.y
+                });
                 d3.select(this).classed('node-hover', false); });;
 
         newG.append("circle")
@@ -319,6 +344,12 @@ var networkViz = (function(){
      * @param {string} groupName The name of the group to add. 
      */
     this.addNode = function(groupId, groupName){
+        $(document).trigger('entities.network-node-added', {
+            group_id: d3.event.subject.id, 
+            name: d3.event.subject.name
+        });
+
+
         // simulation.stop();
         networkData.nodes.push({
             id: groupId, 
@@ -348,14 +379,19 @@ var networkViz = (function(){
     this.addLink = function(sourceId, targetId, value, isDirected, label, 
             adjustLayout){
         // simulation.stop();
-        networkData.links.push({
+
+        var link = {
                 source: sourceId,
                 target: targetId,
                 value: value == undefined ? 1.0 : value,
                 is_directed: isDirected == undefined ? 
                                 false : tie.is_directed,
                 label: label
-        });
+        }
+
+        $(document).trigger('entities.network-link-added', link);
+
+        networkData.links.push(link);
 
         // Need to clear the entire network so that edges display beneath the
         // nodes.
@@ -377,6 +413,8 @@ var networkViz = (function(){
      * Resets the network, drawing it from scratch.
      */
     this.reset = function() {
+        $(document).trigger('entities.network-reset');
+
         simulation.stop();
         var nodes = simulation.nodes();
         var i;
@@ -395,11 +433,13 @@ var networkViz = (function(){
      * Downloads the graph in the format of TSV in the browser
      */
     this.exportTSV = function() {
+        $(document).trigger('entities.network-export-tsv', link);
         var links = networkData.links.slice();
         console.log(links);
     }
 
     this.exportGraphML = function() {
+        $(document).trigger('entities.network-export-graphml', link);
         var links = networkData.links.slice();
         var nodes = networkData.nodes.slice();
 

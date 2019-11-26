@@ -1330,7 +1330,7 @@ var confirmAddTie = function() {
 
     resetMenuConfigData();
 
-    window.location.reload(true);
+    // window.location.reload(true);
 }
 
 var deleteSelectedTie = function(e) {

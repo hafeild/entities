@@ -17,7 +17,7 @@
 var StudyLogger = function(syncInterval){
     var self = {};
     var queue = [];
-    synInterval = syncInterval === undefined ? 1000 : synInterval;
+    synInterval = syncInterval === undefined ? 1000 : syncInterval;
     var studyURI;
     var intervalTimerId;
 
@@ -29,7 +29,7 @@ var StudyLogger = function(syncInterval){
     self.log = function(domEvent, eventInfo){
         eventInfo.timestamp = (new Date()).getTime();
         queue.push(eventInfo);
-        console.log('logging', eventInfo);
+        // console.log('logging', eventInfo);
     };
 
     /**
@@ -38,7 +38,7 @@ var StudyLogger = function(syncInterval){
     function syncEvents(){
         if(queue.length === 0) return;
 
-        console.log('Syncing logged events...');
+        console.log(`Syncing ${queue.length} logged events ...`);
 
         // Unload the queue.
         var tmpQueue = queue;
@@ -85,18 +85,17 @@ var StudyLogger = function(syncInterval){
         }));
 
         // Modal opened.
-        // TODO give all modal launchers a name attribute.
         $(document).on('show.bs.modal',  (event)=>self.log(event, {
             name: 'modal-opened', modal: event.target.id
         }));
 
         // Modal closed.
-        // TODO give all modals a name attribute.
         $(document).on('hide.bs.modal',  (event)=>self.log(event, {
             name: 'modal-closed', modal: event.target.id
         }));
 
         // Text panel enlargement.
+        // TODO
 
         // Button press.
         $(document).on('click', (event)=>{
@@ -123,23 +122,36 @@ var StudyLogger = function(syncInterval){
         }));
 
         // Menu interactions.
-        $(document).on('entities.context-menu-opened', (event, data)=>self.log(event, {
-            name: 'context-menu-opened', contents: data.contents
+        $(document).on('entities.context-menu-opened '+
+            'entities.hover-menu-opened', (event, data)=>self.log(event, {
+            name: event.namespace, contents: data.contents
         }));
-        $(document).on('entities.context-menu-closed', (event)=>self.log(event, {
-            name: 'context-menu-closed'
-        }));        
-        $(document).on('entities.hover-menu-opened', (event, data)=>self.log(event, {
-            name: 'hover-menu-opened', contents: data.contents
-        }));
-        $(document).on('entities.hover-menu-closed', (event)=>self.log(event, {
-            name: 'hover-menu-closed'
+        $(document).on('entities.context-menu-closed '+
+            'entities.hover-menu-closed', (event, data)=>self.log(event, {
+            name: event.namespace
         }));
 
         // Network interactions.
+        $(document).on('entities.network-drag-started '+
+            'entities.network-freeze '+
+            'entities.network-drag-ended '+
+            'entities.network-node-added '+
+            'entities.network-node-mouseout '+
+            'entities.network-node-mouseover '+
+            'entities.network-link-added '+
+            'entities.network-reset '+
+            'entities.network-export-tsv '+
+            'entities.network-export-graphml', (event, data)=>self.log(event, {
+            name: event.namespace, data: data
+        }));
 
         // Mouse movements.
 
+
+        $(window).on('unload', ()=>{
+            clearInterval(intervalTimerId);
+            syncEvents();
+        });
     }
 
     init();
@@ -149,5 +161,5 @@ var StudyLogger = function(syncInterval){
 
 var studyLogger;
 $(document).ready(function(){
-    studyLogger = StudyLogger();
+    studyLogger = StudyLogger(5000); // Syncs with server every 5 sec.
 });

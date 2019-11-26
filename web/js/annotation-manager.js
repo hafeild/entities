@@ -466,6 +466,8 @@ var AnnotationManager = function(annotation_data){
     self.changeGroupName = function(groupId, name, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
 
+        console.log(`in changeGroupName(${groupId}, ${name}, ...)`);
+
         self.groups[groupId].name = name;
         changes.groups[groupId] = {name: name};        
 
@@ -800,6 +802,9 @@ var AnnotationManager = function(annotation_data){
                     };
                 } else if(updatedTie[node].entity_id !== undefined){
                     tie[node] = {entity_id: updatedTie[node].entity_id};
+                    if(self.entities[tie[node].entity_id].ties === undefined){
+                        self.entities[tie[node].entity_id].ties = {};
+                    }
                     self.entities[tie[node].entity_id].ties[tieId] = tie;
 
                     // Mark changes.
