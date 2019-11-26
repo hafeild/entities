@@ -844,7 +844,7 @@ var openHoverMenu = function(hoverOption) {
     }
     else if (hoverOption.hasClass('thisEntityHover')) {
         options.push("<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i><span d=\"deleteEntity\">Delete</span></i></a></li>");
-        options.push("<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i><span>id=\"moveEntityToGroup\">Move to Group</span></i></a></li>");
+        options.push("<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i><span id=\"moveEntityToGroup\">Move to Group</span></i></a></li>");
 
         $('[data-entity-id="' + entity.attr('data-entity-id') + '"]').each(function() {
             $(this).addClass('selectedEntity');
@@ -1307,6 +1307,13 @@ var openAddTieModal = function(e) {
     }
 
     $('#addTieModalOpener').click();
+
+    $(document).trigger('entities.tie-modal-autofill', {
+        source_location_id: preselectOne ? preselectOne.attr('data-location-id') : null,
+        source_list: $('#tieObjectOneSelector')[0].outerHTML,
+        target_location_id: preselectTwo ? preselectTwo.attr('data-location-id') : null,
+        target_list: $('#tieObjectTwoSelector')[0].outerHTML
+    });
 }
 
 var highlightTieModalTextArea = function(e) {
@@ -1320,6 +1327,7 @@ var highlightTieModalTextArea = function(e) {
 }
 
 var tieModalObjectChosen = function(e) {
+    
     var object = $(this);
 
     var mention = $('#tieModalTextArea').find('[data-location-id=' + object.attr('data-location-id') + ']');  
@@ -1344,6 +1352,11 @@ var tieModalObjectChosen = function(e) {
         var dropdownText = object.find('span').html();
         if (object.attr('data-entity-id') !== undefined && object.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
         $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+
+        $(document).trigger('entities.tie-modal-source-change', {
+            source_location_id: object.attr('data-location-id'),
+            source_list: $('#tieObjectOneSelector')[0].outerHTML
+        });
     } else {
         if (menuConfigData.tieObjectTwo !== null) {
             $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']').removeClass('selectedTieObject');
@@ -1361,6 +1374,11 @@ var tieModalObjectChosen = function(e) {
         var dropdownText = object.find('span').html();
         if (object.attr('data-entity-id') !== undefined && object.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
         $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+
+        $(document).trigger('entities.tie-modal-target-change', {
+            target_location_id: object.attr('data-location-id'),
+            target_list: $('#tieObjectTwoSelector')[0].outerHTML
+        });
     }
 }
 

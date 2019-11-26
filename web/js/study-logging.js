@@ -29,7 +29,7 @@ var StudyLogger = function(syncInterval){
     self.log = function(domEvent, eventInfo){
         eventInfo.timestamp = (new Date()).getTime();
         queue.push(eventInfo);
-        // console.log('logging', eventInfo);
+        console.log('logging', eventInfo);
     };
 
     /**
@@ -143,6 +143,13 @@ var StudyLogger = function(syncInterval){
             'entities.network-export-tsv '+
             'entities.network-export-graphml', (event, data)=>self.log(event, {
             name: event.namespace, data: data
+        }));
+
+        // Tie defaults / changes.
+        $(document).on('entities.tie-modal-target-change '+
+            'entities.tie-modal-source-change '+ 
+            'entities.tie-modal-autofill', (event, data)=>self.log(event, {
+                name: event.namespace, data: data
         }));
 
         // Mouse movements.
