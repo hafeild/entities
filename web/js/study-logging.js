@@ -95,7 +95,10 @@ var StudyLogger = function(syncInterval){
         }));
 
         // Text panel enlargement.
-        // TODO
+        $(document).on('entities.fullscreen-enabled '+
+            'entities.fullscreen-disabled', (event)=>self.log(event, {
+                name: event.namespace
+        }));
 
         // Button press.
         $(document).on('click', (event)=>{

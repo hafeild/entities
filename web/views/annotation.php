@@ -397,6 +397,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
   </div>
   <script>
     function openNav() {
+        $(document).trigger('entities.fullscreen-enabled');
         $("#text-panel").detach().appendTo('#fullscreenTextOverlayContent');
         $('#selectionInfoBox').detach().insertAfter('#overlay-text-title');
         $('#selectionInfoBox').addClass('selectionBox-inOverlay');
@@ -404,6 +405,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     }
 
     function closeNav() {
+        $(document).trigger('entities.fullscreen-disabled');
         $('#fullscreenTextOverlay').css("width", "0%");
         $("#text-panel").detach().appendTo('#text-panel-wrapper');
         $('#selectionInfoBox').detach().insertAfter('#selection-info-box-marker');
