@@ -4,6 +4,17 @@ body {
     height: 100%;
 }
 
+.caret-right {
+    border-bottom: 4px solid transparent;
+    border-top: 4px solid transparent;
+    border-left: 4px solid;
+    height: 0;
+    opacity: 0.3;
+    vertical-align: top;
+    width: 100%;
+    text-align: right;
+}
+
 body.account-page {
     display: -ms-flexbox;
     display: flex;
@@ -184,7 +195,7 @@ body {
     flex: 1;
     position: relative;
     box-sizing: border-box;
-    margin: 2em 0 0 -1em;
+    margin: 1em 0 0 -1em;
     padding: 0;
     /* display: table; */
 }
@@ -219,6 +230,7 @@ body {
     white-space: pre-wrap;
     font-size: 14pt;
     overflow-y: auto;
+    overflow-x: hidden;
     position: absolute;
     top: 0;
     bottom: 0;
@@ -340,27 +352,28 @@ button.annotated-entity {
 }
 
 span.selectedEntity {
-    border-style: solid;
-    border-width: 3px;
-
-    border-image: linear-gradient(to right, #f857a6, #ff5858);
-    border-image-slice: 1;
-
-    border-left: none;
-    border-right: none;
+    border-top: 3px solid #ff2d50;
+    border-bottom: 3px solid #ff2d50;
 
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
 }
 
+span.selectedEntity-start {
+    border-right: none;
+}
+span.selectedEntity-end {
+    border-left: none;
+}
+
 span.selectedEntity.start-token {
-    border-left: 3px dashed #21303b;
+    border-left: 3px solid #ff2d50;
     margin-left: -3px;
 }
 
 span.selectedEntity.end-token {
-    border-right: 3px dashed #21303b;
+    border-right: 3px solid #ff2d50;
     margin-right: -3px;
 }
 
@@ -395,7 +408,7 @@ span.selectedEntity.end-token {
   z-index: 10;
   padding: 12px 0;
   width: 240px;
-  background-color: #fff;
+  background-color: RGBA(97, 97, 97, 0.8);
   border: solid 1px #dfdfdf;
   box-shadow: 1px 1px 2px #cfcfcf;
 }
@@ -423,12 +436,12 @@ span.selectedEntity.end-token {
 .context-menu__link {
   display: block;
   padding: 4px 12px;
-  color: #0066aa;
+  color: white;
   text-decoration: none;
 }
 
 .context-menu__link:hover {
-  color: #fff;
+  color: white;
   background-color: #0066aa;
   text-decoration: none;
   cursor: pointer;
@@ -495,14 +508,18 @@ span.selectedEntity.end-token {
 
 .tie-text {
     text-decoration: underline;
-    -webkit-text-decoration-color: salmon;
-    text-decoration-color: salmon;
+    -webkit-text-decoration-color: DodgerBlue;
+    text-decoration-color: DodgerBlue;
 
-    text-decoration-thickness: 3px;
+    text-decoration-thickness: 2px;
 }
 
 .tie-text:hover {
     cursor: alias;
+}
+
+#tieObjectTwoDropdown {
+    float: right;
 }
 
 .dropdown-menu.tieObjectSelector {         
@@ -544,4 +561,10 @@ span.selectedEntity.end-token {
     text-align: center;
     width: 100%;
     font-size: 140%;
+}
+
+.selectionInfo {
+    margin: 0 auto;
+    font-size: 14px;
+    font-style: italic;
 }
