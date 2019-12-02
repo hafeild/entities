@@ -1790,8 +1790,16 @@ var exportAsGraphML = function() {
         lines.push(`<data key="label">${node.label}</data>`);
         lines.push('</node>');
     });
+    var edgeGML = "";
     $.each(edges, function(index, edge) {
-        lines.push(`<edge id="${edge.id}" source="${nodes[edge.source].label}" target="${nodes[edge.target].label}">`);
+        edgeGML = `<edge id="${edge.id}" source="${nodes[edge.source].label}" target="${nodes[edge.target].label}" `;
+        console.log(edge);
+        if (typeof edge.is_directed !== typeof undefined && typeof edge.is_directed !== typeof null && edge.is_directed) {
+            edgeGML += `directed="true">`;
+        } else {
+            edgeGML += `>`;
+        }
+        lines.push(edgeGML);
         lines.push(`<data key="weight">${edge.weight}</data>`);
         lines.push(`<data key="Edge Label">${edge.label}</data>`)
         lines.push('</edge>')
