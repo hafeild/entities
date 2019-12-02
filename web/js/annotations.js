@@ -363,7 +363,8 @@ var locationsByPages = [];
 
     // Highlight locations for this page.
     highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
-    highlightTiesInContent(locationsByPages[pageIndex], $newPageElm);
+    highlightTiesInContent(contentPages[pageIndex][START], 
+        contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
 }
 
 /**
@@ -422,12 +423,62 @@ var locationsByPages = [];
 }
 
 /**
+ * Iterates over each token span between a starting and ending token id in the
+ * given element, including whitespace. The provided function `func` is invoked
+ * for each element.
+ * 
+ * @param {jQuery Element} $element The element to highlight entities in.
+ * @param {integer} start The index of the first token to iterate over.
+ * @param {integer} end The index of the last token to iterate over.
+ * @param {function($token, tokenId, isWhitespace)} func 
+ *                      The function to apply to each token. Should accept three
+ *                      parameters:
+ *                      {jQuery Element} $token The current token.
+ *                      {integer} tokenId The id of the current token.
+ *                      {boolean} isWhitespace True if the token is whitespace.
+ *                      A return value of false will cause the iterator to exit.
+ */
+var iterateOverTokens = function($element, start, end, func){
+    var $token = $element.find(`[data-token=${start}]`);
+    var tokenId = parseInt($token.attr('data-token')) || -1;
+    var prevTokenId = tokenId;
+
+    // Moves down each token in the location, including the spaces.
+    while($token.length > 0 && 
+        ((!$token.attr('data-token') && prevTokenId != end) || 
+        (tokenId >= start && tokenId <= end))){
+
+        if(func($token, tokenId, !$token.attr('data-token'))){ 
+            break; 
+        }
+
+        // If we're still in the current content page.
+        if($token[0].nextSibling !== null){
+            $token = $($token[0].nextSibling);
+
+        // If there's a next content page.
+        } else if($token[0].parentElement.nextSibling !== null){
+            $token = $($token[0].parentElement.nextSibling.firstChild);
+
+        // We're at the end of content pages.
+        } else {
+            break;
+        }
+
+        prevTokenId = tokenId;
+        tokenId = parseInt($token.attr('data-token')) || -1;
+    }
+}
+
+/**
  * Highlights entities in the given text content element. Tokens in the given
  * element must contain an data-id="..." attribute with the token's id. Colors
  * are chosen by the global pallet. This relies on the global `annotation_data`
  * variable being properly initialized and maintained.
  *
- * @param {jQuery Element} The element to highlight entities in.
+ * @param {number[]} locationKeys A list of the location keys specific to the
+ *                                $element.
+ * @param {jQuery Element} $element The element to highlight entities in.
  */
  var highlightEntitiesInContent = function(locationKeys, $element){
     // This is just to test things quick and dirty.
@@ -437,14 +488,10 @@ var locationsByPages = [];
         var entityGroupId = annotation_data.annotation.
             entities[location.entity_id].group_id;
         
-        $token = $element.find(`[data-token=${location.start}]`);
-        tokenId = parseInt($token.attr('data-token'));
-        prefTokenId = tokenId;
 
         // Moves down each token in the location, including the spaces.
-        while($token.length > 0 && 
-            (($token.attr('data-token') === undefined && prevTokenId != location.end) || 
-            (tokenId >= location.start && tokenId <= location.end))){
+        iterateOverTokens($element, location.start, location.end, 
+            function($token, tokenId, isWhitespace){
 
             $token.
                 addClass(`g${entityGroupId}`). 
@@ -463,27 +510,33 @@ var locationsByPages = [];
             if(tokenId == location.end){
                 $token.addClass('end-token');j
             }
-
-            $token = $($token[0].nextSibling);
-            prevTokenId = tokenId;
-            tokenId = parseInt($token.attr('data-token'));
-
-        }
+        });
    }
 }
 
 /**
- * Highlights ties in the given text content element. This relies on the global `annotation_data`
- * variable being properly initialized and maintained.
+ * Highlights ties in the given text content element. This relies on the global
+ * `annotation_data` variable being properly initialized and maintained.
  *
- * @param {jQuery Element} The element to highlight entities in.
+ * @param {number} tokenStartIndex The id of the first token in $element.
+ * @param {number} tokenEndIndex The id of the last token in $element.
+ * @param {jQuery Element} $element The element to highlight ties in.
+ * @param {object} ties A map of tie ids to ties objects; only these ties will 
+ *                      be highlighted.
  */
- var highlightTiesInContent = function(locationKeys, $element){
-    var ties = annotation_data.annotation.ties;
-    console.log(annotation_data.annotation);
+ var highlightTiesInContent = function(tokenStartIndex, tokenEndIndex, $element, 
+    ties){
+    //var ties = annotation_data.annotation.ties;
+    // console.log(annotation_data.annotation);
 
-    $.each(ties, function(index, tie) {
-        // look in given text content element for non-entity tags between start and end of tie
+    for(tieId in ties){
+        var tie = ties[tieId];
+
+        // Skip this tie if it is not part of this element.
+        if(tie.start > tokenEndIndex || tie.end < tokenStartIndex){ continue; }
+
+        // look in given text content element for non-entity tags between start 
+        // and end of tie
         $element.find('span').filter(function() {
             return parseInt($(this).attr("data-token")) >= tie.start;
         }).filter(function() {
@@ -491,23 +544,43 @@ var locationsByPages = [];
         }).not('.entity').wrap(function() {
             $(this).addClass('tie-text');
             // add tie key for reference
-            if ($(this).attr('tie-refs') === undefined || $(this).attr('tie-refs') === null) {
+            if ($(this).attr('tie-refs') === undefined || 
+                    $(this).attr('tie-refs') === null) {
                 $(this).attr('tie-refs', "");
-            } else if (!$(this).attr('tie-refs').includes(index.toString())) {
-                $(this).attr('tie-refs', $(this).attr('tie-refs') + index.toString() + " ");
+                $(this).attr('data-tie-ref-count', '0');
+            } //else 
+
+            // NOTE: Hank changed this from else-if to if so that the tie-refs
+            // gets updated with the tie id. 
+            if (!$(this).attr('tie-refs').includes(tieId)) {
+                $(this).attr('tie-refs', $(this).attr('tie-refs') + tieId +" ");
+                $(this).attr('data-tie-ref-count', 
+                    parseInt($(this).attr('data-tie-ref-count')) + 1);
             }
+
             // highlight spaces, too
-            if (parseInt($(this).attr('data-token')) !== tie.start && $(this).prev().html().trim() === "") {
-                $(this).prev().addClass('tie-text');
+            if (parseInt($(this).attr('data-token')) !== tie.start && 
+                    $(this).prev().html().trim() === "") {
+
+                var $prev = $(this).prev();
+                $prev.addClass('tie-text');
                 // add tie key for reference
-                if ($(this).attr('tie-refs') === undefined || $(this).attr('tie-refs') === null) {
-                    $(this).attr('tie-refs', "");
-                } else if (!$(this).attr('tie-refs').includes(index.toString())) {
-                    $(this).attr('tie-refs', $(this).attr('tie-refs') + index.toString() + " ");
+                if ($prev.attr('tie-refs') === undefined || 
+                        $prev.attr('tie-refs') === null) {
+                    $prev.attr('tie-refs', "");
+                    $prev.attr('data-tie-ref-count', '0');
+                } //else 
+                
+                // NOTE: Hank changed this from else-if to if (see above).
+                if (!$prev.attr('tie-refs').includes(tieId)) {
+                    $prev.attr('tie-refs', $prev.attr('tie-refs') + 
+                        tieId +" ");
+                    $prev.attr('data-tie-ref-count', 
+                        parseInt($prev.attr('data-tie-ref-count')) + 1);
                 }
             }
         });
-    });
+    };
 }
 
 
@@ -1426,7 +1499,7 @@ var confirmAddTie = function() {
     }
 
     // addTie(tieData, callback)
-    annotationManager.addTie(tieData, ()=>{window.location.reload(true);});
+    annotationManager.addTie(tieData);
 
     resetMenuConfigData();
 }
@@ -1478,7 +1551,7 @@ var confirmEditTie = function(e) {
     }
 
     // addTie(tieData, callback)
-    annotationManager.updateTie($(this).attr('tie-ref'), tieData, ()=>{window.location.reload(true);});
+    annotationManager.updateTie($(this).attr('tie-ref'), tieData);
 
     resetMenuConfigData();
 }
@@ -1489,7 +1562,7 @@ var deleteSelectedTie = function(e) {
 
     // removeTie(TieID, callback);
     console.log($(this).attr('tie-ref'));
-    annotationManager.removeTie($(this).attr('tie-ref'), ()=>{window.location.reload(true);});
+    annotationManager.removeTie($(this).attr('tie-ref'));
 
     resetMenuConfigData();
 }

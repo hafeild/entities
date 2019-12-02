@@ -3,6 +3,7 @@
 <script src="/js/annotation-manager.js"></script>
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
+<script src="/js/ui-updater.js"></script>
 
 <?php if($data["is_study"]) { ?>
 <script src="/js/study-logging.js"></script>

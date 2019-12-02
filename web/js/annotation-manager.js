@@ -700,7 +700,17 @@ var AnnotationManager = function(annotation_data){
         changes.last_tie_id = annotation.last_tie_id;
 
         // Let updateTie do all the heavy lifting...
-        self.updateTie(tieId, tieData, callback, changes);
+        self.updateTie(tieId, tieData, (success, data, error, extra)=>{
+            $(document).trigger('entities.annotation.tie-added', {
+                id: tieId,
+                tie: self.ties[tieId]
+            });
+
+            if(callback){
+                callback(success, data, error, extra);
+            }
+        }, changes);
+
     };
 
     /**
@@ -746,9 +756,12 @@ var AnnotationManager = function(annotation_data){
         var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = self.ties[tieId];
         var i;
+        var oldTie = JSON.parse(JSON.stringify(tie));
+        var issueEvent = false;
 
         if(changes === undefined){
             changes = {entities: {}, groups: {}, locations: {}, ties: {}};
+            issueEvent = true;
         }
 
         changes.ties[tieId] = {};
@@ -816,7 +829,18 @@ var AnnotationManager = function(annotation_data){
         }
 
         // Sync with server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (success, data, error, extra)=>{
+            if(issueEvent){
+                $(document).trigger('entities.annotation.tie-updated', {
+                    id: tieId,
+                    oldTie: oldTie,
+                    newTie: tie
+                });
+            }
+            if(callback){
+                callback(success, data, error, extra);
+            }
+        });
     };
 
     /**
@@ -844,7 +868,7 @@ var AnnotationManager = function(annotation_data){
 
         // Update the *_entity fields.
         for(node in nodes){
-            if(updatedTie[node] !== undefined){
+            if(tie[node] !== undefined){
                 // Remove convenience links.
                 if(tie[node].location_id !== undefined){
                     delete self.locations[tie[node].location_id].ties[tieId];
@@ -855,7 +879,16 @@ var AnnotationManager = function(annotation_data){
         }
 
         // Sync with server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (success, data, error, extra)=>{
+            $(document).trigger('entities.annotation.tie-removed', {
+                id: tieId,
+                tie: tie
+            });
+
+            if(callback){
+                callback(success, data, error, extra);
+            }
+        });
     };
 
     /**
@@ -1069,16 +1102,28 @@ var AnnotationManager = function(annotation_data){
     var sendChangesToServer = function(changes, callback){
         console.log('sending changes to server', changes);
 
-        $(document).trigger('entities:annotation', changes);
+        $(document).trigger('entities.annotation.changes-made', changes);
 
         $.post({
             url: `/json/annotations/${self.annotation_data.annotation_id}`,
             data: {_method: 'PATCH', data: JSON.stringify(changes)},
             success: function(response){
-                if(callback !== undefined && callback !== null){
-                    callback({
-                        success: true, 
-                        data: response
+                if(response.success){
+                    if(callback !== undefined && callback !== null){
+                        callback({
+                            success: true, 
+                            data: response
+                        });
+                    }
+                    $(document).trigger('entities.annotation.changes-saved', 
+                        changes);
+                } else {
+                    $(document).trigger('entities.annotation.changes-error', {
+                        changes: changes, 
+                        error: response.error, 
+                        data: {
+                            server_response: response
+                        }
                     });
                 }
             },
@@ -1093,6 +1138,15 @@ var AnnotationManager = function(annotation_data){
                         }
                     });
                 }
+
+                $(document).trigger('entities.annotation.changes-error', {
+                    changes: changes, 
+                    error: errorThrown, 
+                    data: {
+                        jqXHR: jqXHR,
+                        textStatus: textStatus
+                    }
+                });
             }
         });
     };

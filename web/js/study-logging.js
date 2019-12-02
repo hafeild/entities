@@ -69,11 +69,26 @@ var StudyLogger = function(syncInterval){
         studyURI = $('.page-info').data('study-uri');
 
         // Changes to the annotation (generic).
-        $(document).on('entities:annotation', (event, changes)=>
+        $(document).on('entities.annotation.changes-made', (event, changes)=>
             self.log(event,{
-                name: 'annotation', 
+                name: 'annotation-made', 
                 changes: changes
         }));
+
+        $(document).on('entities.annotation.changes-saved', (event, changes)=>
+            self.log(event,{
+                name: 'annotation-saved', 
+                changes: changes
+        }));
+
+        $(document).on('entities.annotation.changes-error', (event, data)=>
+            self.log(event,{
+                name: 'annotation-error', 
+                changes: data.changes,
+                error: data.error,
+                data: data.data
+        }));
+
 
         // Page blurs.
         $(document).on('blur', (event, changes)=>self.log(event, {

@@ -1628,6 +1628,21 @@ public static function markStudyStepStarted($path, $matches, $params,$format){
     }
 }
 
+/**
+ * Saves a study log message to the database. The data
+ * structure created to be returned as JSON looks like
+ * 
+ *   - success (true/false)
+ *   - message (if error encountered)
+ *   - additional_data
+ * 
+ * @param path Ignored.
+ * @param matches The first match should be the study id, the second the step 
+ *                id.
+ * @param params Ignored.
+ * @param format If "html", redirects to the studies page. If "json", generates 
+ *               a JSON response as described above.
+ */
 public static function logStudyData($path, $matches, $params, $format){
     global $user;
     if(count($matches) < 2){
