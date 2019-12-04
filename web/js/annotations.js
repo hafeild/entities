@@ -768,7 +768,8 @@ var closeContextMenu = function() {
         menuConfigData.tieMentionHoveredTwo = null;
     }
     if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
-        !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item'))) {
+        !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item')) && 
+        !($(event.target).hasClass('tie-text'))) {
         menuOpen = 0;
         menu.classList.remove("context-menu--active");
 
@@ -1793,7 +1794,6 @@ var exportAsGraphML = function() {
     var edgeGML = "";
     $.each(edges, function(index, edge) {
         edgeGML = `<edge id="${edge.id}" source="${nodes[edge.source].label}" target="${nodes[edge.target].label}" `;
-        console.log(edge);
         if (typeof edge.is_directed !== typeof undefined && typeof edge.is_directed !== typeof null && edge.is_directed) {
             edgeGML += `directed="true">`;
         } else {
