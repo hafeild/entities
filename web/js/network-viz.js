@@ -5,6 +5,10 @@
 //          panel on the annotations page.
 
 var networkViz = (function(){
+    var self = {};
+    var entitiesData = {};
+    var seenGroups = {};
+    var seenLinks = {};
     const RADIUS = 10;
     var svgElm, svg, svgWidth, svgHeight;
     var simulation;
@@ -18,7 +22,7 @@ var networkViz = (function(){
     /**
      * Initializes the network and D3 objects. Does NOT draw the network.
      */
-    this.init = function(){
+    self.init = function(){
         svgElm = document.querySelector("#network-svg");
         svg = d3.select('#network-svg');
         svgWidth = svgElm.getBoundingClientRect().width;
@@ -44,15 +48,15 @@ var networkViz = (function(){
      * Draws the network and places listeners on nodes for clicking/dragging/
      * hovering.
      * 
-     * @param {Object} entitiesData EntiTies map with the following keys:
+     * @param {object} entitiesData_ EntiTies map with the following keys:
      *   - entities
      *   - locations
      *   - ties
      *   - groups
      */
-    this.loadNetwork = function(entitiesData) {
+    self.loadNetwork = function(entitiesData_) {
+        entitiesData = entitiesData_;
         networkData = entitiesDataToGraph(entitiesData);
-
 
         refreshNetwork = function() {
             gnodes.attr("transform", function(d) { 
@@ -69,8 +73,6 @@ var networkViz = (function(){
                 .attr("y1", function(d) { return d.source.y; })
                 .attr("x2", function(d) { return d.target.x; })
                 .attr("y2", function(d) { return d.target.y; });
-
-    
         };
 
         simulation
@@ -84,6 +86,164 @@ var networkViz = (function(){
     };
 
     /**
+     * Resolves the entity alias group id associated with the tie node's entity 
+     * or mention.
+     * 
+     * @param {object} tieNode An object representing a source or target of a
+     *                         a tie with one of two possible keys:
+     *      - entity_id (the id of the source or target entity)
+     *      - location_id (the id of the source or target mention)
+     * 
+     * @return The alias group associated with the entity or mention.
+     */
+    function getTieNodeGroup(tieNode) {
+        if(tieNode.entity_id !== undefined){
+            return entitiesData.entities[tieNode.entity_id].group_id;
+        } else if(tieNode.location_id != undefined){
+            if(entitiesData.locations[tieNode.location_id].entity_id !== undefined){
+                return entitiesData.entities[
+                    entitiesData.locations[
+                        tieNode.location_id].entity_id].group_id;
+            }
+        }
+
+        console.log("Hmm...can't identify the entity or location "+
+            "associated with this tie node:", tieNode);
+        return null;
+    }
+
+    /**
+     * Adds an entity alias group to the set of nodes if it doesn't already
+     * exist.
+     * 
+     * @param {object} graph The internal graph object; should have the 
+     *                       following structure:
+     *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
+     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *                 label: ..., count: ...}, ...]
+     * @param {string} groupId The id of the entity alias group to add.
+     */
+    function addInternalNode(graph, groupId){
+        if(seenGroups[groupId]) return;
+
+        seenGroups[groupId] = true;
+        graph.nodes.push({
+            name: entitiesData.groups[groupId].name,
+            id: groupId, 
+            group: groupId
+        });
+    }
+
+    /**
+     * Adds the tie to the internal structure of links `seenLinks` if the tie's
+     * key is new, or updates the count if the key is duplicate. See 
+     * `tieToLink()` for the key formula.
+     * 
+     * @param {object} tie A tie object with at least these fields:
+     *   - start (token offset; integer)
+     *   - end (token offset; integer)
+     *   - source_entity (object)
+     *       * location_id OR entity_id
+     *   - target_entity (object)
+     *       * location_id OR entity_id
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * @return True if the tie is the first with its key.
+     */
+    function updateInternalTie(tie){
+        var sourceGroupId = getTieNodeGroup(tie.source_entity);
+        var targetGroupId = getTieNodeGroup(tie.target_entity);
+        var key = tieToLinkId(tie);
+
+        if(seenLinks[key] == undefined){
+            seenLinks[key] = {
+                linkId: key,
+                source: sourceGroupId,
+                target: targetGroupId,
+                value: 0,
+                directed: tie.directed == undefined ? 
+                                false : tie.directed,
+                label: tie.label,
+                count: 0 // The number of links hidden in this one.
+            }
+        }
+
+        seenLinks[key].value += tie.weight == undefined ? 1.0 : tie.weight;
+        seenLinks[key].count++;        
+
+        return seenLinks[key].count === 1;
+    }
+
+    /**
+     * Adds a tie internally, including the nodes it connects if they are not
+     * already added.
+     * 
+     * @param {object} graph The internal graph object; should have the 
+     *                       following structure:
+     *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
+     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *                 label: ..., count: ...}, ...]
+     * @param {object} tie A tie object with at least these fields:
+     *   - start (token offset; integer)
+     *   - end (token offset; integer)
+     *   - source_entity (object)
+     *       * location_id OR entity_id
+     *   - target_entity (object)
+     *       * location_id OR entity_id
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * 
+     * @return True if a new link was added, false if a link with the same key
+     *         existed and its count updated.
+     */
+    function addInternalTie(graph, tie){
+        if(updateInternalTie(tie)){
+            var linkId = tieToLinkId(tie);
+            graph.links.push(seenLinks[linkId]);
+            addInternalNode(graph, seenLinks[linkId].source);
+            addInternalNode(graph, seenLinks[linkId].target);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Converts a node into a link id using the formula:
+     * 
+     *      {id1}-{id2}-{directed}
+     * 
+     * where {id1} is the alphabetically smaller of the source/target group ids
+     * and {id2} is the larger. {directed} is one of 'true' or 'false'. 
+     * 
+     * @param {object} tie A tie object with at least these fields:
+     *   - start (token offset; integer)
+     *   - end (token offset; integer)
+     *   - source_entity (object)
+     *       * location_id OR entity_id
+     *   - target_entity (object)
+     *       * location_id OR entity_id
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)     
+     * @return A key that is distinct to ties with the same source, target, and
+     *         directedness.
+     */
+    function tieToLinkId(tie){
+        var sourceGroupId = getTieNodeGroup(tie.source_entity);
+        var targetGroupId = getTieNodeGroup(tie.target_entity);
+
+        var id1 = sourceGroupId, id2 = targetGroupId;
+        if(id2 < id1){
+            id2 = sourceGroupId;
+            id1 = targetGroupId;
+        }
+        return `${id1}-${id2}-${tie.directed == undefined ? 
+            false : tie.directed}`;
+    }
+
+    /**
      * Extracts a network based on entitiesData.ties.
      * 
      * @param {Object} entitiesData EntiTies map with the following keys:
@@ -93,73 +253,23 @@ var networkViz = (function(){
      *   - groups
      * 
      * @return An object with two keys:
-     *   - nodes --> [{id: ..., group: ...}, ...]
-     *   - links --> [{source: ..., target: ..., value: ...}, ...]
+     *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
+     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *                 label: ..., count: ...}, ...]
      */
     function entitiesDataToGraph(entitiesData){
         var graph = {nodes: [], links: []};
         var tie;
-        var seenGroups = {};
-        var seenLinks = {};
-
-        function getTieNodeGroup(tieNode) {
-            if(tieNode.entity_id !== undefined){
-                return entitiesData.entities[tieNode.entity_id].group_id;
-            } else if(tieNode.location_id != undefined){
-                if(entitiesData.locations[tieNode.location_id].entity_id !== undefined){
-                    return entitiesData.entities[
-                        entitiesData.locations[
-                            tieNode.location_id].entity_id].group_id;
-                }
-            }
-
-            console.log("Hmm...can't identify the entity or location "+
-                "associated with this tie node:", tieNode);
-            return null;
-        }
-
-        function addNode(groupId){
-            if(seenGroups[groupId]) return;
-
-            seenGroups[groupId] = true;
-            graph.nodes.push({
-                name: entitiesData.groups[groupId].name,
-                id: groupId, 
-                group: groupId
-            });
-        }
+        seenGroups = {};
+        seenLinks = {};
 
         for(tieId in entitiesData.ties){
             var tie = entitiesData.ties[tieId];
-            var sourceGroupId = getTieNodeGroup(tie.source_entity);
-            var targetGroupId = getTieNodeGroup(tie.target_entity);
-            
-
-            var id1 = sourceGroupId, id2 = targetGroupId;
-            if(id2 < id1){
-                id2 = sourceGroupId;
-                id1 = targetGroupId;
-            }
-            var key = `${id1}-${id2}-${tie.is_directed == undefined ? false : tie.is_directed}`;
-
-            if(seenLinks[key] == undefined){
-                seenLinks[key] = {
-                    source: sourceGroupId,
-                    target: targetGroupId,
-                    value: 0,
-                    is_directed: tie.is_directed == undefined ? 
-                                    false : tie.is_directed,
-                    label: tie.label
-                }
-            }
-
-            seenLinks[key].value += tie.weight == undefined ? 1.0 : tie.weight;
+            addInternalTie(graph, tie);
         }
 
-        for(linkId in seenLinks){
-            graph.links.push(seenLinks[linkId]);
-            addNode(seenLinks[linkId].source);
-            addNode(seenLinks[linkId].target);
+        for(groupId in entitiesData.groups){
+            addInternalNode(graph, groupId);
         }
 
         return graph;
@@ -176,7 +286,7 @@ var networkViz = (function(){
             x: d3.event.subject.x, 
             y: d3.event.subject.y
         });
-        console.log('In dragstarted', d3.event.sourceEvent);
+        // console.log('In dragstarted', d3.event.sourceEvent);
         //if(d3.event.sourceEvent.metaKey || d3.event.sourceEvent.ctrKey) {
             movingNode = true;
             readjustOnMove = !d3.event.sourceEvent.shiftKey;
@@ -244,9 +354,9 @@ var networkViz = (function(){
      * @param {D3 Node list} n The list of d3 nodes.
      */
     function nodeClicked(d, i, n){
-        console.log('Node clicked');
+        // console.log('Node clicked');
         if(d3.event.metaKey || d3.event.ctrKey) return;
-        console.log('No meta key pressed during click');
+        // console.log('No meta key pressed during click');
     
         // Case 1
         if(!drawingLinkMode){
@@ -343,7 +453,7 @@ var networkViz = (function(){
      * @param {string} groupId The id of the group to add.
      * @param {string} groupName The name of the group to add. 
      */
-    this.addNode = function(groupId, groupName){
+    self.addNode = function(groupId, groupName){
         $(document).trigger('entities.network-node-added', {
             group_id: d3.event.subject.id, 
             name: d3.event.subject.name
@@ -368,7 +478,7 @@ var networkViz = (function(){
      * the network.
      * 
      * @param {string} sourceId The id of the source node.
-     * @param {string} targetId The id of the garget node.
+     * @param {string} targetId The id of the target node.
      * @param {number} value The weight of the edge.
      * @param {boolean} isDirected Whether this edge is directed or not.
      * @param {string} label The edge's label.
@@ -376,7 +486,7 @@ var networkViz = (function(){
      *                               re-adjusted after drawing the link.
      * 
      */
-    this.addLink = function(sourceId, targetId, value, isDirected, label, 
+    self.addLink = function(sourceId, targetId, value, isDirected, label, 
             adjustLayout){
         // simulation.stop();
 
@@ -384,8 +494,8 @@ var networkViz = (function(){
                 source: sourceId,
                 target: targetId,
                 value: value == undefined ? 1.0 : value,
-                is_directed: isDirected == undefined ? 
-                                false : tie.is_directed,
+                directed: isDirected == undefined ? 
+                                false : tie.directed,
                 label: label
         }
 
@@ -410,9 +520,97 @@ var networkViz = (function(){
     }
 
     /**
+     * Adds or updates a tie to the network. If the link id created by the tie
+     * properties (see tieToLinkId) matches an existing link, the existing 
+     * link's count is incremented and the tie's weight added to the existing
+     * link's weight. If the link id is new, a new link is created.
+     * 
+     * @param {object} tie A tie object with at least these fields:
+     *   - start (token offset; integer)
+     *   - end (token offset; integer)
+     *   - source_entity (object)
+     *       * location_id OR entity_id
+     *   - target_entity (object)
+     *       * location_id OR entity_id
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after adding/updating the link.
+     */
+    self.addTie = function(tie, adjustLayout){
+        if(addInternalTie(networkData, tie)){
+
+            svg.selectAll('g,link').remove();
+            drawLinks();
+            drawNodes();
+            simulation.force("link").links(networkData.links);
+        }
+
+        if(adjustLayout){
+            simulation.alpha(1).restart();
+        } else {
+            refreshNetwork();
+        }
+    }
+
+    /**
+     * Removes or updates a tie to the network. If the link id created by the
+     * tie properties (see tieToLinkId) matches an existing link, the existing
+     * link's count is decremented and the tie's weight subtracted from the
+     * existing link's weight. If the resulting count is 0, the link is removed.
+     * If the link id is new, no action is performed.
+     * 
+     * @param {object} tie A tie object with at least these fields:
+     *   - start (token offset; integer)
+     *   - end (token offset; integer)
+     *   - source_entity (object)
+     *       * location_id OR entity_id
+     *   - target_entity (object)
+     *       * location_id OR entity_id
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after removing or updating the 
+     *                               link.
+     */
+    self.removeTie = function(tie, adjustLayout){
+        var linkId = tieToLinkId(tie);
+        if(linkId in seenLinks){
+            svg.selectAll('g,link').remove();
+
+            if(seenLinks[linkId].count == 1){
+                var i;
+                for(i = 0; i < networkData.links.length; i++){
+                    if(networkData.links[i].linkId == linkId){
+                        networkData.links.splice(i, 1); // = null;
+                        break;
+                    }
+                }
+                delete seenLinks[linkId];
+            } else {
+                seenLinks[linkId].count++;
+                seenLinks[linkId].weight += 
+                    tie.weight === undefined ? 1 : tie.weight;
+            }
+
+            drawLinks();
+            drawNodes();
+            simulation.force("link").links(networkData.links);
+
+            if(adjustLayout){
+                simulation.alpha(1).restart();
+            } else {
+                refreshNetwork();
+            }
+        }
+    }
+
+    /**
      * Resets the network, drawing it from scratch.
      */
-    this.reset = function() {
+    self.reset = function() {
         $(document).trigger('entities.network-reset');
 
         simulation.stop();
@@ -432,18 +630,18 @@ var networkViz = (function(){
     /**
      * Downloads the graph in the format of TSV in the browser
      */
-    this.exportTSV = function() {
+    self.exportTSV = function() {
         $(document).trigger('entities.network-export-tsv', link);
         var links = networkData.links.slice();
-        console.log(links);
+        // console.log(links);
     }
 
-    this.exportGraphML = function() {
+    self.exportGraphML = function() {
         $(document).trigger('entities.network-export-graphml', link);
         var links = networkData.links.slice();
         var nodes = networkData.nodes.slice();
 
-        console.log(nodes);
+        // console.log(nodes);
 
         // sort links alphabetically
         links.sort(function(a,b) {
@@ -472,5 +670,5 @@ var networkViz = (function(){
 
     }
 
-    return this;
+    return self;
 })();

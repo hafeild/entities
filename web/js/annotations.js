@@ -1832,7 +1832,7 @@ var exportAsTSV = function() {
     */
 
     var rows = [
-        ["Source", "Target", "Label", "Weight", "is_directed"],
+        ["Source", "Target", "Label", "Weight", "directed"],
     ];
     //var used = {};
 
@@ -1840,7 +1840,7 @@ var exportAsTSV = function() {
     $.each(edges, function(index, edge) {
         if (nodes[edge.source].label !== nodes[edge.target].label) {
             // var curLink = [link.source.name, link.target.name, link.label, link.weight, link.directed];
-            var curEdge = [nodes[edge.source].label, nodes[edge.target].label, edge.label, edge.weight, edge.is_directed.toString()];
+            var curEdge = [nodes[edge.source].label, nodes[edge.target].label, edge.label, edge.weight, edge.directed.toString()];
             //if (!(used[curLink[0] + curLink[1]] === true)) {
                 rows.push(curEdge);
                 //used[curEdge[0] + curEdge[1] + edge.label] = true;

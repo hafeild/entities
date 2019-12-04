@@ -8,7 +8,23 @@
 var UIUpdater = function(){
     var self = {};
 
-
+    /**
+     * Updates the UI for a new tie.
+     * 
+     * @param {jQueryEvent} event Ignored.
+     * @param {object} An object with these fields:
+     *                  - id
+     *                  - tie (object)
+     *                      * start (token offset; integer)
+     *                      * end (token offset; integer)
+     *                      * source_entity (object)
+     *                          - location_id OR entity_id
+     *                      * target_entity (object)
+     *                          - location_id OR entity_id
+     *                      * label (string)
+     *                      * weight (floating point)
+     *                      * directed (boolean)
+     */
     self.addTie = function(event, data){
         // Update highlighting in text panel.
         var tieWrapper = {};
@@ -17,11 +33,11 @@ var UIUpdater = function(){
             $('#text-panel'), tieWrapper);
 
         // Update network visualization.
-        // TODO
+        networkViz.addTie(data.tie, true);
     }
 
     /**
-     * Updates the highlighting for the given tie.
+     * Updates the UI with the changes to the given tie.
      * 
      * @param {jQueryEvent} event Ignored.
      * @param {object} An object with these fields:
@@ -56,16 +72,33 @@ var UIUpdater = function(){
         }
 
         // Update ties in the network visualization panel.
-        // TODO
+        networkViz.removeTie(data.oldTie, false);
+        networkViz.addTie(data.newTie, true);
     };
 
 
+    /**
+     * Updates the UI with a removed tie.
+     * 
+     * @param {jQueryEvent} event Ignored.
+     * @param {object} An object with info about the removed tie with these 
+     *                 fields:
+     *                  - id
+     *                  - tie (object)
+     *                      * start (token offset; integer)
+     *                      * end (token offset; integer)
+     *                      * source_entity (object)
+     *                          - location_id OR entity_id
+     *                      * target_entity (object)
+     *                          - location_id OR entity_id
+     *                      * label (string)
+     *                      * weight (floating point)
+     *                      * directed (boolean)
+     */
     self.removeTie = function(event, data){
         // Update highlighting in text panel.
         iterateOverTokens($('#text-panel'), data.tie.start, data.tie.end,
             function($token, tokenId, isWhitespace){
-
-            console.log($token, tokenId, isWhitespace);
 
             if($token.attr('tie-refs') && 
                     $token.attr('tie-refs').includes(`${data.id} `)){
@@ -87,11 +120,13 @@ var UIUpdater = function(){
         });
 
         // Update network visualization.
-        // TODO
+        networkViz.removeTie(data.tie, true);
     }
 
 
-
+    /**
+     * Adds listeners for annotation update events.
+     */
     function init(){
         $(document).on('entities.annotation.tie-removed', self.removeTie);
         $(document).on('entities.annotation.tie-updated', self.updateTie);

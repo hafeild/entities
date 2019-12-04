@@ -926,10 +926,10 @@ var AnnotationManager = function(annotation_data){
      *                                  - weight
      *                                  - label
      * 
-     *                                is_directed is always taken into account.
+     *                                directed is always taken into account.
      * 
      * @return An object with these fields:
-     *          - is_directed (boolean; true if at least one edge)
+     *          - directed (boolean; true if at least one edge)
      *          - nodes (map of ids to node objects)
      *              * id (group id -> object)
      *                  - label (group name)
@@ -940,12 +940,12 @@ var AnnotationManager = function(annotation_data){
      *                  - source (node id)
      *                  - target (node id)
      *                  - weight (number)
-     *                  - is_directed (boolean)
+     *                  - directed (boolean)
      */
     self.generateGraph = function(mergeMethod, tieKeyFields){
         var tie, sourceGroupId, targetGroupId, tmp, keyValues, key, tieWeight;
         var graph = {
-            is_directed: false,
+            directed: false,
             nodes: {},
             edges: {}
         };
@@ -960,7 +960,7 @@ var AnnotationManager = function(annotation_data){
             tieKeyFields = ['id'];
         }
 
-        tieKeyFields.push('is_directed');
+        tieKeyFields.push('directed');
 
         for(var tieId in self.ties){
             tie = self.ties[tieId];
@@ -971,10 +971,10 @@ var AnnotationManager = function(annotation_data){
             keyValues = [];
             tieWeight = tie.weight === undefined ? 1.0 : tie.weight;
 
-            graph.is_directed = (tie.is_directed === true) || graph.is_directed;
+            graph.directed = (tie.directed === true) || graph.directed;
 
             // Alphabetize source/target nodes if undirected.
-            if(!tie.is_directed && self.groups[sourceGroupId].name > 
+            if(!tie.directed && self.groups[sourceGroupId].name > 
                     self.groups[targetGroupId].name){
                 tmp = sourceGroupId;
                 sourceGroupId = targetGroupId;
@@ -1003,7 +1003,7 @@ var AnnotationManager = function(annotation_data){
                     source: sourceGroupId,
                     target: targetGroupId,
                     weight: tieWeight,
-                    is_directed: tie.is_directed === true
+                    directed: tie.directed === true
                 }
 
             // Subsequent add -- need to merge.
@@ -1026,7 +1026,7 @@ var AnnotationManager = function(annotation_data){
                         source: sourceGroupId,
                         target: targetGroupId,
                         weight: tieWeight,
-                        is_directed: tie.is_directed === true
+                        directed: tie.directed === true
                     }
 
                 // Sum weights
