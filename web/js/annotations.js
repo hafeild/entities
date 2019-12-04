@@ -18,7 +18,7 @@ var menuConfigData = {
     tieMentionHoveredOne: null,
     tieMentionHoveredTwo: null
 };
-var menuOpen = 0;
+
 var menu;
 var mouseClicked = 0;
 var menuTimer = null;
@@ -770,8 +770,7 @@ var closeContextMenu = function() {
     if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
         !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item')) && 
         !($(event.target).hasClass('tie-text'))) {
-        menuOpen = 0;
-        menu.classList.remove("context-menu--active");
+        $(menu).removeClass("context-menu--active");
 
         $('.context-menu__items').html("");
 
@@ -1824,6 +1823,56 @@ var exportAsGraphML = function() {
     $('#graphMLDownloader').remove();
 }
 
+var exportAsSVG = function() {
+    var svgData = $("#network-svg")[0].outerHTML;
+    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+    var svgUrl = URL.createObjectURL(svgBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = "network.svg";
+    
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
+var exportAsSVG = function() {
+    var svgData = $("#network-svg")[0].outerHTML;
+    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+    var svgUrl = URL.createObjectURL(svgBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = "network.svg";
+    
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
+var exportAsPNG = function() {
+    $('body').append('<canvas id="svg-canvas"></canvas>');
+
+    targetCanvas = $('#svg-canvas')[0];
+
+    // https://developer.mozilla.org/en/XMLSerializer
+    svg_xml = (new XMLSerializer()).serializeToString($('#network-svg')[0]);
+    var ctx = targetCanvas.getContext('2d');
+
+    var img = new Image();
+    // http://en.wikipedia.org/wiki/SVG#Native_support
+    // https://developer.mozilla.org/en/DOM/window.btoa
+    img.src = "data:image/svg+xml;base64," + btoa(svg_xml);
+
+    img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+    }
+
+    var link = document.createElement('a');
+      link.download = 'network.png';
+      link.href = $('#svg-canvas')[0].toDataURL()
+      link.click();
+    link.remove();
+}
 
 
 
@@ -1918,6 +1967,9 @@ $(document).ready(function(){
 
     $(document).on('click', '#graph-export-tsv', exportAsTSV);
     $(document).on('click', '#graph-export-graphml', exportAsGraphML);
+    $(document).on('click', '#graph-export-png', exportAsPNG);
+    $(document).on('click', '#graph-export-svg', exportAsSVG);
+
 
 
 

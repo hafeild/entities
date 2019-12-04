@@ -312,6 +312,8 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     <ul id="graph-export-dropdown" class="dropdown-menu">
         <li class="graph-export-option" id="graph-export-tsv">TSV</li>
         <li class="graph-export-option" id="graph-export-graphml">graphML</li>
+        <li class="graph-export-option" id="graph-export-png">PNG</li>
+        <li class="graph-export-option" id="graph-export-svg">SVG</li>
     </ul>
 </span>
 </div> <!-- /.header -->
