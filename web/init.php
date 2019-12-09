@@ -17,6 +17,18 @@ fclose($configFD);
 
 require_once(__DIR__ ."/models/model-init.php");
 
+// To translate warnings into exceptions. Adapted from
+// https://www.php.net/manual/en/class.errorexception.php.
+function errorHandler($severity, $message, $file, $line) {
+    if (!(error_reporting() & $severity)) {
+        // This error code is not included in error_reporting
+        return;
+    }
+    throw new ErrorException($message, 0, $severity, $file, $line);
+}
+set_error_handler("errorHandler");
+
+
 
 // Current user data.
 $user = null;
