@@ -175,8 +175,6 @@ var AnnotationManager = function(annotation_data){
             changes.entities[entityId] = "DELETE";
         }
 
-        console.log(changes);
-
         // Sync with the server.
         sendChangesToServer(changes, (success, data, error, extra)=>{
             if(success){
@@ -269,6 +267,7 @@ var AnnotationManager = function(annotation_data){
     self.addEntity = function(name, startingOffset, endingOffset, groupId, callback) {
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var entityId = (++annotation.last_entity_id)+'';
+        var callbacks = [];
         changes.last_entity_id = annotation.last_entity_id;
         
         // Make the new entity.
@@ -287,15 +286,27 @@ var AnnotationManager = function(annotation_data){
             // Mark changes.
             changes.last_group_id = groupId;
             changes.groups[groupId] = {name: name};
+
+            // Add a callback to trigger an event for this change.
+            callbacks.push(()=>{
+                $(document).trigger('entities.annotation.group-added', 
+                    {id: groupId, name: name});
+            });
         }
 
         // Update the entity's group id and mark changes.
         self.entities[entityId].group_id = groupId;
         changes.entities[entityId] = self.entities[entityId];
+        // Add a callback to trigger an event for this change.
+        callbacks.push(()=>{
+            $(document).trigger('entities.annotation.entity-added', 
+                {id: entityId, groupId: groupId});
+        });
+
 
         // Add in the mention if present.
         if(startingOffset !== undefined && endingOffset !== undefined){
-            var key = `${startingOffset}_${endingOffset}`;
+            let key = `${startingOffset}_${endingOffset}`;
             self.locations[key] = {
                 start: startingOffset, 
                 end: endingOffset, 
@@ -304,10 +315,24 @@ var AnnotationManager = function(annotation_data){
 
             // Mark changes.
             changes.locations[key] = self.locations[key];
+
+            // Add a callback to trigger an event for this change.
+            callbacks.push(()=>{
+                $(document).trigger('entities.annotation.mention-added', 
+                    {id: key, location: self.locations[key]});
+            });
+
         }
 
         // Sync with the server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (success, data, error, extra)=>{
+            if(success){
+                callbacks.forEach(f => f());
+            }
+            if(callback){
+                callback(success, data, error, extra);
+            }
+        });
 
         return entityId;
     };

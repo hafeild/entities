@@ -100,21 +100,32 @@ var size = function(obj){
         return s;
 }
 
+var addEntityToGroupChecklist = function($entitiesList, entity){
+    return $entitiesList.append('<div class="pretty p-icon p-square p-jelly">'+
+        '<input type="checkbox" class="group-checkbox" '+
+        `data-id="${entity.id}"><div class="state p-primary">`+ 
+        '<i class="icon mdi mdi-check"></i><label>'+ 
+        `<span class="g${entity.group_id} unselectable">`+ 
+        `${entity.name}</span></label></div></div>`);
+}
+
 var makeGroupChecklist = function(groupId, entities){
-    var list = `<li class="group unselectable" data-id="${groupId}">`, entityId, i,
-    entitiesSize = size(entities);
+    var $listItem = $(`<li class="group unselectable" data-id="${groupId}">`),
+        $entitiesList = $('<span class="entities">'),
+        entityId, i, entitiesSize = size(entities);
+
+    $listItem.append($entitiesList);
     for(entityId in entities){
-        list += `<div class="pretty p-icon p-square p-jelly"><input type="checkbox" class="group-checkbox" data-id="${entityId}"><div class="state p-primary"><i class="icon mdi mdi-check"></i><label><span class="g${groupId} unselectable">${entities[entityId].name}</span></label></div></div>`;
+        addEntityToGroupChecklist($entitiesList, entities[entityId]);
         if(i < entitiesSize-1){
-            list += ', ';
+            $entitiesList.append(', ')
         }
         i++;
     }
     if(entitiesSize > 1){
-        list += ' <button class="select-all">[de]select all</button>';
+        $listItem.append('<button class="select-all">[de]select all</button>');
     }
-    list += '</li>';
-    return list;
+    return $listItem;
 };
 
 var groupSelected = function(){
@@ -182,10 +193,10 @@ var getAnnotations = function(){
 
 
 var selectAllInGroup = function(){
-    if($(this).siblings('input:checked').length > 0){
-        $(this).siblings('input').prop('checked', false);
+    if($(this).parents('.group').find('input:checked').length > 0){
+        $(this).parents('.group').find('input').prop('checked', false);
     } else {
-        $(this).siblings('input').prop('checked', true);
+        $(this).parents('.group').find('input').prop('checked', true);
     }
 };
 
@@ -1232,7 +1243,7 @@ var addEntityFromSelection = function() {
     name = name.trim();
 
     // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
-    var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null, ()=>{window.location.reload(true);});
+    var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null);
 
     resetMenuConfigData();
 

@@ -591,7 +591,7 @@ var networkViz = (function(){
      */
     self.removeTie = function(tie, adjustLayout){
         var linkId = tieToLinkId(tie.id, tie);
-        if(linkId in seenLinks){
+        if(seenLinks[linkId] !== undefined){
             svg.selectAll('g,link').remove();
 
             if(seenLinks[linkId].count == 1){
@@ -630,8 +630,7 @@ var networkViz = (function(){
      *                               re-adjusted after removing the group node.
      */
     self.removeGroup = function(group, adjustLayout){
-        let linkId;
-        if(linkId in seenLinks){
+        if(seenGroups[group.id] !== undefined){
             svg.selectAll('g,links').remove();
             svg.selectAll('g,node').remove();
 
@@ -668,7 +667,7 @@ var networkViz = (function(){
      *                               re-adjusted after adding the group node.
      */
     self.addGroup = function(group, adjustLayout){
-        if(linkId in seenLinks){
+        if(seenGroups[group.id] !== undefined){
             svg.selectAll('g,links').remove();
             svg.selectAll('g,node').remove();
 

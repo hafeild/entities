@@ -151,22 +151,27 @@ var UIUpdater = function(){
 
         // Remove from entity panel.
         $(`#entity-panel .group-checkbox[data-id=${data.id}]`).remove();
+    };
 
-        // Remove from text panel.
-        // $(`#text-panel .entity[data-entity-id=${data.id}]`).each(function(){
-        //     $(this).
-        //         removeClass('entity').
-        //         removeClass('annotated-entity'). 
-        //         removeClass(`g${data.groupId}`).
-        //         removeClass('start-token'). 
-        //         removeClass('end-token'). 
-        //         attr({
-        //             'data-entity-id': null,
-        //             'data-group-id': null,
-        //             'data-location-id': null,
-        //         });
-        // });
+    /**
+     * Adds an entity to the the entity and text panels.
+     * 
+     * @param {jQueryEvent} event Ignored.
+     * @param {object} An object with info about the new entity with these 
+     *                 fields:
+     *                  - id
+     *                  - groupId
+     */
+    self.addEntity = function(event, data){
+        console.log(`[UIUpdater] adding entity ${data.id}`);
 
+        // Add to entity panel if its group exists (if its group doesn't exist,
+        // this entity will be added when the group is created).
+        if($(`#entity-panel input[data-id="${data.id}"]`).lenth == 0){
+            $(`#entity-panel .group-checkbox[data-id=${data.groupId}]`).
+                replaceWith(makeGroupChecklist(data.groupId, 
+                    annotationManager.groups[data.groupId].entities));
+        }
     };
 
     /**
@@ -185,7 +190,6 @@ var UIUpdater = function(){
         $(`#entity-panel .group[data-id=${data.id}]`).remove();
 
         // Remove from network viz panel.
-        // TODO
         networkViz.removeGroup(data, true);
 
     };
@@ -203,14 +207,14 @@ var UIUpdater = function(){
     self.addAliasGroup = function(event, data){
         console.log(`[UIUpdater] adding alias group ${data.id} (${data.name})`);
 
-        // Remove from entity panel.
-        // TODO
+        // Add to entity panel.
+        $('#entity-list ul.groups').append(makeGroupChecklist(data.id, 
+            annotationManager.groups[data.id].entities));
 
-        // Remove from network viz panel.
+        // Add to network viz panel.
         networkViz.addGroup(data, true);
 
     };
-
 
     /**
      * Removes a mention fro the text panel.
@@ -228,8 +232,11 @@ var UIUpdater = function(){
         console.log(`[UIUpdater] adding mention ${data.id}`);
 
         // Update the locationsByPage structure.
-        var page = locationsByPages[findPageWithLocation(data.location)];
-        page.push(data.id);
+        var pagesRange = findPageWithLocation(data.location);
+        for(let pageIndex = pagesRange[0]; pageIndex <= pagesRange[1]; pageIndex++){
+            let page = locationsByPages[pageIndex];
+            page.push(data.id);
+        }
 
         // Add to the text panel.
         highlightEntitiesInContent([data.id], $('#text-panel'));
@@ -291,6 +298,10 @@ var UIUpdater = function(){
 
         // Entity listeners.
         $(document).on('entities.annotation.entity-removed', self.removeEntity);
+        $(document).on('entities.annotation.entity-added', self.removeEntity);
+
+        // TODO need something like: entities.annotation.entity-group-changed
+        // or entity-updated.
 
         // Alias group listeners.
         $(document).on('entities.annotation.group-removed', 
