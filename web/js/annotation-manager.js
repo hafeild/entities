@@ -42,13 +42,16 @@
  *                                 details.
  */
 var AnnotationManager = function(annotation_data){
-    var self = {};
-    self.annotation_data = annotation_data;
     var annotation = annotation_data.annotation;
-    self.groups = annotation.groups;
-    self.entities = annotation.entities;
-    self.locations = annotation.locations;
-    self.ties = annotation.ties;
+    var self = {
+        annotation_data: annotation_data,
+        groups: annotation.groups,
+        entities: annotation.entities,
+        locations: annotation.locations,
+        ties: annotation.ties
+    };
+    
+    console.log('AnnotationManager:', self);
 
     ////////////////////////////////////////////////////////////////////////////
     // Entities.
@@ -78,12 +81,22 @@ var AnnotationManager = function(annotation_data){
      */
     self.removeEntities = function(entityIds, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var i, tieId, tie, locationId, nodeEntity, node, 
+        var i, tie, nodeEntity, node, 
             nodes = {source_entity: 1, target_entity: 1};
+        var callbacks = [];
 
         for(i = 0; i < entityIds.length; i++){
-            var entityId = entityIds[i];
-            var entity = self.entities[entityId];
+            let entityId = entityIds[i];
+            let entity = self.entities[entityId];
+
+            // Adds an event trigger for entity removal after hearing back
+            // from the server.
+            callbacks.push(()=>{
+                $(document).trigger('entities.annotation.entity-removed', {
+                    id: entityId,
+                    groupId: entity.group_id
+                });
+            });
 
             // Remove from groups.
             group = self.groups[entity.group_id];
@@ -92,10 +105,18 @@ var AnnotationManager = function(annotation_data){
 
                 delete self.groups[entity.group_id];
                 changes.groups[entity.group_id] = "DELETE";
+
+                // Adds an event trigger for group removal after hearing back
+                // from the server.
+                callbacks.push(()=>{
+                    $(document).trigger('entities.annotation.group-removed', {
+                        id: entity.group_id
+                    });
+                });
             }
 
             // Remove from ties.
-            for(tieId in entity.ties){
+            for(let tieId in entity.ties){
                 // Remove from this and other entity's tie lists.
                 tie = entity.ties[tieId];
                 for(node in nodes){
@@ -111,15 +132,42 @@ var AnnotationManager = function(annotation_data){
                         delete nodeEntity.ties[tieId];
                     }
                 }
-
+                let tieSnapshot = JSON.parse(JSON.stringify(self.ties[tieId]));
                 delete self.ties[tieId];
                 changes.ties[tieId] = "DELETE";
+
+                // Adds an event trigger for tie removal after hearing back
+                // from the server.
+                callbacks.push(()=>{
+                    $(document).trigger('entities.annotation.tie-removed', {
+                        id: tieId,
+                        tie: tieSnapshot
+                })});
+
             }
 
             // Remove from mentions.
-            for(locationId in entity.locations){
+            for(let locationId in entity.locations){
+                let location = self.locations[locationId];
+                let locationInfo = {
+                    id: locationId,
+                    location: {
+                        entity_id: entity.id,
+                        group_id: entity.group_id,
+                        start: location.start,
+                        end: location.end
+                    }
+                };
                 delete self.locations[locationId];
                 changes.locations[locationId] = "DELETE";
+
+                // Adds an event trigger for mention removal after hearing back
+                // from the server.
+                callbacks.push(()=>{
+                    $(document).trigger('entities.annotation.mention-removed', 
+                        locationInfo);
+                });
+
             }
 
             // Remove from entities.
@@ -130,7 +178,15 @@ var AnnotationManager = function(annotation_data){
         console.log(changes);
 
         // Sync with the server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (success, data, error, extra)=>{
+            if(success){
+                callbacks.forEach(f => f());
+            }
+            if(callback){
+                callback(success, data, error, extra);
+            }
+        });
+
     };
 
     /**
@@ -701,10 +757,12 @@ var AnnotationManager = function(annotation_data){
 
         // Let updateTie do all the heavy lifting...
         self.updateTie(tieId, tieData, (success, data, error, extra)=>{
-            $(document).trigger('entities.annotation.tie-added', {
-                id: tieId,
-                tie: self.ties[tieId]
-            });
+            if(success){
+                $(document).trigger('entities.annotation.tie-added', {
+                    id: tieId,
+                    tie: self.ties[tieId]
+                });
+            }
 
             if(callback){
                 callback(success, data, error, extra);
@@ -830,7 +888,7 @@ var AnnotationManager = function(annotation_data){
 
         // Sync with server.
         sendChangesToServer(changes, (success, data, error, extra)=>{
-            if(issueEvent){
+            if(issueEvent && success){
                 $(document).trigger('entities.annotation.tie-updated', {
                     id: tieId,
                     oldTie: oldTie,
@@ -864,26 +922,34 @@ var AnnotationManager = function(annotation_data){
         var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = self.ties[tieId];
 
-        changes.ties[tieId] = 'DELETE';
 
         // Update the *_entity fields.
         for(node in nodes){
+            console.log('[removeTie] considering ', node);
             if(tie[node] !== undefined){
                 // Remove convenience links.
                 if(tie[node].location_id !== undefined){
+                    console.log('[removeTie] deleting from location', tie[node].location_id);
+                    delete self.entities[self.locations[tie[node].location_id].entity_id].ties[tieId];
                     delete self.locations[tie[node].location_id].ties[tieId];
                 } else if(tie[node].entity_id !== undefined) {
+                    console.log('[removeTie] deleting from entity', tie[node].entity_id);
                     delete self.entities[tie[node].entity_id].ties[tieId];
                 }
             }
         }
 
+        delete self.ties[tieId];
+        changes.ties[tieId] = 'DELETE';
+
         // Sync with server.
         sendChangesToServer(changes, (success, data, error, extra)=>{
-            $(document).trigger('entities.annotation.tie-removed', {
-                id: tieId,
-                tie: tie
-            });
+            if(success){
+                $(document).trigger('entities.annotation.tie-removed', {
+                    id: tieId,
+                    tie: tie
+                });
+            }
 
             if(callback){
                 callback(success, data, error, extra);

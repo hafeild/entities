@@ -5,6 +5,7 @@
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
 
+
 <?php if($data["is_study"]) { ?>
 <script src="/js/study-logging.js"></script>
 <?php } ?>
@@ -183,7 +184,11 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 
     // Sharing settings are only exposed to owners.
     global $PERMISSIONS;
-    if(ownsAnnotation($data["annotation"]["annotation_id"])){ ?>
+    if(ownsAnnotation($data["annotation"]["annotation_id"])){ 
+        $randNum = rand();    
+    ?>
+
+
 
     <button type="button" class="btn btn-primary btn-md sharing-button" 
         data-toggle="modal" data-target="#sharing-modal">

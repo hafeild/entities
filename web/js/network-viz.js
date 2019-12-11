@@ -9,6 +9,7 @@ var networkViz = (function(){
     var entitiesData = {};
     var seenGroups = {};
     var seenLinks = {};
+    var tieToLinkIdLookup = {};
     const RADIUS = 10;
     var svgElm, svg, svgWidth, svgHeight;
     var simulation;
@@ -149,12 +150,13 @@ var networkViz = (function(){
      *   - label (string)
      *   - weight (floating point)
      *   - directed (boolean)
+     * @param {string} tieId The id of the tie.
      * @return True if the tie is the first with its key.
      */
-    function updateInternalTie(tie){
+    function updateInternalTie(tieId, tie){
         var sourceGroupId = getTieNodeGroup(tie.source_entity);
         var targetGroupId = getTieNodeGroup(tie.target_entity);
-        var key = tieToLinkId(tie);
+        var key = tieToLinkId(tieId, tie);
 
         if(seenLinks[key] == undefined){
             seenLinks[key] = {
@@ -198,9 +200,9 @@ var networkViz = (function(){
      * @return True if a new link was added, false if a link with the same key
      *         existed and its count updated.
      */
-    function addInternalTie(graph, tie){
-        if(updateInternalTie(tie)){
-            var linkId = tieToLinkId(tie);
+    function addInternalTie(graph, tieId, tie){
+        if(updateInternalTie(tieId, tie)){
+            var linkId = tieToLinkId(tieId, tie);
             graph.links.push(seenLinks[linkId]);
             addInternalNode(graph, seenLinks[linkId].source);
             addInternalNode(graph, seenLinks[linkId].target);
@@ -217,6 +219,7 @@ var networkViz = (function(){
      * where {id1} is the alphabetically smaller of the source/target group ids
      * and {id2} is the larger. {directed} is one of 'true' or 'false'. 
      * 
+     * @param {string} tieId The id of the tie.
      * @param {object} tie A tie object with at least these fields:
      *   - start (token offset; integer)
      *   - end (token offset; integer)
@@ -227,20 +230,29 @@ var networkViz = (function(){
      *   - label (string)
      *   - weight (floating point)
      *   - directed (boolean)     
+     * @param {boolean} refresh If true, any existing key associated with the
+     *                          tie is ignored an a new key is generated.
      * @return A key that is distinct to ties with the same source, target, and
      *         directedness.
      */
-    function tieToLinkId(tie){
-        var sourceGroupId = getTieNodeGroup(tie.source_entity);
-        var targetGroupId = getTieNodeGroup(tie.target_entity);
+    function tieToLinkId(tieId, tie, refresh){
+        if(tieToLinkIdLookup[tieId] === undefined || refresh){
 
-        var id1 = sourceGroupId, id2 = targetGroupId;
-        if(id2 < id1){
-            id2 = sourceGroupId;
-            id1 = targetGroupId;
+            var sourceGroupId = getTieNodeGroup(tie.source_entity);
+            var targetGroupId = getTieNodeGroup(tie.target_entity);
+
+            var id1 = sourceGroupId, id2 = targetGroupId;
+            if(id2 < id1){
+                id2 = sourceGroupId;
+                id1 = targetGroupId;
+            }
+
+            tieToLinkIdLookup[tieId] = 
+                `${id1}-${id2}-${tie.directed == undefined ? 
+                    false : tie.directed}`;
         }
-        return `${id1}-${id2}-${tie.directed == undefined ? 
-            false : tie.directed}`;
+
+        return tieToLinkIdLookup[tieId];
     }
 
     /**
@@ -265,7 +277,7 @@ var networkViz = (function(){
 
         for(tieId in entitiesData.ties){
             var tie = entitiesData.ties[tieId];
-            addInternalTie(graph, tie);
+            addInternalTie(graph, tieId, tie);
         }
 
         for(groupId in entitiesData.groups){
@@ -526,6 +538,7 @@ var networkViz = (function(){
      * link's weight. If the link id is new, a new link is created.
      * 
      * @param {object} tie A tie object with at least these fields:
+     *   - id (the tie's id)
      *   - start (token offset; integer)
      *   - end (token offset; integer)
      *   - source_entity (object)
@@ -539,7 +552,7 @@ var networkViz = (function(){
      *                               re-adjusted after adding/updating the link.
      */
     self.addTie = function(tie, adjustLayout){
-        if(addInternalTie(networkData, tie)){
+        if(addInternalTie(networkData, tie.id, tie)){
 
             svg.selectAll('g,link').remove();
             drawLinks();
@@ -562,6 +575,7 @@ var networkViz = (function(){
      * If the link id is new, no action is performed.
      * 
      * @param {object} tie A tie object with at least these fields:
+     *   - id (the tie's id)
      *   - start (token offset; integer)
      *   - end (token offset; integer)
      *   - source_entity (object)
@@ -576,7 +590,7 @@ var networkViz = (function(){
      *                               link.
      */
     self.removeTie = function(tie, adjustLayout){
-        var linkId = tieToLinkId(tie);
+        var linkId = tieToLinkId(tie.id, tie);
         if(linkId in seenLinks){
             svg.selectAll('g,link').remove();
 
@@ -606,6 +620,72 @@ var networkViz = (function(){
             }
         }
     }
+
+    /**
+     * Removes a group from the network. 
+     * 
+     * @param {object} group A group object with at least these fields:
+     *   - id (the group's id)
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after removing the group node.
+     */
+    self.removeGroup = function(group, adjustLayout){
+        let linkId;
+        if(linkId in seenLinks){
+            svg.selectAll('g,links').remove();
+            svg.selectAll('g,node').remove();
+
+            var i;
+            for(i = 0; i < networkData.nodes.length; i++){
+                if(networkData.nodes[i].id == group.id){
+                    networkData.nodes.splice(i, 1); // = null;
+                    break;
+                }
+            }
+            delete seenGroups[group.id];
+           
+
+            drawLinks();
+            drawNodes();
+            simulation.force("link").links(networkData.links);
+
+            if(adjustLayout){
+                simulation.alpha(1).restart();
+            } else {
+                refreshNetwork();
+            }
+        }
+    }
+
+
+    /**
+     * Adds a group to the network. 
+     * 
+     * @param {object} group A group object with at least these fields:
+     *   - id (the group's id)
+     *   - name
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after adding the group node.
+     */
+    self.addGroup = function(group, adjustLayout){
+        if(linkId in seenLinks){
+            svg.selectAll('g,links').remove();
+            svg.selectAll('g,node').remove();
+
+            addInternalNode(self.networkData, group.id);
+
+            drawLinks();
+            drawNodes();
+            simulation.force("link").links(networkData.links);
+
+            if(adjustLayout){
+                simulation.alpha(1).restart();
+            } else {
+                refreshNetwork();
+            }
+        }
+    }
+
 
     /**
      * Resets the network, drawing it from scratch.

@@ -218,10 +218,11 @@ var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
 var currentPage = 0;
 var locationsByPages = [];
 
+
 /**
  * Processes the tokenized content (made available in the annotation view HTML,
  * just below the #text-panel element). This includes splitting it into pages of
- * roughly PAGE_SIZE (plus or minus TOKEN_MARGIN) and then redering the first
+ * roughly PAGE_SIZE (plus or minus TOKEN_MARGIN) and then rendering the first
  * few pages with annotations highlighted.
  *
  * Token ranges for pages are held in the global `contentPages`, which consists
@@ -237,7 +238,7 @@ var locationsByPages = [];
  *
  * Places listeners for when the content is scrolled and new content is needed.
  */
- var initializeTokenizedContent = function(){
+var initializeTokenizedContent = function(){
     // Split into pages.
     contentPages = [];
     var pageStart = 0;
@@ -307,39 +308,42 @@ var locationsByPages = [];
  * @return A 2-tuple containing the starting and ending indexes of the pages the
  *         given location spans, inclusive. If not found, [-1,-1] is returned.
  */
- var findPageWithLocation = function(location) {
-     var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
-     var firstPage, lastPage;
+var findPageWithLocation = function(location) {
+    var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
+    var firstPage, lastPage;
 
-     while(max >= min && contentPages[mid] !== undefined){
-         var pageStart = contentPages[mid][START], 
-         pageEnd = contentPages[mid][END];
+    while(max >= min && contentPages[mid] !== undefined){
+        var pageStart = contentPages[mid][START], 
+        pageEnd = contentPages[mid][END];
 
-         if(location.start >= pageStart && location.start <= pageEnd ||
-             location.end >= pageStart && location.end <= pageEnd){
+        if(location.start >= pageStart && location.start <= pageEnd ||
+            location.end >= pageStart && location.end <= pageEnd){
 
-             firstPage = mid;
-         while(firstPage >= 0 && location.start >= contentPages[firstPage][START]){
-             firstPage--;
-         }
-         lastPage = mid;
-         while(lastPage < contentPages.length && location.end >= contentPages[lastPage][START]){
-             lastPage++;
-         }
+            firstPage = mid;
+            while(firstPage >= 0 && 
+                    location.start < contentPages[firstPage][START]){
+                firstPage--;
+            }
+            lastPage = mid;
+            while(lastPage < contentPages.length && 
+                    location.end >= contentPages[lastPage][START]){
+                lastPage++;
+            }
 
-         return [firstPage+1, lastPage-1];
+            return [firstPage, lastPage-1];
 
-     } else if(location.start > pageEnd) {
-         min = mid+1;
-         mid = Math.floor((min+max)/2);
-     } else {
-         max = mid-1;
-         mid = Math.floor((min+max)/2);
-     }
- }
+        } else if(location.start > pageEnd) {
+            min = mid+1;
+            mid = Math.floor((min+max)/2);
+        } else {
+            max = mid-1;
+            mid = Math.floor((min+max)/2);
+        }
+    }
 
- return [-1,-1];
+    return [-1,-1];
 };
+
 
 /**
  * Generates the HTML for the given page of tokens an appends it to the
@@ -470,13 +474,26 @@ var iterateOverTokens = function($element, start, end, func){
     }
 }
 
+var getIntDataAttribute = function($elm, attribute){
+    var value = $elm.attr(`data-${attribute}`);
+    return parseInt(value ? value :'0');
+}
+
+var incrementDataAttribute = function($elm, attribute, incrementValue){
+    if(incrementValue === undefined){ 
+        incrementValue = 1; 
+    }
+    $elm.attr(`data-${attribute}`, getIntDataAttribute($elm, attribute) + 
+        incrementValue);
+}
+
 /**
  * Highlights entities in the given text content element. Tokens in the given
  * element must contain an data-id="..." attribute with the token's id. Colors
  * are chosen by the global pallet. This relies on the global `annotation_data`
  * variable being properly initialized and maintained.
  *
- * @param {number[]} locationKeys A list of the location keys specific to the
+ * @param {string[]} locationKeys A list of the location keys specific to the
  *                                $element.
  * @param {jQuery Element} $element The element to highlight entities in.
  */
@@ -485,6 +502,11 @@ var iterateOverTokens = function($element, start, end, func){
     var i, j, location, $token, tokenId, prevTokenId;
     for(i = 0; i < locationKeys.length; i++){
         location = annotation_data.annotation.locations[locationKeys[i]];
+
+        if(!location){
+            console.log("location null; locationKeys:", locationKeys, "i:", i);
+        }
+
         var entityGroupId = annotation_data.annotation.
             entities[location.entity_id].group_id;
         
@@ -502,13 +524,16 @@ var iterateOverTokens = function($element, start, end, func){
                     'data-group-id': entityGroupId,
                     'data-location-id': locationKeys[i]  
                 });
+            // incrementDataAttribute($token, 'entity-count');
 
             // Special treatment for the first and last tokens.
             if(tokenId == location.start){
                 $token.addClass('start-token');
+                // incrementDataAttribute($token, 'start-token-count');
             }
             if(tokenId == location.end){
                 $token.addClass('end-token');j
+                // incrementDataAttribute($token, 'end-token-count');
             }
         });
    }
@@ -535,51 +560,28 @@ var iterateOverTokens = function($element, start, end, func){
         // Skip this tie if it is not part of this element.
         if(tie.start > tokenEndIndex || tie.end < tokenStartIndex){ continue; }
 
-        // look in given text content element for non-entity tags between start 
-        // and end of tie
-        $element.find('span').filter(function() {
-            return parseInt($(this).attr("data-token")) >= tie.start;
-        }).filter(function() {
-            return parseInt($(this).attr("data-token")) <= tie.end;
-        }).not('.entity').wrap(function() {
-            $(this).addClass('tie-text');
-            // add tie key for reference
-            if ($(this).attr('tie-refs') === undefined || 
-                    $(this).attr('tie-refs') === null) {
-                $(this).attr('tie-refs', "");
-                $(this).attr('data-tie-ref-count', '0');
-            } //else 
 
-            // NOTE: Hank changed this from else-if to if so that the tie-refs
-            // gets updated with the tie id. 
-            if (!$(this).attr('tie-refs').includes(tieId)) {
-                $(this).attr('tie-refs', $(this).attr('tie-refs') + tieId +" ");
-                $(this).attr('data-tie-ref-count', 
-                    parseInt($(this).attr('data-tie-ref-count')) + 1);
-            }
 
-            // highlight spaces, too
-            if (parseInt($(this).attr('data-token')) !== tie.start && 
-                    $(this).prev().html().trim() === "") {
+        iterateOverTokens($element, Math.max(tie.start, tokenStartIndex), 
+            Math.min(tie.end, tokenEndIndex),   
+            function($token, tokenId, isWhitespace){
+                // Skip entity tokens.
+                if($token.hasClass('entity')){ return; }
 
-                var $prev = $(this).prev();
-                $prev.addClass('tie-text');
-                // add tie key for reference
-                if ($prev.attr('tie-refs') === undefined || 
-                        $prev.attr('tie-refs') === null) {
-                    $prev.attr('tie-refs', "");
-                    $prev.attr('data-tie-ref-count', '0');
-                } //else 
-                
-                // NOTE: Hank changed this from else-if to if (see above).
-                if (!$prev.attr('tie-refs').includes(tieId)) {
-                    $prev.attr('tie-refs', $prev.attr('tie-refs') + 
-                        tieId +" ");
-                    $prev.attr('data-tie-ref-count', 
-                        parseInt($prev.attr('data-tie-ref-count')) + 1);
+                if(!$token.attr('tie-refs')) {
+                    $token.attr('tie-refs', "");
+                    $token.attr('data-tie-ref-count', '0');
+                } 
+
+                if (!$token.attr(`data-tie_${tieId}`)) {
+                    $token.attr('tie-refs', $token.attr('tie-refs')+tieId+" ").
+                           attr(`data-tie_${tieId}`, '1').
+                           addClass('tie-text');
+
+                    incrementDataAttribute($token, 'tie-ref-count');
                 }
-            }
-        });
+
+            });
     };
 }
 
@@ -818,6 +820,8 @@ var openTieContextMenu = function(e) {
 
     tieRefs.forEach(function(tieRef) {
         var tie = annotation_data.annotation.ties[tieRef];
+        if(!tie){ return; }
+
         // get names of entities involved in tie
         if (typeof tie.source_entity.entity_id !== typeof null && typeof tie.source_entity.entity_id !== typeof undefined) {
             var entityNameOne = annotation_data.annotation.entities[tie.source_entity.entity_id].name;
@@ -1207,7 +1211,7 @@ var confirmReassignMention = function() {
     resetMenuConfigData();
 
     // TEMPORARY
-    window.location.reload(true);
+    // window.location.reload(true);
 }
 
 var addEntityFromSelection = function() {
@@ -1610,8 +1614,7 @@ var deleteSelectedMention = function() {
 var deleteSelectedEntity = function() {
     console.log("In deleteSelectedEntity");
 
-    var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId, 
-        ()=>{window.location.reload(true);});
+    var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId);
     
     resetMenuConfigData();
 
@@ -1634,8 +1637,7 @@ var deleteSelectedEntities = function() {
         s = Number(s);
     });
 
-    var entityId = annotationManager.removeEntities(menuConfigData.selectedEntities, 
-        ()=>{window.location.reload(true);});
+    var entityId = annotationManager.removeEntities(menuConfigData.selectedEntities);
 
     resetMenuConfigData();
 
