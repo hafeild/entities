@@ -89,6 +89,8 @@ var AnnotationManager = function(annotation_data){
             let entityId = entityIds[i];
             let entity = self.entities[entityId];
 
+            console.log('Removing entity', entity);
+
             // Adds an event trigger for entity removal after hearing back
             // from the server.
             callbacks.push(()=>{
@@ -311,6 +313,10 @@ var AnnotationManager = function(annotation_data){
                 start: startingOffset, 
                 end: endingOffset, 
                 entity_id: entityId
+            };
+
+            self.entities.locations = {
+                key: self.locations[key]
             };
 
             // Mark changes.
@@ -1265,6 +1271,7 @@ var AnnotationManager = function(annotation_data){
         for(locationId in self.locations){
             var location = self.locations[locationId];
             var entity = self.entities[location.entity_id];
+            if(!entity){ continue; }
             if(!entity.locations){
                 entity.locations = {};
             }

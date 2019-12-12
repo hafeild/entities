@@ -31,10 +31,11 @@ var networkViz = (function(){
         simulation =  d3.forceSimulation()
             .force("link", d3.forceLink().id(function(d) { return d.id; }))
             .force("charge", d3.forceManyBody())
-            .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
+            // .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
             .force("collision", d3.forceCollide(RADIUS));
 
-        simulation.force("charge").strength(-100).distanceMax(svgWidth);
+        // simulation.force("charge").strength(-100).distanceMax(svgWidth);
+        simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
     };
 
     function xCoord(x){
@@ -131,7 +132,9 @@ var networkViz = (function(){
         graph.nodes.push({
             name: entitiesData.groups[groupId].name,
             id: groupId, 
-            group: groupId
+            group: groupId,
+            x: svgWidth/4 + Math.random()*svgWidth/2,
+            y: svgHeight/4 + Math.random()*svgHeight/2
         });
     }
 
@@ -667,15 +670,11 @@ var networkViz = (function(){
      *                               re-adjusted after adding the group node.
      */
     self.addGroup = function(group, adjustLayout){
-        if(seenGroups[group.id] !== undefined){
-            svg.selectAll('g,links').remove();
-            svg.selectAll('g,node').remove();
+        if(seenGroups[group.id] === undefined){
+            addInternalNode(networkData, group.id);
+            simulation.nodes(networkData.nodes);
 
-            addInternalNode(self.networkData, group.id);
-
-            drawLinks();
             drawNodes();
-            simulation.force("link").links(networkData.links);
 
             if(adjustLayout){
                 simulation.alpha(1).restart();

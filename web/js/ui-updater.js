@@ -167,7 +167,7 @@ var UIUpdater = function(){
 
         // Add to entity panel if its group exists (if its group doesn't exist,
         // this entity will be added when the group is created).
-        if($(`#entity-panel input[data-id="${data.id}"]`).lenth == 0){
+        if($(`#entity-panel input[data-id="${data.id}"]`).length == 0){
             $(`#entity-panel .group-checkbox[data-id=${data.groupId}]`).
                 replaceWith(makeGroupChecklist(data.groupId, 
                     annotationManager.groups[data.groupId].entities));
@@ -298,7 +298,7 @@ var UIUpdater = function(){
 
         // Entity listeners.
         $(document).on('entities.annotation.entity-removed', self.removeEntity);
-        $(document).on('entities.annotation.entity-added', self.removeEntity);
+        $(document).on('entities.annotation.entity-added', self.addEntity);
 
         // TODO need something like: entities.annotation.entity-group-changed
         // or entity-updated.
