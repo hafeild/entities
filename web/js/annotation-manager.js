@@ -115,6 +115,8 @@ var AnnotationManager = function(annotation_data){
                         id: entity.group_id
                     });
                 });
+            } else if(group.entities[entityId] !== undefined){
+                delete group.entities[entityId];
             }
 
             // Remove from ties.
@@ -178,12 +180,12 @@ var AnnotationManager = function(annotation_data){
         }
 
         // Sync with the server.
-        sendChangesToServer(changes, (success, data, error, extra)=>{
-            if(success){
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
                 callbacks.forEach(f => f());
             }
             if(callback){
-                callback(success, data, error, extra);
+                callback(args);
             }
         });
 
@@ -282,8 +284,10 @@ var AnnotationManager = function(annotation_data){
             groupId = (++annotation.last_group_id)+'';
             self.groups[groupId] = {
                 name: name,
-                entities: {entityId: self.entities[entityId]}
+                entities: {}
             };
+            self.groups[groupId].entities[entityId] = self.entities[entityId];
+
 
             // Mark changes.
             changes.last_group_id = groupId;
@@ -315,9 +319,8 @@ var AnnotationManager = function(annotation_data){
                 entity_id: entityId
             };
 
-            self.entities.locations = {
-                key: self.locations[key]
-            };
+            self.entities[entityId].locations = {};
+            self.entities[entityId].locations[key] = self.locations[key];
 
             // Mark changes.
             changes.locations[key] = self.locations[key];
@@ -331,12 +334,12 @@ var AnnotationManager = function(annotation_data){
         }
 
         // Sync with the server.
-        sendChangesToServer(changes, (success, data, error, extra)=>{
-            if(success){
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
                 callbacks.forEach(f => f());
             }
             if(callback){
-                callback(success, data, error, extra);
+                callback(args);
             }
         });
 
@@ -377,14 +380,16 @@ var AnnotationManager = function(annotation_data){
         var newGroupId = (++annotation.last_group_id).toString();
         var selectedEntities = {};
         var selectedGroups = {};
-        var groupId, entityId;
         var fullySelectedGroups = [];
         var selectedGroupsSize;
+        var callbacks = [];
+
+        console.log('[annotationManager.groupEntities] entered');
 
         // Figure out which groups are selected.
         for(var i = 0; i < entityIds.length; i++){
-            entityId = entityIds[i];
-            groupId = self.entities[entityId].group_id;
+            let entityId = entityIds[i];
+            let groupId = self.entities[entityId].group_id;
 
             if(!selectedGroups[groupId]){
                 selectedGroups[groupId] = 0;
@@ -395,9 +400,12 @@ var AnnotationManager = function(annotation_data){
         }
 
         // Find which groups are selected in whole.
-        for(groupId in selectedGroups){
+            console.log('considering selected group sizes');
+        for(let groupId in selectedGroups){
+            console.log(`group ${groupId}: selected (${selectedGroups[groupId]}) vs. total (${size(self.groups[groupId].entities)})`);
             if(selectedGroups[groupId] == size(self.groups[groupId].entities)){
                 fullySelectedGroups.push(groupId);
+                console.log(`adding group ${groupId} to fullySelectedGroups`);
             }
         }
 
@@ -405,11 +413,14 @@ var AnnotationManager = function(annotation_data){
 
         // Case 1.
         if(selectedGroupsSize == 1 && fullySelectedGroups.length == 1){
+            console.log('[annotationManager.groupEntities] case 1 triggered');
+
             return;
         }
 
         // Case 2.
         if(fullySelectedGroups.length == 0){
+            console.log('[annotationManager.groupEntities] case 2 triggered');
             // Update group id.
             changes.last_group_id = newGroupId;
 
@@ -423,10 +434,18 @@ var AnnotationManager = function(annotation_data){
             };
 
             // Move entities there and remove them from the old ones.
-            for(entityId in selectedEntities){
+            for(let entityId in selectedEntities){
                 var oldGroupId = selectedEntities[entityId];
                 // Mark the changes to this entity's group.
                 changes.entities[entityId] = {group_id: newGroupId};
+                callbacks.push(()=>{
+                    $(document).trigger(
+                        'entities.annotation.entity-alias-group-changed', {
+                            id: entityId, 
+                            oldGroupId: oldGroupId, 
+                            newGroupId: newGroupId
+                        });
+                });
 
                 // Update the client-side model.
                 self.entities[entityId].group_id = newGroupId;
@@ -445,10 +464,11 @@ var AnnotationManager = function(annotation_data){
 
         // Case 3. 
         } else {
+            console.log('[annotationManager.groupEntities] case 3 triggered');
             var targetGroupId = fullySelectedGroups[0];
             
             // Move entities there and remove them from the old ones.
-            for(entityId in selectedEntities){
+            for(let entityId in selectedEntities){
                 var oldGroupId = selectedEntities[entityId];
 
                 // Skip this one if it's part of the target group already.
@@ -456,6 +476,14 @@ var AnnotationManager = function(annotation_data){
 
                 changes.entities[entityId] = {group_id: targetGroupId}
                 self.entities[entityId].group_id = targetGroupId;
+                callbacks.push(()=>{
+                    $(document).trigger(
+                        'entities.annotation.entity-alias-group-changed', {
+                            id: entityId, 
+                            oldGroupId: oldGroupId, 
+                            newGroupId: targetGroupId
+                        });
+                });
 
                 delete self.groups[oldGroupId].entities[entityId];
 
@@ -466,18 +494,34 @@ var AnnotationManager = function(annotation_data){
 
             // Delete the old fully selected groups.
             for(i = 0; i < fullySelectedGroups.length; i++){
-                groupId = fullySelectedGroups[i];
+                let groupId = fullySelectedGroups[i];
 
                 // Skip if this is the target group.
                 if(groupId == targetGroupId) continue;
 
+
+
                 changes.groups[groupId] = "DELETE";
                 delete self.groups[groupId];
+                callbacks.push(()=>{
+                    $(document).trigger(
+                        'entities.annotation.group-removed', {
+                            id: groupId
+                        });
+                });
+
             }
         }
 
-        // Sync with server.
-        sendChangesToServer(changes, callback);
+        // Sync with the server.
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
+                callbacks.forEach(f => f());
+            }
+            if(callback){
+                callback(args);
+            }
+        });
     };
 
     /**
@@ -505,12 +549,14 @@ var AnnotationManager = function(annotation_data){
      */
     self.moveEntitiesToGroup = function(entityIds, group_id, callback){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
-        var i, entityId, entity;
+        var i;
         var newGroup = self.groups[group_id];
+        var callbacks = [];
         
         for(i = 0; i < entityIds.length; i++){
-            entityId = entityIds[i];
-            entity = self.entities[entityId];
+            let entityId = entityIds[i];
+            let entity = self.entities[entityId];
+            let oldGroupId = entity.group_id
 
             // Remove reference to old group.
             delete self.groups[entity.group_id].entities[entityId];
@@ -520,6 +566,13 @@ var AnnotationManager = function(annotation_data){
                 delete self.groups[entity.group_id];
                 // Mark the change.
                 changes.groups[entity.group_id] = "DELETE";
+
+                callbacks.push(()=>{
+                    $(document).trigger(
+                        'entities.annotation.group-removed', {
+                            id: oldGroupId
+                        });
+                });
             }
 
             // Link the entity to the new group and update convenience links.
@@ -528,10 +581,26 @@ var AnnotationManager = function(annotation_data){
 
             // Mark the change.
             changes.entities[entityId] = {group_id: group_id};
+            callbacks.push(()=>{
+                $(document).trigger(
+                    'entities.annotation.entity-alias-group-changed', {
+                        id: entityId, 
+                        oldGroupId: oldGroupId, 
+                        newGroupId: group_id
+                    });
+            });
+
         }
 
-        // Sync with server.
-        sendChangesToServer(changes, callback);
+         // Sync with the server.
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
+                callbacks.forEach(f => f());
+            }
+            if(callback){
+                callback(args);
+            }
+        });
     };
 
     /**
@@ -918,8 +987,8 @@ var AnnotationManager = function(annotation_data){
         }
 
         // Sync with server.
-        sendChangesToServer(changes, (success, data, error, extra)=>{
-            if(issueEvent && success){
+        sendChangesToServer(changes, (args)=>{
+            if(issueEvent && args.success){
                 $(document).trigger('entities.annotation.tie-updated', {
                     id: tieId,
                     oldTie: oldTie,
@@ -927,7 +996,7 @@ var AnnotationManager = function(annotation_data){
                 });
             }
             if(callback){
-                callback(success, data, error, extra);
+                callback(args);
             }
         });
     };
@@ -974,8 +1043,8 @@ var AnnotationManager = function(annotation_data){
         changes.ties[tieId] = 'DELETE';
 
         // Sync with server.
-        sendChangesToServer(changes, (success, data, error, extra)=>{
-            if(success){
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
                 $(document).trigger('entities.annotation.tie-removed', {
                     id: tieId,
                     tie: tie
@@ -983,7 +1052,7 @@ var AnnotationManager = function(annotation_data){
             }
 
             if(callback){
-                callback(success, data, error, extra);
+                callback(args);
             }
         });
     };

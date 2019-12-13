@@ -554,9 +554,15 @@ var networkViz = (function(){
      * @param {boolean} adjustLayout Whether or not the network layout should be
      *                               re-adjusted after adding/updating the link.
      */
-    self.addTie = function(tie, adjustLayout){
-        if(addInternalTie(networkData, tie.id, tie)){
+    self.addTies = function(ties, adjustLayout){
+        var linkAdded = false;
 
+        ties.forEach((tie)=>{
+            linkAdded = addInternalTie(networkData, tie.id, tie) || linkAdded;
+        });
+
+        if(linkAdded){
+            linkAdded = true;
             svg.selectAll('g,link').remove();
             drawLinks();
             drawNodes();
@@ -567,6 +573,92 @@ var networkViz = (function(){
             simulation.alpha(1).restart();
         } else {
             refreshNetwork();
+        }
+    }
+
+    /**
+     * Adds or updates a tie to the network. If the link id created by the tie
+     * properties (see tieToLinkId) matches an existing link, the existing 
+     * link's count is incremented and the tie's weight added to the existing
+     * link's weight. If the link id is new, a new link is created.
+     * 
+     * @param {object} tie A tie object with at least these fields:
+     *   - id (the tie's id)
+     *   - start (token offset; integer)
+     *   - end (token offset; integer)
+     *   - source_entity (object)
+     *       * location_id OR entity_id
+     *   - target_entity (object)
+     *       * location_id OR entity_id
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after adding/updating the link.
+     */
+    self.addTie = function(tie, adjustLayout){
+        self.addTies([tie], adjustLayout);
+    }
+
+
+    /**
+     * Removes or updates a list of ties to the network. If the link id created
+     * by the tie properties (see tieToLinkId) matches an existing link, the
+     * existing link's count is decremented and the tie's weight subtracted from
+     * the existing link's weight. If the resulting count is 0, the link is
+     * removed. If the link id is new, no action is performed.
+     * 
+     * @param {object[]} ties A list of tie object with at least these fields:
+     *   - id (the tie's id)
+     *   - start (token offset; integer)
+     *   - end (token offset; integer)
+     *   - source_entity (object)
+     *       * location_id OR entity_id
+     *   - target_entity (object)
+     *       * location_id OR entity_id
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after removing or updating the 
+     *                               link.
+     */
+    self.removeTies = function(ties, adjustLayout){
+        var updateRequired = false;
+
+        ties.forEach((tie)=>{
+            var linkId = tieToLinkId(tie.id, tie);
+            if(seenLinks[linkId] !== undefined){
+                updateRequired = true;
+
+                if(seenLinks[linkId].count == 1){
+                    var i;
+                    for(i = 0; i < networkData.links.length; i++){
+                        if(networkData.links[i].linkId == linkId){
+                            networkData.links.splice(i, 1); // = null;
+                            break;
+                        }
+                    }
+                    delete seenLinks[linkId];
+                } else {
+                    seenLinks[linkId].count++;
+                    seenLinks[linkId].weight += 
+                        tie.weight === undefined ? 1 : tie.weight;
+                }
+            }
+        });
+
+        if(updateRequired){
+            svg.selectAll('g,link').remove();
+            drawLinks();
+            drawNodes();
+            simulation.force("link").links(networkData.links);
+
+            if(adjustLayout){
+                simulation.alpha(1).restart();
+            } else {
+                refreshNetwork();
+            }
         }
     }
 
@@ -593,35 +685,7 @@ var networkViz = (function(){
      *                               link.
      */
     self.removeTie = function(tie, adjustLayout){
-        var linkId = tieToLinkId(tie.id, tie);
-        if(seenLinks[linkId] !== undefined){
-            svg.selectAll('g,link').remove();
-
-            if(seenLinks[linkId].count == 1){
-                var i;
-                for(i = 0; i < networkData.links.length; i++){
-                    if(networkData.links[i].linkId == linkId){
-                        networkData.links.splice(i, 1); // = null;
-                        break;
-                    }
-                }
-                delete seenLinks[linkId];
-            } else {
-                seenLinks[linkId].count++;
-                seenLinks[linkId].weight += 
-                    tie.weight === undefined ? 1 : tie.weight;
-            }
-
-            drawLinks();
-            drawNodes();
-            simulation.force("link").links(networkData.links);
-
-            if(adjustLayout){
-                simulation.alpha(1).restart();
-            } else {
-                refreshNetwork();
-            }
-        }
+        self.removeTies([tie], adjustLayout);
     }
 
     /**

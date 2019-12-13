@@ -168,11 +168,75 @@ var UIUpdater = function(){
         // Add to entity panel if its group exists (if its group doesn't exist,
         // this entity will be added when the group is created).
         if($(`#entity-panel input[data-id="${data.id}"]`).length == 0){
-            $(`#entity-panel .group-checkbox[data-id=${data.groupId}]`).
-                replaceWith(makeGroupChecklist(data.groupId, 
+            $(`#entity-panel .group[data-id=${data.groupId}]`).
+                replaceWith(makeGroupChecklist(data.groupId,
                     annotationManager.groups[data.groupId].entities));
         }
     };
+
+    /**
+     * Changes an entity's alias group in the entity, text, and network 
+     * visualization panels.
+     * 
+     * @param {jQueryEvent} event Ignored.
+     * @param {object} An object with info about the new entity with these 
+     *                 fields:
+     *                  - id
+     *                  - oldGroupId
+     *                  - newGroupId
+     */
+    self.changeEntityAliasGroup = function(event, data){
+        console.log(`[UIUpdater.changeEntityAliasGroup] changing entity's alias group ${data.id}`);
+
+        // If the entity's old group is still in the entity panel, remove it.
+        if(annotationManager.groups[data.oldGroupId] &&
+            $(`#entity-panel .group[data-id=${data.oldGroupId}] `+
+                `.group-checkbox[data-id="${data.id}"]`).length != 0){
+
+            $(`#entity-panel .group[data-id=${data.oldGroupId}]`).
+                replaceWith(makeGroupChecklist(data.oldGroupId, 
+                    annotationManager.groups[data.oldGroupId].entities));
+        }
+
+        // Add to entity panel if its group exists (if its group doesn't exist,
+        // this entity will be added when the group is created).
+        if($(`#entity-panel .group[data-id=${data.newGroupId}] `+
+                `.group-checkbox[data-id="${data.id}"]`).length == 0){
+            $(`#entity-panel .group[data-id=${data.newGroupId}]`).
+                replaceWith(makeGroupChecklist(data.newGroupId, 
+                    annotationManager.groups[data.newGroupId].entities));
+        }
+
+        // Update the text area.
+        $(`#text-panel [data-entity-id=${data.id}]`).each(function(){
+            var $elm  = $(this);
+            $elm.attr('data-group-id', data.newGroupId);
+            $elm.removeClass(`g${data.oldGroupId}`).
+                 addClass(`g${data.newGroupId}`);
+        });
+
+        // Update the network visualization panel.
+        var ties = [];
+        for(let tieId in annotationManager.entities[data.id].ties){
+            let tie = annotationManager.ties[tieId];
+            ties.push({
+                id: tieId,
+                start: tie.start,
+                end: tie.end,
+                source_entity: tie.source_entity, 
+                target_entity: tie.target_entity,
+                label: tie.label,
+                weight: tie.weight,
+                directed: tie.directed
+            });
+        }
+        console.log(`[UIUpdater.changeEntityAliasGroup] updating ${ties.length} ties`);
+        networkViz.removeTies(ties, false);
+        networkViz.addGroup({id: data.newGroupId}, false);
+        networkViz.addTies(ties, true);
+
+    };
+
 
     /**
      * Removes an entity alias group from the the entity, text, and network
@@ -299,6 +363,8 @@ var UIUpdater = function(){
         // Entity listeners.
         $(document).on('entities.annotation.entity-removed', self.removeEntity);
         $(document).on('entities.annotation.entity-added', self.addEntity);
+        $(document).on('entities.annotation.entity-alias-group-changed', 
+            self.changeEntityAliasGroup);
 
         // TODO need something like: entities.annotation.entity-group-changed
         // or entity-updated.

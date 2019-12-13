@@ -100,10 +100,10 @@ var size = function(obj){
         return s;
 }
 
-var addEntityToGroupChecklist = function($entitiesList, entity){
+var addEntityToGroupChecklist = function($entitiesList, entityId, entity){
     return $entitiesList.append('<div class="pretty p-icon p-square p-jelly">'+
         '<input type="checkbox" class="group-checkbox" '+
-        `data-id="${entity.id}"><div class="state p-primary">`+ 
+        `data-id="${entityId}"><div class="state p-primary">`+ 
         '<i class="icon mdi mdi-check"></i><label>'+ 
         `<span class="g${entity.group_id} unselectable">`+ 
         `${entity.name}</span></label></div></div>`);
@@ -116,7 +116,7 @@ var makeGroupChecklist = function(groupId, entities){
 
     $listItem.append($entitiesList);
     for(entityId in entities){
-        addEntityToGroupChecklist($entitiesList, entities[entityId]);
+        addEntityToGroupChecklist($entitiesList, entityId, entities[entityId]);
         if(i < entitiesSize-1){
             $entitiesList.append(', ')
         }
@@ -1602,8 +1602,7 @@ var combineSelectedGroups = function() {
         });
     });
 
-    annotationManager.moveEntitiesToGroup(entities, menuConfigData.selectedGroups.pop(), 
-        ()=>{window.location.reload(true);});
+    annotationManager.moveEntitiesToGroup(entities, menuConfigData.selectedGroups.pop());
 
     resetMenuConfigData();
 
@@ -1690,8 +1689,7 @@ var groupSelectedEntities = function() {
 
     // groupEntities(entityIds, callback);
     console.log(menuConfigData.selectedEntities);
-    annotationManager.groupEntities(menuConfigData.selectedEntities, 
-        ()=>{window.location.reload(true);});
+    annotationManager.groupEntities(menuConfigData.selectedEntities);
 
     resetMenuConfigData();
 
