@@ -628,7 +628,19 @@ var AnnotationManager = function(annotation_data){
         changes.groups[groupId] = {name: name};        
 
         // Sync with server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
+                 $(document).trigger(
+                    'entities.annotation.group-renamed', {
+                        id: groupId, 
+                        name: name
+                    });
+            }
+
+            if(callback){
+                callback(args);
+            }
+        });
     };
 
     /**
@@ -703,7 +715,23 @@ var AnnotationManager = function(annotation_data){
         changes.locations[key] = self.locations[key];
 
         // Sync with server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
+                $(document).trigger(
+                    'entities.annotation.mention-added', {
+                        id: key, 
+                        location: {
+                            entity_id: entityId,
+                            start: startingOffset,
+                            end: endingOffset
+                        }
+                });
+            }
+
+            if(callback){
+                callback(args);
+            }
+        });
     };
 
     /**
@@ -724,13 +752,13 @@ var AnnotationManager = function(annotation_data){
         var changes = {entities: {}, groups: {}, locations: {}, ties: {}};
         var location, nodeEntity, node, 
             nodes = {source_entity: 1, target_entity: 1};
-
+        var callbacks = [];
         location = self.locations[locationId];
 
         // Remove from ties.
-        for(tieId in location.ties){
+        for(let tieId in location.ties){
             // Remove from the source and target entity's tie lists.
-            tie = location.ties[tieId];
+            let tie = location.ties[tieId];
             for(node in nodes){
                 nodeEntity = null;
                 if(tie[node].location_id !== undefined){
@@ -747,14 +775,40 @@ var AnnotationManager = function(annotation_data){
 
             delete self.ties[tieId];
             changes.ties[tieId] = "DELETE";
+
+            callbacks.push($(document).trigger(
+                'entities.annotation.tie-removed', {
+                    id: tieId, 
+                    tie: tie
+            }));
         }
 
         // Remove the location and mark the change.
         delete self.locations[locationId];
         changes.locations[locationId] = "DELETE";
 
+        callbacks.push($(document).trigger(
+            'entities.annotation.mention-removed', {
+                id: locationId, 
+                location: {
+                    entity_id: location.entityId,
+                    start: location.start,
+                    end: location.end
+                }
+        }));
+
+
         // Sync with server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (args)=>{
+  
+            if(args.success){
+                callbacks.forEach(f => f());
+            }
+
+            if(callback){
+                callback(args);
+            }
+        });
     };
 
     /**
@@ -784,6 +838,13 @@ var AnnotationManager = function(annotation_data){
         var location = self.locations[locationId];
         var nodes = {source_entity: 1, target_entity: 1}, node, nodeEntity;
 
+        var oldLocation = {
+            start: location.start,
+            end: location.end,
+            entity_id: location.entity_id,
+            group_id: self.entities[location.entity_id].group_id
+        };
+
         changes.locations[locationId] = {};
 
         // Update the fields.
@@ -805,7 +866,24 @@ var AnnotationManager = function(annotation_data){
         });
 
         // Sync with server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
+                $(document).trigger(
+                    'entities.annotation.mention-updated', {
+                        id: locationId, 
+                        oldLocation: oldLocation,
+                        newLocation: {
+                            entity_id: location.entityId,
+                            start: location.start,
+                            end: location.end
+                        }
+                });
+            }
+
+            if(callback){
+                callback(args);
+            }
+        });
     };
 
     ////////////////////////////////////////////////////////////////////////////

@@ -128,7 +128,6 @@ var networkViz = (function(){
     function addInternalNode(graph, groupId){
         if(seenGroups[groupId]) return;
 
-        seenGroups[groupId] = true;
         graph.nodes.push({
             name: entitiesData.groups[groupId].name,
             id: groupId, 
@@ -136,6 +135,7 @@ var networkViz = (function(){
             x: svgWidth/4 + Math.random()*svgWidth/2,
             y: svgHeight/4 + Math.random()*svgHeight/2
         });
+        seenGroups[groupId] = graph.nodes.length;
     }
 
     /**
@@ -745,6 +745,22 @@ var networkViz = (function(){
             } else {
                 refreshNetwork();
             }
+        }
+    }
+
+    /**
+     * Adds a group to the network. 
+     * 
+     * @param {object} group A group object with at least these fields:
+     *   - id (the group's id)
+     *   - name
+     */
+    self.renameGroup = function(group, adjustLayout){
+        if(seenGroups[group.id] !== undefined){
+            networkData.nodes[seenGroups[group.id]].name = name;
+            simulation.nodes(networkData.nodes);
+
+            drawNodes();
         }
     }
 

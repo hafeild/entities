@@ -281,6 +281,25 @@ var UIUpdater = function(){
     };
 
     /**
+     * Removes an entity alias group from the the entity, text, and network
+     * visualization panels.
+     * 
+     * @param {jQueryEvent} event Ignored.
+     * @param {object} An object with info about the removed alias group with 
+     *                 these fields:
+     *                  - id
+     *                  - name
+     */
+    self.renameAliasGroup = function(event, data){
+        console.log(`[UIUpdater] renaming alias group ${data.id}`);
+
+        // Update network viz panel.
+        networkViz.renameGroup(data, true);
+
+    };
+
+
+    /**
      * Removes a mention fro the text panel.
      * 
      * @param {jQueryEvent} event Ignored.
@@ -341,15 +360,46 @@ var UIUpdater = function(){
                 removeClass(`g${data.location.group_id}`).
                 removeClass('start-token'). 
                 removeClass('end-token'). 
-                attr({
-                    'data-entity-id': null,
-                    'data-group-id': null,
-                    'data-location-id': null,
-                });
+                removeAttr([
+                    'data-entity-id',
+                    'data-group-id',
+                    'data-location-id'
+                ]);
         });
     };
 
+    /**
+     * Removes a mention fro the text panel.
+     * 
+     * @param {jQueryEvent} event Ignored.
+     * @param {object} An object with info about the removed mention with 
+     *                 these fields:
+     *                  - id
+     *                  - oldLocation
+     *                      * entity_id
+     *                      * group_id
+     *                      * start
+     *                      * end
+     *                  - newLocation
+     *                      * entity_id
+     *                      * start
+     *                      * end
+     */
+    self.updateMention = function(event, data){
+        console.log(`[UIUpdater] removing mention ${data.id}`);
 
+        // Remove the old information.
+        self.removeMention(null, {
+            id: data.id,
+            location: data.oldLocation
+        });
+
+        // Add the new information.
+        self.addMention(null, {
+            id: data.id,
+            location: data.newLocation
+        });
+    };
 
     /**
      * Adds listeners for annotation update events.
@@ -374,11 +424,15 @@ var UIUpdater = function(){
                        self.removeAliasGroup);
         $(document).on('entities.annotation.group-added', 
                        self.addAliasGroup);
+        $(document).on('entities.annotation.group-renamed', 
+                       self.renameAliasGroup);
 
         // Mention listeners.
         $(document).on('entities.annotation.mention-removed', 
                        self.removeMention);
         $(document).on('entities.annotation.mention-added', self.addMention);
+        $(document).on('entities.annotation.mention-updated', 
+                       self.updateMention);
 
     }
 

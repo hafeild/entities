@@ -1130,13 +1130,9 @@ var confirmAddMention = function() {
     console.log(spans);
 
     // addMention(entityId, startingOffset, endingOffset, callback);
-    annotationManager.addMention(selectedEntity, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), 
-        ()=>{window.location.reload(true);});
+    annotationManager.addMention(selectedEntity, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'));
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var openReassignMentionModal = function() {
@@ -1217,12 +1213,9 @@ var confirmReassignMention = function() {
         start: annotation_data.annotation.locations[selectedMention].start,
         end: annotation_data.annotation.locations[selectedMention].end,
         entity_id: selectedEntity
-    }, ()=>{window.location.reload(true);});
+    });
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var addEntityFromSelection = function() {
@@ -1246,9 +1239,6 @@ var addEntityFromSelection = function() {
     var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null);
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var openAddTieModal = function(e) {
@@ -1605,20 +1595,14 @@ var combineSelectedGroups = function() {
     annotationManager.moveEntitiesToGroup(entities, menuConfigData.selectedGroups.pop());
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var deleteSelectedMention = function() {
     console.log("In deleteSelectedMention");
 
-    annotationManager.removeMention(menuConfigData.selectedMentions[menuConfigData.selectedMentions.length-1], ()=>{window.location.reload(true);});
+    annotationManager.removeMention(menuConfigData.selectedMentions[menuConfigData.selectedMentions.length-1]);
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var deleteSelectedEntity = function() {
@@ -1627,9 +1611,6 @@ var deleteSelectedEntity = function() {
     var entityId = annotationManager.removeEntity(menuConfigData.recentSelectedEntityId);
     
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var deleteSelectedEntities = function() {
@@ -1650,9 +1631,6 @@ var deleteSelectedEntities = function() {
     var entityId = annotationManager.removeEntities(menuConfigData.selectedEntities);
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var deleteSelectedGroup = function() {
@@ -1662,26 +1640,18 @@ var deleteSelectedGroup = function() {
     // annotationManager.removeEntities(Object.keys(annotation_data.annotation.groups[$(menuConfigData.recentSelectedEntity).attr('data-group-id')].entities), null);
 
     // removeGroup(groupId, callback);
-    annotationManager.removeGroup($(menuConfigData.recentSelectedEntity).attr('data-group-id'), 
-        ()=>{window.location.reload(true);});
+    annotationManager.removeGroup($(menuConfigData.recentSelectedEntity).attr('data-group-id'));
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var deleteSelectedGroups = function() {
     console.log("In deleteSelectedGroups");
 
     // removeGroups(groupIds, callback);
-    annotationManager.removeGroups(menuConfigData.selectedGroups, 
-        ()=>{window.location.reload(true);});
+    annotationManager.removeGroups(menuConfigData.selectedGroups);
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var groupSelectedEntities = function() {
@@ -1692,9 +1662,6 @@ var groupSelectedEntities = function() {
     annotationManager.groupEntities(menuConfigData.selectedEntities);
 
     resetMenuConfigData();
-
-    // TEMPORARY
-    // window.location.reload(true);
 }
 
 var openGroupSelectorModal = function() {
@@ -1723,8 +1690,7 @@ var confirmMoveEntityToGroup = function() {
     }
 
     // moveEntityToGroup(entityId, groupId, callback);
-    annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, selectedGroup, 
-        ()=>{window.location.reload(true);});
+    annotationManager.moveEntityToGroup(menuConfigData.recentSelectedEntityId, selectedGroup);
 
     resetMenuConfigData();
 }
@@ -1737,8 +1703,7 @@ var confirmGroupNameChange = function() {
     console.log("In confirmGroupNameChange");
 
     // changeGroupName(groupId, name, callback);
-    annotationManager.changeGroupName($(menuConfigData.recentSelectedEntity).attr('data-group-id'), $('#newGroupNameBox').val(), 
-        ()=>{window.location.reload(true);});
+    annotationManager.changeGroupName($(menuConfigData.recentSelectedEntity).attr('data-group-id'), $('#newGroupNameBox').val());
 
     resetMenuConfigData();
 }
