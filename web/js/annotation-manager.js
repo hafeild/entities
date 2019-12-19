@@ -753,7 +753,10 @@ var AnnotationManager = function(annotation_data){
         var location, nodeEntity, node, 
             nodes = {source_entity: 1, target_entity: 1};
         var callbacks = [];
+        var groupId;
         location = self.locations[locationId];
+        groupId = self.entities[location.entity_id].group_id;
+
 
         // Remove from ties.
         for(let tieId in location.ties){
@@ -776,26 +779,31 @@ var AnnotationManager = function(annotation_data){
             delete self.ties[tieId];
             changes.ties[tieId] = "DELETE";
 
-            callbacks.push($(document).trigger(
+            callbacks.push(()=>{
+                $(document).trigger(
                 'entities.annotation.tie-removed', {
                     id: tieId, 
                     tie: tie
-            }));
+                })
+            });
         }
 
         // Remove the location and mark the change.
         delete self.locations[locationId];
         changes.locations[locationId] = "DELETE";
 
-        callbacks.push($(document).trigger(
-            'entities.annotation.mention-removed', {
-                id: locationId, 
-                location: {
-                    entity_id: location.entityId,
-                    start: location.start,
-                    end: location.end
-                }
-        }));
+        callbacks.push(() => { 
+            $(document).trigger(
+                'entities.annotation.mention-removed', {
+                    id: locationId, 
+                    location: {
+                        group_id: groupId,
+                        entity_id: location.entity_id,
+                        start: location.start,
+                        end: location.end
+                    }
+            })
+        });
 
 
         // Sync with server.

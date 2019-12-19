@@ -360,11 +360,9 @@ var UIUpdater = function(){
                 removeClass(`g${data.location.group_id}`).
                 removeClass('start-token'). 
                 removeClass('end-token'). 
-                removeAttr([
-                    'data-entity-id',
-                    'data-group-id',
-                    'data-location-id'
-                ]);
+                removeAttr('data-entity-id').
+                removeAttr('data-group-id').
+                removeAttr('data-location-id');
         });
     };
 

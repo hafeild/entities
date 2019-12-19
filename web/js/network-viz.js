@@ -455,9 +455,11 @@ var networkViz = (function(){
             .attr("r", RADIUS);
 
         newG.append("text")
-            .text((d,i,n) => { return d.name });
+            .text((d,i,n) => { return d.name })
+            .attr("class", (d)=>{ return `gn${d.group}` });
 
         gnodes.exit().remove();
+
         gnodes = svg.selectAll('g.gnode')//('g.gnode')
             .data(networkData.nodes);
     }
@@ -757,10 +759,8 @@ var networkViz = (function(){
      */
     self.renameGroup = function(group, adjustLayout){
         if(seenGroups[group.id] !== undefined){
-            networkData.nodes[seenGroups[group.id]].name = name;
-            simulation.nodes(networkData.nodes);
-
-            drawNodes();
+            networkData.nodes[seenGroups[group.id]-1].name = group.name;
+            d3.select(`.gn${group.id}`).text(group.name);
         }
     }
 
