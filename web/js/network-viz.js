@@ -408,8 +408,8 @@ var networkViz = (function(){
         
         links.enter().append("line")
             .attr("class", "link")
-            .style("stroke-width", function(d) { return 0.25*Math.sqrt(d.value); })
-            .style("stroke", "#999999");
+            .style("stroke-width", function(d) { return 0.5*Math.sqrt(d.value); })
+            .style("stroke", "#555555");
     
         links.exit().remove();
         links = svg.selectAll(".link")
