@@ -568,3 +568,7 @@ span.selectedEntity.end-token {
     font-size: 14px;
     font-style: italic;
 }
+
+#svg-canvas {
+    display: none;
+}
