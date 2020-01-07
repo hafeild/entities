@@ -123,7 +123,7 @@ var StudyLogger = function(syncInterval){
                 name: 'click', 
                 id: event.target.id,
                 tag: event.target.tagName, 
-                panel: $(event.target).parents('.panel').attr('id'),
+                panel: $(event.target).parents('.entities-panel').attr('id'),
                 pageX: event.pageX,
                 pageY: event.pageY,
                 clientX: event.clientX, 
