@@ -1974,7 +1974,9 @@ $(document).ready(function(){
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
     $(document).on('click', "#entity-list > ul.groups > li > input.group-checkbox", groupListCheckboxClicked);
 
-    
+    // Bootstrap tooltips.
+    $('[data-toggle="tooltip"]').tooltip()
+
     // Manual Annotation
     menu = document.querySelector(".context-menu");
     $(document).on('click', '#text-panel > .content-page > .annotated-entity', existingEntityClicked);

@@ -198,6 +198,7 @@ body {
     margin: 1em 0 0 -1em;
     padding: 0;
     /* display: table; */
+    background-color: white;
 }
 
 #annotation-panels {
@@ -223,6 +224,7 @@ body {
 #text-panel-wrapper {
     display: table-cell;
     position: relative;
+    background-color: white;
 }
 
 #text-panel {
@@ -233,10 +235,11 @@ body {
     overflow-x: hidden;
     position: absolute;
     top: 0;
-    bottom: 0;
+    bottom: 1.5em;
     left: 0;
     right: 0;
     padding: 1em;
+    background-color: white;
 
 
     /* height: 200px; */
@@ -318,6 +321,21 @@ body {
     height: 100%;
     /* min-height: 100%; */
 }
+
+body.fullscreen #text-panel-wrapper {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    margin: 0;
+    margin-right: -1em;
+    padding: 0;
+}
+
+
 
 .entity{
     background-color: green;
@@ -563,7 +581,26 @@ span.selectedEntity.end-token {
     font-size: 140%;
 }
 
-.selectionInfo {
+#fullscreen-toggle-button {
+    position: absolute;
+    right: 15px;
+    top: 0;
+}
+
+#selection-info-box {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2em;
+    padding-left: 1em;
+    padding-right: 1em;
+    background-color: white;
+    border-top: 1px solid gray;
+}
+
+.selection-info {
     margin: 0 auto;
     font-size: 14px;
     font-style: italic;
@@ -571,4 +608,20 @@ span.selectedEntity.end-token {
 
 #svg-canvas {
     display: none;
+}
+
+#text-panel-wrapper .expand {
+    display: inline-block;
+}
+
+body.fullscreen #text-panel-wrapper .expand {
+    display: none;
+}
+
+#text-panel-wrapper .shrink {
+    display: none;
+}
+
+body.fullscreen #text-panel-wrapper .shrink {
+    display: inline-block;
 }

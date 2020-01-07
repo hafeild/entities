@@ -342,13 +342,7 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
 </span>
 </div> <!-- /.header -->
 
-<br id="selection-info-box-marker"/>
-<div id="selectionInfoBox">
-    <p class="selectionInfo" id="entityInfoBox">0 entities selected</p>
-    <p class="selectionInfo" id="mentionInfoBox">0 mentions selected</p>
-    <p class="selectionInfo" id="groupInfoBox">0 alias groups selected</p>
-    <p class="selectionInfo" id="resetSelectionButton" style="display: inline-block; text-decoration: underline; cursor: pointer">reset</p>
-</div>
+
 
 <div id="annotation-panels-wrapper">
     <div id="annotation-panels">
@@ -376,7 +370,19 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
                 // For testing only!
                 // findTies(30);
             </script>
-            <span id="fullscreen-button" onclick="openNav()"><span class="glyphicon glyphicon-fullscreen"/></span>    
+            <span id="fullscreen-toggle-button" onclick="toggleFullscreen()" data-toggle="tooltip" data-placement="left" title="Maximize/minimize the text panel.">
+                <span class="expand"><span class="glyphicon glyphicon-resize-full"></span></span>
+                <span class="shrink"><span class="glyphicon glyphicon-resize-small"></span></span>
+            </span>  
+
+            <!-- Status bar. -->
+            <span id="selection-info-box-marker"></span>
+            <div id="selection-info-box">
+                <span class="selection-info" id="entityInfoBox">0 entities selected</span> |
+                <span class="selection-info" id="mentionInfoBox">0 mentions selected</span> |
+                <span class="selection-info" id="groupInfoBox">0 alias groups selected</span> |
+                <span class="selection-info btn btn-xs btn-primary" id="resetSelectionButton">Clear</span>
+            </div>
         </div>
 
 
@@ -391,33 +397,10 @@ function printUserPermissionControls($permissionUser, $readOnly = false){
     </div>
 </div>
 
-<div id="fullscreenTextOverlay" class="overlay">
-  <a href="javascript:void(0)" id="overlayCloseButton" class="closebtn" onclick="closeNav()">&times;</a>
-  <h2 id="overlay-text-title">
-      <a style="display: inline-block; color: #337ab7;" href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= 
-          $data["text"]["title"] ?>"</em> Annotations</a> : 
-          <?= $data["annotation"]["label"] == "" ? 
-              ("Annotation ". $data["annotation"]["annotation_id"]) : 
-              $data["annotation"]["label"] ?>
-  </h2>  
-  <div id="fullscreenTextOverlayContent" class="overlay-content">
 
-  </div>
-  <script>
-    function openNav() {
-        $(document).trigger('entities.fullscreen-enabled');
-        $("#text-panel").detach().appendTo('#fullscreenTextOverlayContent');
-        $('#selectionInfoBox').detach().insertAfter('#overlay-text-title');
-        $('#selectionInfoBox').addClass('selectionBox-inOverlay');
-        $('#fullscreenTextOverlay').css("width", "100%");
-    }
+<script>
+function toggleFullscreen() {
+    $('body').toggleClass('fullscreen');
+}
 
-    function closeNav() {
-        $(document).trigger('entities.fullscreen-disabled');
-        $('#fullscreenTextOverlay').css("width", "0%");
-        $("#text-panel").detach().appendTo('#text-panel-wrapper');
-        $('#selectionInfoBox').detach().insertAfter('#selection-info-box-marker');
-        $('#selectionInfoBox').removeClass('selectionBox-inOverlay');
-    }
-    </script>
-</div>
+</script>
