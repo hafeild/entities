@@ -1953,6 +1953,12 @@ var exportAsPNG = function() {
     link.remove();
 }
 
+/**
+ * Toggles maximizing and shrinking the text panel.
+ */
+function toggleFullscreen() {
+    $('body').toggleClass('fullscreen');
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1976,6 +1982,7 @@ $(document).ready(function(){
 
     // Bootstrap tooltips.
     $('[data-toggle="tooltip"]').tooltip()
+
 
     // Manual Annotation
     menu = document.querySelector(".context-menu");

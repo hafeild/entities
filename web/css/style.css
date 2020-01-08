@@ -26,7 +26,7 @@ body.account-page {
 }
 
 body.main-app {
-    padding-top: 70px;
+    padding-top: 50px;
 }
 
 ul {
@@ -182,12 +182,14 @@ body {
     position: relative;
     display: flex;
     flex-direction: column;
+    padding-top: 20px;
 }
 
 #content.annotation-page {
     margin: 0;
-    padding: 0, 1em, 0, 1em;
+    /* padding: 0, 1em, 0, 1em; */
     width: 100%;
+    padding: 0;
 }
 
 #annotation-panels-wrapper {
@@ -195,7 +197,7 @@ body {
     flex: 1;
     position: relative;
     box-sizing: border-box;
-    margin: 1em 0 0 -1em;
+    margin: 1px 0 0 0;
     padding: 0;
     /* display: table; */
     background-color: white;
@@ -596,8 +598,9 @@ span.selectedEntity.end-token {
     height: 2em;
     padding-left: 1em;
     padding-right: 1em;
-    background-color: white;
+    background-color: lightgray;
     border-top: 1px solid gray;
+    padding-top: 3px;
 }
 
 .selection-info {
@@ -624,4 +627,13 @@ body.fullscreen #text-panel-wrapper .expand {
 
 body.fullscreen #text-panel-wrapper .shrink {
     display: inline-block;
+}
+
+.header-button {
+    box-sizing: border-box;
+    margin-right: .5em;
+}
+
+.navbar {
+    margin-bottom: 0 !important;
 }

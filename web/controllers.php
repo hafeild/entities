@@ -753,7 +753,7 @@ public static function getAnnotation($path, $matches, $params, $format){
                 "text" => $text,
                 "is_study" => false
             ],
-            [], [], "annotation-page"
+            [], [], "annotation-page", "views/annotation-header.php"
         );
     }
 }
@@ -1357,17 +1357,20 @@ public static function generateRoute($method, $pattern, $call){
  *              Globalized as $messages.
  * @param contentClasses_ A string with classes to append to the container
  *                          wrapper in views/master.php.
+ * @param headerViewSnippet_ The full path to a view snippet that will be 
+ *              embedded in the middle of the header.
  */
 public static function render($title_, $view_, $data_, $errors_=[], 
-    $messages_=[], $contentClasses_=""){
+    $messages_=[], $contentClasses_="", $headerViewSnippet_=""){
 
-    global $title, $view, $data, $errors, $messages;
+    global $title, $view, $data, $errors, $messages, $headerViewSnippet;
     $title = $title_;
     $view = $view_;
     $data = $data_;
     $errors = $errors_;
     $messages = $messages_;
     $contentClasses = $contentClasses_;
+    $headerViewSnippet = $headerViewSnippet_;
 
     require("views/master.php");
 
@@ -1786,7 +1789,7 @@ public static function getStudyStep($path, $matches, $params, $format){
                     "is_study" => $studyId !== null,
                     "step_data" => $step
                 ],
-                [], [], "annotation-page"
+                [], [], "annotation-page", "views/annotation-header.php"
             );
         } else {
             Controllers::redirectTo($step["url"], null, null);
