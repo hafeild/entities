@@ -637,3 +637,7 @@ body.fullscreen #text-panel-wrapper .shrink {
 .navbar {
     margin-bottom: 0 !important;
 }
+
+.navbar-right {
+    margin-right: .5em !important;
+}
