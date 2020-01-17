@@ -43,6 +43,7 @@
 
 
 <!-- <p  class="navbar-text dropdown"> -->
+<li>
 <span class="dropdown">
     <button id="graph-export" class="dropdown-toggle dropdown btn btn-primary 
         btn-sm navbar-btn header-button" type="button" data-toggle="dropdown" 
@@ -56,5 +57,6 @@
         <!-- <li class="graph-export-option" id="graph-export-png">PNG</li>
         <li class="graph-export-option" id="graph-export-svg">SVG</li> -->
     </ul>
-    </span>
+</span>
+</li>
 <!-- </p> -->

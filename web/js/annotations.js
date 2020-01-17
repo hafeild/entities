@@ -305,7 +305,7 @@ var initializeTokenizedContent = function(){
     });
 
     // Display the first page.
-    appendContentPage(0);
+    appendContentPage(0, 50);
 };
 
 /**
@@ -361,8 +361,12 @@ var findPageWithLocation = function(location) {
  * #text-panel element, before the #end-marker element.
  * 
  * @param {integer} pageIndex The index of the page to append to the #text-panel.
+ * @param {boolean} appendNextTimeout The number of milliseconds to wait before 
+ *                                    appending the next content page. -1 means 
+ *                                    do not append the next page automatically.
+ *                                    Default: -1
  */
- var appendContentPage = function(pageIndex) {
+ var appendContentPage = function(pageIndex, appendNextTimeout) {
      if(contentPages[pageIndex][IS_DISPLAYED]) return;
 
      var html = `<span data-page="${pageIndex}" class="content-page">`+ 
@@ -380,6 +384,13 @@ var findPageWithLocation = function(location) {
     highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
     highlightTiesInContent(contentPages[pageIndex][START], 
         contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
+
+    // Load the next page after the specified timeout, if one was given.
+    if(appendNextTimeout !== undefined && appendNextTimeout >= 0){
+        setTimeout(function(){
+            appendContentPage(pageIndex+1, appendNextTimeout);
+        }, appendNextTimeout);
+    }
 }
 
 /**
@@ -2000,7 +2011,7 @@ $(document).ready(function(){
     $(document).keyup(function(e) { if (e.keyCode == 27) closeContextMenu();})
     // Close context menu when window is resized
     $(window).on('resize', closeContextMenu);
-    // Close context menu on text are scroll
+    // Close context menu on text on scroll
     $("span").scroll(function() {
         deselectAllText();
         closeContextMenu();
