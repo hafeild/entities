@@ -205,41 +205,45 @@ public static function postText($path, $matches, $params, $format){
         error("No name given to temporary file.", $_FILES["file"]);
     if(!file_exists($tmpFile))
         error("Tmporary file doesn't exist :(");
-    $md5sum = md5_file($tmpFile);
+    //$md5sum = md5_file($tmpFile);
+    $md5sum = hash("sha512", file_get_contents($tmpFile));
 
     // Create a metadata entry for this text.
-    $text = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
+    $response = addText($md5sum, $tmpFile, $params["title"], $user["id"]);
+    $text = $response[0];
+    $needsProcessing = $response[1];
 
-    // If this text already existed, but had an error during tokenization, 
-    // we don't need to create new permission errors or root annotaitons.
-    if($text["tokenization_error"] == "0"){
-        // Give the user ownership over the text.
-        addTextPermission($user["id"], $text["id"], $PERMISSIONS["OWNER"]);
-    
-        // Add a root annotation.
-        $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
-            // new stdClass() forces the empty array to show up as an object in the 
-            // JSON.
-            "last_entity_id"=> 0,
-            "last_group_id" => 0,
-            "last_tie_id"   => 0,
-            "entities"      => new stdClass(), 
-            "groups"        => new stdClass(),
-            "locations"     => new stdClass(),
-            "ties"          => new stdClass()
-        ], "unannotated", generateAnnotationMethodMetadata("unannotated", []),
-        generateAnnotationLabel("unannotated", []));
-    }
+    // Give the user ownership over the text.
+    addTextPermission($user["id"], $text["id"], $PERMISSIONS["OWNER"]);
+
+    // Add a root annotation.
+    $rootAnnotationId = addAnnotation($user["id"], $text["id"], null, [
+        // new stdClass() forces the empty array to show up as an object in the 
+        // JSON.
+        "last_entity_id"=> 0,
+        "last_group_id" => 0,
+        "last_tie_id"   => 0,
+        "entities"      => new stdClass(), 
+        "groups"        => new stdClass(),
+        "locations"     => new stdClass(),
+        "ties"          => new stdClass()
+    ], "unannotated", generateAnnotationMethodMetadata("unannotated", []),
+    generateAnnotationLabel("unannotated", []));
 
     // Kick off the processing.
-    $result = Controllers::tokenizeText($text["id"], $md5sum);
+    if($needsProcessing){
+        $result = Controllers::tokenizeText($text["id"], $md5sum);
 
-    if($result["success"] === true){
+        if($result["success"] === true){
+            $successMessages = ["The file has been uploaded and processed."];
+            $errorMessages = [];
+        } else {
+            $successMessages = [];
+            $errorMessages = ["File stored, but not processed.", $result["error"]];
+        }
+    } else {
         $successMessages = ["The file has been uploaded and processed."];
         $errorMessages = [];
-    } else {
-        $successMessages = [];
-        $errorMessages = ["File stored, but not processed.", $result["error"]];
     }
 
     $data = [
@@ -273,11 +277,16 @@ public static function postText($path, $matches, $params, $format){
 public static function tokenizeText($textId, $md5sum) {
     global $CONFIG;
 
+    $directory = getTextDirectory($md5sum);
+    $processingFlagFile = $directory ."/.processing";
+
+    // Set the processing flag.
+    touch($processingFlagFile);
     setTokenizationFlags($textId, true, false);
 
     $args = join("\t", [
         $textId,                // Id of the text.
-        $CONFIG->text_storage  // Storage location.
+        $directory              // Storage location.
     ]);
 
     $response = Controllers::processText($textId, $md5sum, [["token", $args]]);
@@ -286,6 +295,8 @@ public static function tokenizeText($textId, $md5sum) {
         // Unsets the progress flag and sets the error flag.
         setTokenizationFlags($textId, false, true);
     }
+
+    unlink($processingFlagFile);
 
     return $response;
 }
@@ -310,12 +321,13 @@ public static function runAutomaticAnnotation($annotator, $args, $textId, $md5su
     $annotationId) {
     
     global $CONFIG;
+    $directory = getTextDirectory($md5sum);
 
     $bookNLPArgs = join("\t", [
         $textId,                // Id of the text.
-        $CONFIG->text_storage,  // Storage location.
+        $directory,             // Storage location.
         $md5sum,                // Text name.
-        $annotationId          // Annotation entry id.
+        $annotationId           // Annotation entry id.
     ]);
 
     error_log("processing text");

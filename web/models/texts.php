@@ -58,55 +58,66 @@ function addText($md5sum, $file, $title, $user_id){
 
     $dbh->beginTransaction();
 
-    // Check if another file with this signature exists; if not, add the file.
-    $statement = $dbh->prepare(
-        "select * from texts where md5sum = :md5sum");
-    checkForStatementError($dbh, $statement, 
-        "Error preparing md5sum db statement.");
-    $statement->execute(array(":md5sum" => $md5sum));
-    checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
-    $row = $statement->fetch(\PDO::FETCH_ASSOC);
-    if($row){
-        // Check if the text exists, but in error mode.
-        if($row["tokenization_error"] == "1"){
-            $dbh->commit();
-            return $row;
+    // // Check if another file with this signature exists; if not, add the file.
+    // $statement = $dbh->prepare(
+    //     "select * from texts where md5sum = :md5sum");
+    // checkForStatementError($dbh, $statement, 
+    //     "Error preparing md5sum db statement.");
+    // $statement->execute(array(":md5sum" => $md5sum));
+    // checkForStatementError($dbh, $statement, "Error checking md5sum of text.");
+    // $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        // No error with book; can't overwrite!
-        } else {
-            $dbh->rollBack();
-            error("This text has already been uploaded.", $row);
-        }
+    // Add a new entry for this upload.
+    $statement = $dbh->prepare("insert into texts".
+        "(title,md5sum,created_at,uploaded_by, tokenization_in_progress, ". 
+        "tokenization_error,updated_at) ".
+        "values(:title, :md5sum, :time, :user_id, '0', '0', :time)");
+    $statement->execute(array(
+        ":md5sum"  => $md5sum, 
+        ":title"   => $title,
+        ":time"    => curDateTime(),
+        ":user_id" => $user_id
+    ));
+    checkForStatementError($dbh, $statement, 
+        "Error adding upload information to db.");
+    $id = $dbh->lastInsertId();
+
+
+    $textDirectory = getTextDirectory($md5sum);
+    $textContentFile = $textDirectory ."/original.txt";
+    $tokenizedFile = $textDirectory ."/tokens.txt";
+    $inProcessingLock = $textDirectory ."/.processing";
+
+    // Check if this text already exists.
+    if(file_exists($textDirectory) && file_exists($textContentFile)){
+
+        $dbh->commit();
+
+        // If the text hasn't been tokenized or is being tokenized but stalled
+        // out, mark it as needing to be processed.
+        $needsProcessing = !file_exists($tokenizedFile) && 
+            (!file_exists($inProcessingLock) || 
+             time() - filetime($inProcessingLock) > 10);
+        return [getTextMetadata($id), $needsProcessing];
+
 
     } else {
-        $statement = $dbh->prepare("insert into texts".
-            "(title,md5sum,created_at,uploaded_by, tokenization_in_progress, ". 
-            "tokenization_error,updated_at) ".
-            "values(:title, :md5sum, :time, :user_id, '0', '0', :time)");
-        $statement->execute(array(
-            ":md5sum"  => $md5sum, 
-            ":title"   => $title,
-            ":time"    => curDateTime(),
-            ":user_id" => $user_id
-        ));
-        checkForStatementError($dbh, $statement, 
-            "Error adding upload information to db.");
-        $id = $dbh->lastInsertId();
+
 
         // Make the directory rwxrwx--- for user:group www-data:www-data.
-        if(!mkdir($CONFIG->text_storage ."/$id", 0770, true)){
+        if(!mkdir($textDirectory, 0770, true)){
             $dbh->rollBack();
             error("Could not create a directory for the new text.");
         } else {
-            chmod($CONFIG->text_storage, 0770);
-            chmod($CONFIG->text_storage ."/$id", 0770);
-            if(!move_uploaded_file($file, $CONFIG->text_storage ."/$id/original.txt")){
+            // chmod($CONFIG->text_storage, 0770);
+            // chmod($CONFIG->text_storage ."/$md5sum", 0770);
+            if(!move_uploaded_file($file, $textContentFile)){
                 $dbh->rollBack();
                 error("Could not move the uploaded file on the server.");
             } else {
-                chmod($CONFIG->text_storage ."/$id/original.txt", 0770);
+                chmod($textContentFile, 0770);
                 $dbh->commit();
-                return getTextMetadata($id);
+                return [getTextMetadata($id), true];
             }
         }
     }
@@ -115,6 +126,24 @@ function addText($md5sum, $file, $title, $user_id){
         error("Error adding text metadata: ". $e->getMessage(),
             ["In addText($md5sum, $file, $title, $user_id)"]);
     }
+}
+
+/**
+ * Generates a directory prefix using the first 5 characters of the filename.
+ * E.g., the filename "lemons.txt" will have the directory prefix: "l/e/m/o/n".
+ * 
+ * @param filename The name fo the file.
+ * @return The first 5 characters of the filename separated by /s.
+ */
+function getFilenameDirectoryPrefix($filename) {
+    return join("/", preg_split('//', substr($filename, 0, 5), -1, 
+        PREG_SPLIT_NO_EMPTY));
+}
+
+function getTextDirectory($md5sum){
+    global $CONFIG;
+    return $CONFIG->text_storage ."/". 
+        getFilenameDirectoryPrefix($md5sum) ."/$md5sum";
 }
 
 /**
@@ -127,9 +156,10 @@ function getTextContentFilename($id) {
     global $CONFIG;
     $dbh = connectToDB();
     // return $CONFIG->text_storage ."/$id/original.txt";
+    $text = getTextMetadata($id);
 
     // TODO This should be annotation specific.
-    return $CONFIG->text_storage ."/$id/tokens.json";
+    return getTextDirectory($text["md5sum"]) ."/tokens.json";
 }
 
 

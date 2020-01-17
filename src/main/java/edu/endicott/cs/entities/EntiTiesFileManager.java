@@ -36,7 +36,6 @@ public class EntiTiesFileManager {
      * the following directory structure:
      * 
      *  <storageRoot>/
-     *  `---- <textId>/
      *        `---- <annotationId>/
      * 
      * @param storageRoot The path to the root storage dirctory.
@@ -56,7 +55,7 @@ public class EntiTiesFileManager {
      */    
     public File getTextDirectory() {
         if(textDirectory == null)
-            textDirectory = new File(storageRoot, ""+textId);
+            textDirectory = new File(storageRoot);
         return textDirectory;
     }
 

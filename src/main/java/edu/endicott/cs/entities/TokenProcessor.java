@@ -52,8 +52,8 @@ public class TokenProcessor extends Processor {
      * EntiTiesFileManager.
      * 
      * This process will look for the content of the book in 
-     * <texts directory>/<text id>/original.txt. It will create the following
-     * files in <directory>/<text id>/:
+     * <texts directory>/original.txt. It will create the following
+     * files in <directory>/:
      * 
      *  - tokens.json -- token information (JSON format)
      * 

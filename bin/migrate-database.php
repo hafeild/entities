@@ -206,7 +206,7 @@ function makeUsersTextsAnnotationsTables($dbh, $direction="up"){
                 ($isPostgres ? "id serial primary key," 
                              : "id integer primary key autoincrement,").
                 "title varchar(256),".
-                "md5sum char(32) unique,".
+                "md5sum char(128),".
                 ($isPostgres ? "uploaded_at timestamp," 
                              : "uploaded_at datetime,").
                 "uploaded_by integer, ".
