@@ -223,8 +223,9 @@ const WHITESPACE_AFTER = 1;
 const START = 0;
 const END = 1;
 const IS_DISPLAYED = 2;
-const PAGE_SIZE = 700;
+const PAGE_SIZE = 1000;
 const TOKEN_MARGIN = 200; // Where to start looking for a newline.
+const APPEND_NEXT_PAGE_INTERVAL = 100;
 var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
 var currentPage = 0;
 var locationsByPages = [];
@@ -305,7 +306,7 @@ var initializeTokenizedContent = function(){
     });
 
     // Display the first page.
-    appendContentPage(0, 50);
+    appendContentPage(0, APPEND_NEXT_PAGE_INTERVAL);
 };
 
 /**
@@ -386,7 +387,9 @@ var findPageWithLocation = function(location) {
         contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
 
     // Load the next page after the specified timeout, if one was given.
-    if(appendNextTimeout !== undefined && appendNextTimeout >= 0){
+    if(appendNextTimeout !== undefined && appendNextTimeout >= 0 && 
+        pageIndex < contentPages.length-1){
+
         setTimeout(function(){
             appendContentPage(pageIndex+1, appendNextTimeout);
         }, appendNextTimeout);

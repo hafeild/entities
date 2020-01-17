@@ -504,7 +504,7 @@ span.selectedEntity.end-token {
     top: 40px;
     left: 200px;
     right: 200px;
-    /* z-index: 10000; */
+    z-index: 10001;
     box-sizing: border-box;
 }
 

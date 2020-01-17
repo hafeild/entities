@@ -816,6 +816,12 @@ public static function editAnnotation($path, $matches, $params, $format){
         error("You do not have permission to modify this annotation.");
     }
 
+    // Make sure this isn't the blank slate annotation -- that cannot be edited.
+    if($annotation["parent_annotation_id"] == NULL){
+        error("You cannot make changes to the Blank Slate annotation; ". 
+              "please fork it and make changes to the new one.");
+    }
+
     $validUpdateFields = [
         "last_entity_id" => 1,
         "last_group_id"  => 1,

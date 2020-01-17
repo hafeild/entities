@@ -38,12 +38,12 @@ $numMigrations = -1;
 // Read in command line args.
 $migrationDirection = $argv[1];
 if($migrationDirection == "down"){
-    $confirm = readline(
-        "Are you sure you want to migrate down? You will lose any existing ". 
-        "data in tables\nremoved during the down migration. Enter y to ". 
-        "continue, or anything else to abort: ");
+    print "Are you sure you want to migrate down? You will lose any existing\n". 
+        "data in tables removed during the down migration. Enter y to\n". 
+        "continue, or anything else to abort: ";
+    $confirm = readline();
     if($confirm !== "y" && $confirm !== "Y"){
-        die("Aborting.");
+        die("Aborting.\n");
     }
 }
 

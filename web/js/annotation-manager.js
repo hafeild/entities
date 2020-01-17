@@ -1370,9 +1370,10 @@ var AnnotationManager = function(annotation_data){
                     $(document).trigger('entities.annotation.changes-saved', 
                         changes);
                 } else {
+                    setFloatingError(`Error: ${response.message}`);
                     $(document).trigger('entities.annotation.changes-error', {
                         changes: changes, 
-                        error: response.error, 
+                        error: response.message, 
                         data: {
                             server_response: response
                         }
@@ -1381,6 +1382,7 @@ var AnnotationManager = function(annotation_data){
             },
             error: function(jqXHR, textStatus, errorThrown){
                 if(callback !== undefined && callback !== null){
+                    setFloatingError(`Error: ${errorThrown}`);
                     callback({
                         success: false, 
                         error: errorThrown, 
