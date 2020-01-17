@@ -76,19 +76,31 @@ global $user;
     <div id="content" class="container <?= $contentClasses ?>">
 
 
+        <div id="errors" class="container alert alert-danger alert-dismissible 
+              errors" role="alert" 
+              <?= count($errors) > 0 ? "" : 'style="display: none"' ?>>
+            <button type="button" class="close" data-dismiss="alert" 
+              aria-label="Close"><span aria-hidden="true">&times;</span>
+            </button>
 
-        <div id="errors" class="alert alert-danger errors" role="alert" 
-            <?= count($errors) > 0 ? "" : 'style="display: none"' ?>>
             <?php foreach($errors as $error) { ?>
                 <p><?= $error ?></p>
             <?php } ?>
+            <span id="error-content">
+            </span>
         </div>
 
-        <div id="messages" class="alert alert-success messages" role="alert" 
-            <?= count($messages) > 0 ? "" : 'style="display: none"' ?>>
-            <?php foreach($messages as $message) { ?>
-                <p><?= $message ?></p>
-            <?php } ?>
+        <div id="messages" class="container alert alert-success 
+              alert-dismissible messages" role="alert" 
+              <?= count($messages) > 0 ? "" : 'style="display: none"' ?>>
+            <button type="button" class="close" data-dismiss="alert" 
+              aria-label="Close"><span aria-hidden="true">&times;</span>
+            </button>
+              <?php foreach($messages as $message) { ?>
+                  <p><?= $message ?></p>
+              <?php } ?>
+              <span id="message-content">
+              </span>
         </div>
 
         <?php require($view) ?>

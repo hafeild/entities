@@ -30,8 +30,8 @@ function getParameterByName(name, url) {
  */
 function setError(error){
     var errorElm = document.getElementById('errors');
-    errorElm.style.display = 'block';
-    errorElm.innerHTML = error;
+    errorElm.style.display = '';
+    document.getElementById('error-content').innerHTML = error;
 }
 
 /**
@@ -55,13 +55,13 @@ window.addEventListener('load', function(){
 
     if(error !== ''){
         var errorElm = document.getElementById('errors');
-        errorElm.style.display = 'block';
-        errorElm.innerHTML = error;
+        errorElm.style.display = '';
+        this.document.getElementById('error-content').innerHTML = error;
     }
 
     if(message !== ''){
         var messageElm = document.getElementById('messages');
-        messageElm.style.display = 'block';
-        messageElm.innerHTML = message;
+        messageElm.style.display = '';
+        this.document.getElementById('message-content').innerHTML = message;
     }
 });
