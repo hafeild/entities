@@ -20,14 +20,18 @@ var networkViz = (function(){
     var movingNode = false, drawingLinkMode = false, selectedNode = undefined;
     var readjustOnMove = true;
     
-    /**
-     * Initializes the network and D3 objects. Does NOT draw the network.
-     */
-    self.init = function(){
+    function gatherDimensions(){
         svgElm = document.querySelector("#network-svg");
         svg = d3.select('#network-svg');
         svgWidth = svgElm.getBoundingClientRect().width;
         svgHeight = svgElm.getBoundingClientRect().height;
+    }
+
+    /**
+     * Initializes the network and D3 objects. Does NOT draw the network.
+     */
+    self.init = function(){
+        gatherDimensions();
         simulation =  d3.forceSimulation()
             .force("link", d3.forceLink().id(function(d) { return d.id; }))
             .force("charge", d3.forceManyBody())
@@ -36,6 +40,15 @@ var networkViz = (function(){
 
         // simulation.force("charge").strength(-100).distanceMax(svgWidth);
         simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
+
+
+        $(window).on('resize', function(){
+            gatherDimensions();
+            simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
+            svg.selectAll('g,link').remove();
+            drawLinks();
+            drawNodes();
+        });
     };
 
     function xCoord(x){
@@ -827,6 +840,7 @@ var networkViz = (function(){
             
 
     }
+
 
     return self;
 })();

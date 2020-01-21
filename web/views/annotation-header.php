@@ -19,10 +19,12 @@
 
 
     <!-- Fork button -->
-    <li type="button" class="btn btn-primary btn-sm navbar-btn 
+    <li>
+    <button type="button" class="btn btn-primary btn-sm navbar-btn 
         fork-button header-button" 
         data-toggle="modal" data-target="#fork-modal">
     Fork
+    </button>
     </li>
 
     <?php
@@ -32,10 +34,12 @@
         $randNum = rand();    
     ?>
         <!-- Sharing button -->
-        <li type="button" class="btn btn-primary btn-sm navbar-btn 
+        <li>
+        <button type="button" class="btn btn-primary btn-sm navbar-btn 
             sharing-button header-button" 
             data-toggle="modal" data-target="#sharing-modal">
         Share annotation
+        </button>
         </li>
 
     <?php } // End owner-only section. ?>

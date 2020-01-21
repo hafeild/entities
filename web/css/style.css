@@ -212,7 +212,8 @@ body {
     /* left: 0; */
     /* right: -1em; */
     /* max-height: 100%; */
-    width: calc(100% + 1em);
+    /* width: calc(100% + 1em); */
+    width: 100%;
     /* overflow: hidden; */
 }
 
@@ -641,3 +642,8 @@ body.fullscreen #text-panel-wrapper .shrink {
 .navbar-right {
     margin-right: .5em !important;
 }
+
+
+/* To prevent flickering of tooltips in Chrome. */
+/* See: https://github.com/valor-software/ngx-bootstrap/issues/3075#issuecomment-363461060 */
+.tooltip { pointer-events: none; }

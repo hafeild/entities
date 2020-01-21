@@ -226,6 +226,7 @@ const IS_DISPLAYED = 2;
 const PAGE_SIZE = 1000;
 const TOKEN_MARGIN = 200; // Where to start looking for a newline.
 const APPEND_NEXT_PAGE_INTERVAL = 100;
+// const APPEND_NEXT_PAGE_INTERVAL = -1;
 var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
 var currentPage = 0;
 var locationsByPages = [];
@@ -298,12 +299,12 @@ var initializeTokenizedContent = function(){
         }
     }
 
-    // Set listeners for when the end of a page is reached.
-    $('#text-panel').on('scroll', null, (event)=>{
-        elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
-            appendContentPage(currentPage+1);
-        });
-    });
+    // // Set listeners for when the end of a page is reached.
+    // $('#text-panel').on('scroll', null, (event)=>{
+    //     elementIsVisibleInTextPanel(event, $('#end-marker'), ($elm) => {
+    //         appendContentPage(currentPage+1);
+    //     });
+    // });
 
     // Display the first page.
     appendContentPage(0, APPEND_NEXT_PAGE_INTERVAL);
@@ -368,32 +369,44 @@ var findPageWithLocation = function(location) {
  *                                    Default: -1
  */
  var appendContentPage = function(pageIndex, appendNextTimeout) {
-     if(contentPages[pageIndex][IS_DISPLAYED]) return;
+    console.log(`Top of appendContentPage(${pageIndex} ${appendNextTimeout})`);
+    if(contentPages[pageIndex][IS_DISPLAYED]) return;
 
-     var html = `<span data-page="${pageIndex}" class="content-page">`+ 
-     tokensToHTML(contentPages[pageIndex][START], 
-         contentPages[pageIndex][END]
-         ) +'</span>';
-     contentPages[pageIndex][IS_DISPLAYED] = true;
+    console.log('   `--> Appending content page.');
+     
 
-     currentPage = pageIndex;
+    var html = `<span data-page="${pageIndex}" class="content-page">`+ 
+    tokensToHTML(contentPages[pageIndex][START], 
+        contentPages[pageIndex][END]
+        ) +'</span>';
+    contentPages[pageIndex][IS_DISPLAYED] = true;
 
-     var $newPageElm = $(html);
-     $('#end-marker').before($newPageElm);
+    currentPage = pageIndex;
+
+    console.log(`[appendContentPage] Inserting new html`);
+    var $newPageElm = $(html);
+    $('#end-marker').before($newPageElm);
 
     // Highlight locations for this page.
+    console.log(`[appendContentPage] Highlighting entities`);
     highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
+    console.log(`[appendContentPage] Highlighting ties`);
     highlightTiesInContent(contentPages[pageIndex][START], 
         contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
 
     // Load the next page after the specified timeout, if one was given.
     if(appendNextTimeout !== undefined && appendNextTimeout >= 0 && 
         pageIndex < contentPages.length-1){
+        console.log(`[appendContentPage] setting timeout to append next page`);
 
         setTimeout(function(){
             appendContentPage(pageIndex+1, appendNextTimeout);
         }, appendNextTimeout);
     }
+
+
+    console.log(`[appendContentPage] Leaving`);
+
 }
 
 /**
@@ -440,15 +453,15 @@ var findPageWithLocation = function(location) {
  *                                   element (the match) as its only argument.
  */
  var elementIsVisibleInTextPanel = function(event, $element, onMatch){
-     var textPanelTop = 0;
-     var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
-     var elmScrollTop = $element.position().top;
-     var elmScrollBottom = elmScrollTop + $element.height();
-     if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
-         (elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
+    var textPanelTop = 0;
+    var textPanelBottom = textPanelTop + $('#text-panel-wrapper').height();
+    var elmScrollTop = $element.position().top;
+    var elmScrollBottom = elmScrollTop + $element.height();
+    if((elmScrollTop >= textPanelTop && elmScrollTop <= textPanelBottom) ||
+       (elmScrollTop < textPanelTop && elmScrollBottom > textPanelTop)){
 
-         onMatch($element);
- }
+       onMatch($element);
+    }
 }
 
 /**
@@ -523,7 +536,9 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
  * @param {jQuery Element} $element The element to highlight entities in.
  */
  var highlightEntitiesInContent = function(locationKeys, $element){
-    // This is just to test things quick and dirty.
+    console.log(`[highlightEntitiesInContent] entering (locationKeys, element):`,
+        locationKeys, $element);
+
     var i, j, location, $token, tokenId, prevTokenId;
     for(i = 0; i < locationKeys.length; i++){
         location = annotation_data.annotation.locations[locationKeys[i]];
@@ -562,7 +577,9 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
             }
         });
    }
-}
+
+    console.log(`[highlightEntitiesInContent] leaving`);
+ }
 
 /**
  * Highlights ties in the given text content element. This relies on the global
@@ -2073,6 +2090,11 @@ $(document).ready(function(){
     $(document).on('click', '#graph-export-svg', exportAsSVG);
 
 
+    $('body').css('padding-top', $('.navbar-fixed-top').height()+'px');
+    $(window).on('resize', function(){
+        $('body').css('padding-top', $('.navbar-fixed-top').height()+'px');
+        console.log(`seeting body.paddingTop to ${$('.navbar-fixed-top').height()}px`); 
+    });
 
 
     // Autofocus the first input of a modal.
