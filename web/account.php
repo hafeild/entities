@@ -35,13 +35,14 @@ function signup($data){
     }
 
     // Make sure the username is okay.
-    $user = getUserInfo($data["username"]);
+    $username = strtolower($data["username"]);
+    $user = getUserInfo($username);
     if($user != null){
         redirectToSignup("That username is taken. Try a different one.");
     }
 
     // Add the user.
-    addNewUser($data["username"], 
+    addNewUser($username, 
         password_hash($data["password"], PASSWORD_BCRYPT));
 
     // Redirect them to the login page.
@@ -59,7 +60,8 @@ function login($data){
     logout($data, false);
 
     // Authenticate the user.
-    $user = getUserInfo($data["username"]);
+    $username = strtolower($data["username"]);
+    $user = getUserInfo($username);
     if(!password_verify($data["password"], $user["password"])){
         redirectToLogin("Invalid username or password.");
     }
