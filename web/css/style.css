@@ -304,6 +304,16 @@ body {
     overflow-y: auto;
 }
 
+#entity-panel li.group {
+    /* display: block; */
+    padding-left: 2em ;
+    text-indent: -2em ;
+}
+
+#entity-panel .pretty {
+    text-indent: initial;
+}
+
 #network-panel {
     width: 30vw;
     display: table-cell;

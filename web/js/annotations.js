@@ -1261,10 +1261,12 @@ var addEntityFromSelection = function() {
     var name = "";
 
     spans.forEach(s => {
-        name += s.innerHTML + " ";
-        name += " ";
+        // name += s.innerHTML + " ";
+        // name += " ";
+        name += s.innerText;
     })
     name = name.trim();
+    
 
     // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
     var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null);
@@ -1359,21 +1361,60 @@ var openAddTieModal = function(e) {
         spanList.splice(0, 1);
     }
 
+    var mentionIdToText = {};
+    var preselectMentionId1;
+    var preselectMentionId2;
+
+    // Assemble the text for each of the mentions in the selection.
     spanList.forEach(span => {
         tieModalTextArea.append(span.clone());
         if (span.hasClass('entity')) {
+            var mentionId = span.attr('data-location-id');
+
             if (parseInt(span.attr('data-token')) < parseInt($(menuConfigData.textSpans[0]).attr("data-token"))) {
-                preselectOne = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
-                '<span class="unselectable">' + span.html() + '</span></li>';
+                preselectMentionId1 = mentionId;
+
+                // preselectOne = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
+                // '<span class="unselectable">' + span.text() + '</span></li>';
             }
-            if (parseInt(span.attr('data-token')) > parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && preselectTwo === null) {
-                preselectTwo = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
-                '<span class="unselectable">' + span.html() + '</span></li>';
+            if (parseInt(span.attr('data-token')) > parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && preselectMentionId2 === undefined) {
+                preselectMentionId2 = mentionId;
+
+                // preselectTwo = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
+                // '<span class="unselectable">' + span.text() + '</span></li>';
             }
-            objects.push('<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
-                '<span class="unselectable">' + span.html() + '</span></li>');
+
+            if(mentionIdToText[mentionId] == undefined){
+                mentionIdToText[mentionId] = '';
+            }
+            mentionIdToText[mentionId] += span.text();
+
+            // objects.push('<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
+            //     '<span class="unselectable">' + span.text() + '</span></li>');
         }
     });
+
+    // Add the mentions as options in the dropdowns.
+    if(preselectMentionId1 !== undefined){
+        preselectOne = '<li class="tie-object list-group-item" '+
+            'data-location-id="' + preselectMentionId1 + '">' + 
+            '<span class="unselectable">' + 
+            mentionIdToText[preselectMentionId1].trim() + '</span></li>';
+    }
+
+    if(preselectMentionId2 !== undefined){
+        preselectTwo = '<li class="tie-object list-group-item" '+
+            'data-location-id="' + preselectMentionId2 + '">' + 
+            '<span class="unselectable">' + 
+            mentionIdToText[preselectMentionId2].trim()  + '</span></li>';
+    }
+
+    for(var mentionId in mentionIdToText){
+        objects.push('<li class="tie-object list-group-item" '+
+            'data-location-id="' + mentionId + '">' + 
+            '<span class="unselectable">' + mentionIdToText[mentionId].trim() + 
+            '</span></li>');
+    }
 
     objects.push("<li class='list-group-item disabled' style='text-align: center;'><span style='text-align: center;'>--- Entities ---</span></li>");
 
@@ -2090,10 +2131,10 @@ $(document).ready(function(){
     $(document).on('click', '#graph-export-svg', exportAsSVG);
 
 
+    // Resize the content based on the size of the nav bar header.
     $('body').css('padding-top', $('.navbar-fixed-top').height()+'px');
     $(window).on('resize', function(){
         $('body').css('padding-top', $('.navbar-fixed-top').height()+'px');
-        console.log(`seeting body.paddingTop to ${$('.navbar-fixed-top').height()}px`); 
     });
 
 
