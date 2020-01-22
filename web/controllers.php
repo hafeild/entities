@@ -597,19 +597,17 @@ public static function postAnnotation($path, $matches, $params, $format){
             ];
         }
     
-        // $data = [
-        //     "id"=>$text["id"], 
-        //     "md5sum"=>$md5sum
-        // ];
-    
         if($format == "html"){
-            // Controllers::getTexts($path, [], [], "html", 
-            //     ["uploaded_text" => $data],
-            //     $errorMessages, $successMessages);
 
-            // TODO add id of new annotation so it can be highlighted.
-            Controllers::redirectTo("/texts/$textId/annotations",
+            // Go to the new annotation page if processing is underway.
+            if($result["success"] === true){
+                Controllers::redirectTo("/texts/$textId/annotations/$newAnnotationId");
+
+            // If there was an error uploading, report that.
+            } else {
+                Controllers::redirectTo("/texts/$textId/annotations",
                 join("<br/>", $errorMessages), join("<br/>", $successMessages));
+            }
         } else {
             if($result["success"] === true){
                 success($successMessages[0], $successMessages[1]);

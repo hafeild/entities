@@ -33,11 +33,35 @@
 
 </div> <!-- /.header -->
 
-    
+
 
 
 
 <div id="annotation-panels-wrapper">
+
+    <?php if($data["annotation"]["automated_method_error"]){ ?>
+
+        <div class="processing">
+        We encountered an error while processing this annotation :( <br/>
+        Try creating a new annotation.
+        <br/>
+        <span class="loader"></span> 
+    </div>
+
+    <?php } else if($data["annotation"]["automated_method_in_progress"]){ ?>
+
+    <div class="processing">
+        Your annotation is being processed. Please be patient as this may take 
+        some time.
+        <br/>
+        <span class="loader"></span> 
+    </div>
+    <script>
+        setTimeout(()=>{window.location.reload(true);}, 5000);
+    </script>
+
+    <?php } ?>
+
     <div id="annotation-panels">
         <div id="entity-panel-wrapper">
             <div id="entity-panel" class="entities-panel">
@@ -57,12 +81,15 @@
             <div id="text-panel" class="entities-panel">
                 <span id="end-marker"></span>
             </div>
+            <?php if(!$data["annotation"]["automated_method_in_progress"] && 
+                !$data["annotation"]["automated_method_error"]){ ?>
             <script>
                 var tokens = <?php readfile($data["text"]["content_file"]) ?>;
                 initializeTokenizedContent();
                 // For testing only!
                 // findTies(30);
             </script>
+            <?php } ?>
             <span id="fullscreen-toggle-button" onclick="toggleFullscreen()">
                 <span class="expand" data-toggle="tooltip" data-placement="left"
                     title="Maximize the text panel.">
