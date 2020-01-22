@@ -109,6 +109,7 @@ function addText($md5sum, $file, $title, $user_id){
             $dbh->rollBack();
             error("Could not create a directory for the new text.");
         } else {
+            chmod($textDirectory, 0770);
             // chmod($CONFIG->text_storage, 0770);
             // chmod($CONFIG->text_storage ."/$md5sum", 0770);
             if(!move_uploaded_file($file, $textContentFile)){
