@@ -641,12 +641,16 @@ var networkViz = (function(){
     self.removeTies = function(ties, adjustLayout){
         var updateRequired = false;
 
+        console.log('Removing ties...');
         ties.forEach((tie)=>{
             var linkId = tieToLinkId(tie.id, tie);
+            console.log('Considering tie ', tie, '(link id='+linkId+')');
             if(seenLinks[linkId] !== undefined){
+                console.log('Found the link; updating...', JSON.stringify(seenLinks[linkId]));
                 updateRequired = true;
 
                 if(seenLinks[linkId].count == 1){
+                    console.log('Removing link');
                     var i;
                     for(i = 0; i < networkData.links.length; i++){
                         if(networkData.links[i].linkId == linkId){
@@ -654,12 +658,15 @@ var networkViz = (function(){
                             break;
                         }
                     }
-                    delete seenLinks[linkId];
+                    delete seenLinks[linkId];  
                 } else {
-                    seenLinks[linkId].count++;
-                    seenLinks[linkId].weight += 
+                    seenLinks[linkId].count--;
+                    seenLinks[linkId].weight -= 
                         tie.weight === undefined ? 1 : tie.weight;
+                        console.log('Decrementing link count/weight', JSON.stringify(seenLinks[linkId]));
                 }
+                delete tieToLinkIdLookup[tie.id]; 
+
             }
         });
 
