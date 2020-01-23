@@ -14,7 +14,7 @@
     // Some database drivers are different for php and Java; use dsn_java for 
     // the java-specific one. EntiTiesDatabase will fallback to dsn if dsn_java
     // isn't present.
-    "dsn_java": "postgresql://localhost:1111/adatabase",
+    "java_dsn": "postgresql://localhost:1111/adatabase",
     "authentication": true,
     "username": "ausername",
     "password": "apassword",
