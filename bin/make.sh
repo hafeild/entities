@@ -4,11 +4,11 @@ mkdir -p bin lib
 
 cd lib
 if [ ! -f "sqlite-jdbc-3.23.1.jar" ]; then 
-    curl http://central.maven.org/maven2/org/xerial/sqlite-jdbc/3.23.1/sqlite-jdbc-3.23.1.jar -O
+    curl https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.23.1/sqlite-jdbc-3.23.1.jar -O
 fi 
 
 if [ ! -f "mysql-connector-java-8.0.12.jar" ]; then
-    curl http://central.maven.org/maven2/mysql/mysql-connector-java/8.0.12/mysql-connector-java-8.0.12.jar -O
+    curl https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.12/mysql-connector-java-8.0.12.jar -O
 fi
 
 if [ ! -f "jaxb-api-2.3.1.jar" ]; then 
@@ -32,7 +32,7 @@ if [ ! -f "activation-1.1.1.jar" ]  ; then
 fi 
 
 if [ ! -f "postgresql-42.2.8.jar" ]; then
-    curl https://search.maven.org/remotecontent?filepath=org/postgresql/postgresql/42.2.8/postgresql-42.2.8.jar -O
+    curl https://repo1.maven.org/maven2/org/postgresql/postgresql/42.2.8/postgresql-42.2.8.jar -O
 fi
 
 cd ..
