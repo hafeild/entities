@@ -97,7 +97,7 @@ function addText($md5sum, $file, $title, $user_id){
         // out, mark it as needing to be processed.
         $needsProcessing = !file_exists($tokenizedFile) && 
             (!file_exists($inProcessingLock) || 
-             time() - filetime($inProcessingLock) > 10);
+             time() - filectime($inProcessingLock) > 10);
         return [getTextMetadata($id), $needsProcessing];
 
 
