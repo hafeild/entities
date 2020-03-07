@@ -356,13 +356,23 @@ public class TokenProcessor extends Processor {
     throws IOException {
 
         PrintWriter out = new PrintWriter(outputFile);
+        boolean first = true;
         out.print("[");
         for(Token token : tokens){
+            if(!first){
+                out.print(",");
+            } else {
+                first = false;
+            }
             out.print("[\""+
-                token.original.replaceAll("\"", "\\\\\"") +"\",\""+
+                token.original
+                    // .replaceAll("\\[", "\\\\[")
+                    // .replaceAll("\\]", "\\\\]")
+                    .replaceAll("\\\\", "\\\\\\\\")
+                    .replaceAll("\"", "\\\\\"") +"\",\""+
                 token.whitespaceAfter.replaceAll("N", "\\\\n")
                                      .replaceAll("S", " ")
-                                     .replaceAll("T", "\\\\t") +"\"],");
+                                     .replaceAll("T", "\\\\t") +"\"]");
         }
         out.print("]");
         out.close();

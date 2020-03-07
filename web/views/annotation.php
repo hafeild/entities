@@ -83,8 +83,12 @@
             </div>
             <?php if(!$data["annotation"]["automated_method_in_progress"] && 
                 !$data["annotation"]["automated_method_error"]){ ?>
+                
+            <div id="text-contents" class="hidden">
+                <?php readfile($data["text"]["content_file"]); ?>
+            </div>
             <script>
-                var tokens = <?php readfile($data["text"]["content_file"]) ?>;
+                var tokens = JSON.parse($('#text-contents').html());
                 initializeTokenizedContent();
                 // For testing only!
                 // findTies(30);
