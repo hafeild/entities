@@ -259,8 +259,10 @@ var initializeTokenizedContent = function(){
     var locationKey, i;
 
     while(tokenIndex < tokens.length){
+        // Check if we're at the last token OR if we've hit a natural break
+        // (a new line).
         if(tokenIndex === tokens.length-1 || 
-            tokens[tokenIndex][1].indexOf("\n") != -1) {
+            tokens[tokenIndex][1].indexOf("\n") >= 0) {
 
             contentPages.push([pageStart, tokenIndex, false]);
             // Initialize the list of locations for this page.
@@ -269,6 +271,7 @@ var initializeTokenizedContent = function(){
             pageStart = tokenIndex+1;
             tokenIndex = pageStart + PAGE_SIZE - TOKEN_MARGIN;
 
+        // Check if we've hit a page boundary.
         } else if(tokenIndex === (pageStart + PAGE_SIZE + TOKEN_MARGIN)){
             contentPages.push([pageStart, pageStart+PAGE_SIZE, false]);
             // Initialize the list of locations for this page.
@@ -280,6 +283,13 @@ var initializeTokenizedContent = function(){
         } else {
             tokenIndex++;
         }
+    }
+
+    // Add the final bit of text to the set of content pages.
+    if(pageStart < tokens.length){
+        contentPages.push([pageStart, tokens.length-1, false]);
+        // Initialize the list of locations for this page.
+        locationsByPages.push([]);
     }
 
     // Find the locations specific to each page.
