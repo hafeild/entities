@@ -21,15 +21,7 @@
     >
 
 
-    <?php // For study annotations only. ?>
-    <?php if($data["is_study"]) { ?>
-        <form class="completed-step-form" method="post" 
-            action="/studies/<?= $data["step_data"]["study_id"] ?>/steps/<?= $data["step_data"]["step_id"] ?>/complete" onsubmit="return confirm('Are you sure you are completed annotating this text? Changes cannot be made once you\'ve selected \'OK\'.');">
-            <button class="btn btn-danger btn-md 
-                finished-annotating-button">
-                Finished annotating</button>
-        </form>
-    <?php } ?>
+    
 
 </div> <!-- /.header -->
 
@@ -83,7 +75,7 @@
             </div>
             <?php if(!$data["annotation"]["automated_method_in_progress"] && 
                 !$data["annotation"]["automated_method_error"]){ ?>
-                
+
             <div id="text-contents" class="hidden">
                 <?php readfile($data["text"]["content_file"]); ?>
             </div>

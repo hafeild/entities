@@ -15,8 +15,8 @@
 
     <?php } else {  ?>
 
-            <p>Please complete each of the following tasks in the order listed and 
-                refrain from multi-tasking while working on each task.</p>
+            <p>Please complete each of the following tasks in the order listed. 
+                Refrain from multi-tasking while working on each task.</p>
 
     <?php }  ?>
 
@@ -29,7 +29,8 @@
             <li data-step-id="<?= $step["id"] ?>">
                 <?php 
                 if(!$step["completed_at"] && !$somethingMarkedReady){
-                    $target =$step["url"] ? "target=\"_url\"" : "";
+                    //$target =$step["url"] ? "target=\"_url\"" : "";
+                    $target = "";
                     // $url = $step["url"];
                     // if(!$step["url"]){
                         $url = "/studies/". $data["study"]["id"] .
@@ -42,8 +43,10 @@
                     </a>
                     <?php if($step["url"]){ ?>
                         <form class="completed-step-form" method="post" action="/studies/<?= $data["study"]["id"] ?>/steps/<?= $step["id"] ?>/complete">
+                            <?php if($step["started_at"] != null){ ?>
                             <button class="btn btn-xs btn-danger 
                                 completed-step">Done</button>
+                            <?php } ?>
                         </form>
                     <?php } ?>
                 <?php 

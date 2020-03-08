@@ -64,3 +64,18 @@
 </span>
 </li>
 <!-- </p> -->
+
+
+<?php // For study annotations only. ?>
+    <?php if($data["is_study"]) { ?>
+    
+
+        <li>
+        <form class="completed-step-form" method="post" 
+            action="/studies/<?= $data["step_data"]["study_id"] ?>/steps/<?= $data["step_data"]["step_id"] ?>/complete" onsubmit="return confirm('Are you sure you are completed annotating this text? Changes cannot be made once you\'ve selected \'OK\'.');">
+            <button class="btn btn-danger btn-sm navbar-btn 
+                header-button finished-annotating-button">
+                Finished annotating</button>
+        </form>
+        </li>
+    <?php } ?>

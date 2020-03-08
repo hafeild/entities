@@ -62,8 +62,7 @@
 //                             extracting it from the URL; e.g., in 
 //                             https://myentities.com/texts/7/annotations/4, 4 
 //                             is the annotation id.
-//          - groups -- An map of group labels -> group info. Make empty objects 
-//                      ({}) if these are new groups.
+//          - groups -- An map of group labels -> group info.
 //              * "group label" -- The group label.
 //                  - db_id -- Optional. The id of the group in the study_groups 
 //                             table. This will be populated automatically if

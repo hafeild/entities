@@ -1541,7 +1541,7 @@ public static function getStudy($path, $matches, $params, $format){
         return $results;
     } else {
         Controllers::render("${study["name"]}&mdash;EntiTies",
-            "views/study.php", $results, null, null);
+            "views/study.php", $results, [], []);
     }
 }
 

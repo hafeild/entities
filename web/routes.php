@@ -168,7 +168,7 @@ $routes = [
         "#^studies/(\d+)/?(\?.*)?$#", 
         'Controllers::getStudy'),
 
-    // Gets an study step.
+    // Gets a study step.
     Controllers::generateRoute(
         "GET", 
         "#^studies/(\d+)/steps/(\d+)/?$#", 

@@ -684,4 +684,3 @@ function addStudyTables($dbh, $direction="up"){
         $dbh->exec("drop table studies");
     }
 }
-
