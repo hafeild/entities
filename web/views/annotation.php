@@ -80,7 +80,7 @@
                 <?php readfile($data["text"]["content_file"]); ?>
             </div>
             <script>
-                var tokens = JSON.parse($('#text-contents').html());
+                var tokens = JSON.parse($('#text-contents').html().replace(/,\s*\]\s*$/, ']'));
                 initializeTokenizedContent();
                 // For testing only!
                 // findTies(30);
