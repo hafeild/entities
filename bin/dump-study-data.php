@@ -111,26 +111,33 @@ class StudyInitializer {
      * @param record The record to process.
      */
     function processStudyRecord($record){
-        if($record["study_data"] == null){
-            $record["event_timestamp"] = null;
-            $record["event_name"] = null;
-            $record["event_data"] = null;
-            unset($record["study_data"]);
-            echo json_encode($record, JSON_FORCE_OBJECT) ."\n";
-            return;
-        }
-        $recordBase = $record;
-        $data = json_decode($record["study_data"],  true);
-        unset($recordBase["study_data"]);
-        foreach($data as $event){
-            $newRecord = $recordBase;
-            $newRecord["event_timestamp"] = $event["timestamp"];
-            $newRecord["event_name"] = $event["name"];
-            unset($event["timestamp"]);
-            unset($event["name"]);
-            $newRecord["event_data"] = $event;
 
-            echo json_encode($newRecord, JSON_FORCE_OBJECT) ."\n";
+        try{
+            if($record["study_data"] == null){
+                $record["event_timestamp"] = null;
+                $record["event_name"] = null;
+                $record["event_data"] = null;
+                unset($record["study_data"]);
+                echo json_encode($record, JSON_FORCE_OBJECT) ."\n";
+                return;
+            }
+            $recordBase = $record;
+            $data = json_decode($record["study_data"],  true);
+            unset($recordBase["study_data"]);
+            foreach($data as $event){
+                $newRecord = $recordBase;
+                $newRecord["event_timestamp"] = $event["timestamp"];
+                $newRecord["event_name"] = $event["name"];
+                unset($event["timestamp"]);
+                unset($event["name"]);
+                $newRecord["event_data"] = $event;
+    
+                echo json_encode($newRecord, JSON_FORCE_OBJECT) ."\n";
+            }
+        } catch(Exception $e){
+            fwrite(STDERR, "Error processing record: ".
+                $e->getMessage() ."\n".
+                json_encode($record) ."\n" );
         }
     }
 
