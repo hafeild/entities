@@ -95,32 +95,46 @@ class StudyInitializer {
      * @param studyId The id of the study.
      */
     function emitStudyDataEvents($studyId){
-        $studyRecords = getStudyData($studyId);
+        applyToStudyData($studyId, function($record){ 
+            $this->processStudyRecord($record);
+        });
+    }
 
-        foreach($studyRecords as $record){
-            if($record["study_data"] == null){
-                $record["event_timestamp"] = null;
-                $record["event_name"] = null;
-                $record["event_data"] = null;
-                unset($record["study_data"]);
-                echo json_encode($record, JSON_FORCE_OBJECT) ."\n";
-                continue;
-            }
-            $recordBase = $record;
-            $data = json_decode($record["study_data"],  true);
-            unset($recordBase["study_data"]);
-            foreach($data as $event){
-                $newRecord = $recordBase;
-                $newRecord["event_timestamp"] = $event["timestamp"];
-                $newRecord["event_name"] = $event["name"];
-                unset($event["timestamp"]);
-                unset($event["name"]);
-                $newRecord["event_data"] = $event;
+    /**
+     * Processes a single study data record. If the record has a non-null
+     * `study_data` field, then each event in `study_data` JSON array is 
+     * expanded and a separate record is emitted for each event with the new 
+     * fields: `event_timestamp`, `event_name`, and `event_data`. Otherwise, the
+     * record is emitted  with null values for each of those three fields. The
+     * `study_data` field is removed from all records before being emitted.
+     * 
+     * @param record The record to process.
+     */
+    function processStudyRecord($record){
+        if($record["study_data"] == null){
+            $record["event_timestamp"] = null;
+            $record["event_name"] = null;
+            $record["event_data"] = null;
+            unset($record["study_data"]);
+            echo json_encode($record, JSON_FORCE_OBJECT) ."\n";
+            return;
+        }
+        $recordBase = $record;
+        $data = json_decode($record["study_data"],  true);
+        unset($recordBase["study_data"]);
+        foreach($data as $event){
+            $newRecord = $recordBase;
+            $newRecord["event_timestamp"] = $event["timestamp"];
+            $newRecord["event_name"] = $event["name"];
+            unset($event["timestamp"]);
+            unset($event["name"]);
+            $newRecord["event_data"] = $event;
 
-                echo json_encode($newRecord, JSON_FORCE_OBJECT) ."\n";
-            }
+            echo json_encode($newRecord, JSON_FORCE_OBJECT) ."\n";
         }
     }
+
+
 
     /**
      * Prints the given message to stderr.

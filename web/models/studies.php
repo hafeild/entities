@@ -150,12 +150,9 @@ function getStudy($studyId){
 }
 
 /**
- * Gets all of the data associated with a given study from the database.
- * 
- * @param studyId The id of the study.
- * @return An array of records, one per record in the  outer join of  
- *         `study_data` and `study_participant_steps`. Each record has
- *         the following fields:
+ * Runs the given function on all of the data associated with a given study from
+ * the database. Each record is passed to the function as an associative array
+ * and contains the following keys:
  * 
  *           - study_id (studies.id)
  *           - study_begin_at (studies.begin_at)
@@ -178,8 +175,12 @@ function getStudy($studyId){
  *           - annotation_label (could be null) (annotations.label)
  *           - study_data_uploaded_at (study_data.created_at)
  *           - study_data (could be null) (annotations.data)
+ * 
+ * @param studyId The id of the study.
+ * @param function The function to apply to each record retrieved from the 
+ *                 database.
  */
-function getStudyData($studyId){
+function applyToStudyData($studyId, $function){
     $dbh = connectToDB();
 
     try {
@@ -222,8 +223,10 @@ order by study_participants.id, study_step_orderings.ordering,
         $success = $statement->execute([
             ":study_id" => $studyId
         ]);
+        while($record = $statement->fetch(PDO::FETCH_ASSOC,PDO::FETCH_ORI_NEXT)){
+            $function($record);
+        }
            
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
         error("There was an error reading the study data from the database",
             [$e->getMessage()]);
