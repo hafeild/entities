@@ -96,6 +96,32 @@ function getStudies($userId=null){
 }
 
 /**
+ * Retrieves basic info about all the studies in the database. 
+ * 
+ * @return A list of studies the user is associated with:
+ *           - id
+ *           - name
+ *           - begin_at
+ *           - end_at
+ *           - created_at
+ */
+function getAllStudies(){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare(
+            "select * from studies");
+        $success = $statement->execute();
+           
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    } catch(PDOException $e){
+        error("There was an error reading study info from the database",
+            [$e->getMessage()]);
+    }
+}
+
+
+/**
  * Retrieves info about a study. 
  * 
  * @param studyId The id of the study.
@@ -119,6 +145,87 @@ function getStudy($studyId){
         return $statement->fetch(PDO::FETCH_ASSOC);
     } catch(PDOException $e){
         error("There was an error reading study info from the database",
+            [$e->getMessage()]);
+    }
+}
+
+/**
+ * Gets all of the data associated with a given study from the database.
+ * 
+ * @param studyId The id of the study.
+ * @return An array of records, one per record in the  outer join of  
+ *         `study_data` and `study_participant_steps`. Each record has
+ *         the following fields:
+ * 
+ *           - study_id (studies.id)
+ *           - study_begin_at (studies.begin_at)
+ *           - study_end_at (studies.end_at)
+ *           - study_name (studies.name)
+ *           - study_data_id (study_data.id)
+ *           - step_id (study_data.step_id)
+ *           - step_label (study_steps.step_label)
+ *           - base_annotation_id (could be null) (study_steps.base_annotation_id)
+ *           - step_url (could be null) (study_steps.step_url)
+ *           - participant_id (study_data.study_participant_id)
+ *           - participant_group_id (study_participants.group_id)
+ *           - participant_group_label (study_groups.label)
+ *           - step_started_at (study_participant_steps.started_at)
+ *           - step_completed_at (study_participant_steps.completed_at)
+ *           - text_id (could be null) (annotations.text_id)
+ *           - text_title (could be null) (texts.title)
+ *           - annotation_id (could be null) 
+ *                           (study_participant_steps.annotation_id)
+ *           - annotation_label (could be null) (annotations.label)
+ *           - study_data_uploaded_at (study_data.created_at)
+ *           - study_data (could be null) (annotations.data)
+ */
+function getStudyData($studyId){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare("
+select studies.id as study_id, studies.begin_at as study_begin_at, 
+    studies.end_at as study_end_at, 
+    studies.name as study_name,
+	study_steps.id as step_id, 
+    study_steps.label as step_label, 
+    study_step_orderings.ordering as step_ordering, 
+    study_steps.base_annotation_id as base_annotation_id,
+	study_steps.url as step_url, 
+    study_participants.id as participant_id, 
+    study_participants.group_id as participant_group_id, 
+	study_groups.label as participant_group_label, 
+    study_participant_steps.started_at as step_started_at,
+	study_participant_steps.completed_at as step_completed_at, 
+    texts.id as text_id, texts.title as text_title, 
+    annotations.id as annotation_id, 
+	annotations.label as annotation_label, 
+    study_data.id as study_data_id, 
+    study_data.created_at as study_data_uploaded_at, 
+    study_data.data as study_data
+from studies join study_steps on studies.id = study_steps.study_id
+	join study_participant_steps 
+        on study_steps.id = study_participant_steps.step_id
+	join study_participants
+        on study_participant_steps.study_participant_id = study_participants.id
+	join study_groups on studies.id = study_groups.study_id and 
+        study_groups.id = study_participants.group_id
+	join study_step_orderings on study_groups.id = study_step_orderings.group_id
+        and study_steps.id = study_step_orderings.step_id
+	left join annotations on annotations.id = study_steps.base_annotation_id
+	left join texts on annotations.text_id = texts.id
+	left join study_data on study_data.step_id = study_steps.id and 
+        study_data.study_participant_id = study_participants.id
+where studies.id = :study_id
+order by study_participants.id, study_step_orderings.ordering, 
+    study_data.created_at");
+        $success = $statement->execute([
+            ":study_id" => $studyId
+        ]);
+           
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    } catch(PDOException $e){
+        error("There was an error reading the study data from the database",
             [$e->getMessage()]);
     }
 }
