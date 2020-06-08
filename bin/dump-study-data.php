@@ -18,6 +18,8 @@
 //               - base_annotation_id (could be null) (study_steps.step_label)
 //               - step_url (could be null) (study_steps.step_url)
 //               - participant_id (study_data.study_participant_id)
+//               - participant_user_id (users.id)
+//               - participant_user_name (users.user_name)
 //               - participant_group_id (study_participants.group_id)
 //               - participant_group_label (study_groups.label)
 //               - step_started_at (study_participant_steps.started_at)

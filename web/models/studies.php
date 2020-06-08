@@ -164,6 +164,8 @@ function getStudy($studyId){
  *           - base_annotation_id (could be null) (study_steps.base_annotation_id)
  *           - step_url (could be null) (study_steps.step_url)
  *           - participant_id (study_data.study_participant_id)
+ *           - participant_user_id (users.id)
+ *           - participant_username (users.username)
  *           - participant_group_id (study_participants.group_id)
  *           - participant_group_label (study_groups.label)
  *           - step_started_at (study_participant_steps.started_at)
@@ -194,6 +196,8 @@ select studies.id as study_id, studies.begin_at as study_begin_at,
     study_steps.base_annotation_id as base_annotation_id,
 	study_steps.url as step_url, 
     study_participants.id as participant_id, 
+    users.id as participant_user_id,
+    users.username as participant_username,
     study_participants.group_id as participant_group_id, 
 	study_groups.label as participant_group_label, 
     study_participant_steps.started_at as step_started_at,
@@ -217,6 +221,7 @@ from studies join study_steps on studies.id = study_steps.study_id
 	left join texts on annotations.text_id = texts.id
 	left join study_data on study_data.step_id = study_steps.id and 
         study_data.study_participant_id = study_participants.id
+    left join users on study_participants.user_id = users.id
 where studies.id = :study_id
 order by study_participants.id, study_step_orderings.ordering, 
     study_data.created_at");
