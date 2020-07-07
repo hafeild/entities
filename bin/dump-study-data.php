@@ -15,6 +15,7 @@
 //               - study_data_id (study_data.id)
 //               - step_id (study_data.step_id)
 //               - step_label (study_steps.step_label)
+//               - step_ordering (study_step_orderings.ordering)
 //               - base_annotation_id (could be null) (study_steps.step_label)
 //               - step_url (could be null) (study_steps.step_url)
 //               - participant_id (study_data.study_participant_id)

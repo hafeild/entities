@@ -227,6 +227,7 @@ const PAGE_SIZE = 1000;
 const TOKEN_MARGIN = 200; // Where to start looking for a newline.
 const APPEND_NEXT_PAGE_INTERVAL = 100;
 // const APPEND_NEXT_PAGE_INTERVAL = -1;
+const SCROLL_DELAY = 150; // Amount of time to wait for scroll to stop before highlighting.
 var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
 var currentPage = 0;
 var locationsByPages = [];
@@ -239,15 +240,15 @@ var locationsByPages = [];
  * few pages with annotations highlighted.
  *
  * Token ranges for pages are held in the global `contentPages`, which consists
- * of an array of 3-tuples [startIndex, endIndex, isDisplayed]. The index is the
- * page number, starting at 0.
+ * of an array of 3-tuples [tokenStartIndex, tokenEndIndex, isDisplayed]. 
+ * The index within `contentPages` is the page number, starting at 0.
  *
  * This function also initializes the global `locationsByPages` array, each
  * element of which is the subset of keys in the
  * `annotation_data.annotation.locations` object. The index corresponds to the
  * content page index and aligns with `contentPages`. A location is considered a
  * part of a page if either its start or end location falls within the bounds of
- * the page: [startIndex, endIndex].
+ * the page: [tokenStartIndex, tokenEndIndex].
  *
  * Places listeners for when the content is scrolled and new content is needed.
  */
@@ -316,8 +317,28 @@ var initializeTokenizedContent = function(){
     //     });
     // });
 
+    // Creates text-only pages which are all displayed.
+    for(i = 0; i < contentPages.length; i++){
+        var pageHTML = `<span data-page="${i}" class="content-page">`;
+        for(var j = contentPages[i][START]; j <= contentPages[i][END]; j++){
+            pageHTML += tokens[j][TOKEN_CONTENT].replace('&', '&amp;').
+                replace('<', '&lt;').
+                replace('>', '&gt;');
+            
+            if (tokens[j][WHITESPACE_AFTER] === '\n') {
+                pageHTML += ' ';
+            } else {
+                pageHTML += tokens[j][WHITESPACE_AFTER];
+            }
+        }
+        pageHTML += '</span>';
+        $('#end-marker').before(pageHTML);
+    }
+
+
     // Display the first page.
-    appendContentPage(0, APPEND_NEXT_PAGE_INTERVAL);
+    //appendContentPage(0, APPEND_NEXT_PAGE_INTERVAL);
+    setTimeout(function(){ annotatePagesOnDisplay(1, 50); }, SCROLL_DELAY);
 };
 
 /**
@@ -366,6 +387,282 @@ var findPageWithLocation = function(location) {
 
     return [-1,-1];
 };
+
+// TODO binary search through pages and their scroll tops to find out which
+// is in view.
+
+/**
+ * Listens for scrolls in the #text-panel. When a page is viewed, it and the 
+ * `pagesMargin` pages just before and after will be annotated. All other pages
+ * will be unannotated.
+ * 
+ * @param {number} pagesMargin The number of pages before and after to 
+ *                              annotate. This should be at least 1.
+ * @param {number} delay The number of milliseconds to wait after a scroll
+ *                        event (with no other scroll events occurring) to 
+ *                        annotate.
+ */
+var annotatePagesOnDisplay = function(pagesMargin, delay){
+    var timeoutId = 0;
+    var annotating = false;
+
+    var annotate = function(){
+        //console.log('[annotate] Entering');
+        if(annotating === true){ 
+            //console.log('[annotate] Leaving (annotating==true)');
+            return; 
+        }
+
+        annotating = true;
+
+        var previouslyAnnotatedPages = 
+            $('#text-panel .content-page[data-is_displayed=1]');
+
+        // Find what pages are visible + margin.
+        var pagesToAnnotate = findPagesInView();
+        if(pagesToAnnotate.length == 0){
+            annotating = false;
+            //console.log('No pages to annotate!');
+            return;
+        }
+
+        var firstVisiblePageIndex = parseInt(pagesToAnnotate[0].data('page'));
+        var lastVisiblePageIndex = parseInt(
+            pagesToAnnotate[pagesToAnnotate.length-1].data('page'));
+        var firstAnnotatedPageIndex = Math.max(0, 
+            firstVisiblePageIndex-pagesMargin);
+        var lastAnnotatedPageIndex = Math.min(contentPages.length-1, 
+            lastVisiblePageIndex+pagesMargin);
+        var i;
+
+        // Annotate the visible pages (we want this to happen ASAP).
+        for(i = firstVisiblePageIndex; i <= lastVisiblePageIndex; i++){
+            annotateContentPage(i);
+        }
+
+        // Add "previous page" margin and annotate them.
+        for(i = firstVisiblePageIndex-1; i >= firstAnnotatedPageIndex; i--){
+            annotateContentPage(i);
+        }
+
+        // Add "next page" margin.
+        for(i = lastVisiblePageIndex+1; i <= lastAnnotatedPageIndex; i++){
+            annotateContentPage(i);
+        }
+ 
+        // Find what pages are currently marked up
+            // - unannotate them if they are not part of the set to annotate.
+        previouslyAnnotatedPages.each(function(i, elm){
+            var $elm = $(elm);
+            var pageIndex = parseInt($elm.data('page'));
+            // console.log(`[annotate] checking if page ${pageIndex} should be unannotated.`, elm);
+            if(pageIndex < firstAnnotatedPageIndex || 
+                pageIndex > lastAnnotatedPageIndex){
+
+                // console.log('[annotate] yes');
+                unannotateContentPage($elm);
+            } else {
+                // console.log('[annotate] no');
+
+            }
+        });
+
+        annotating = false;
+        //console.log('[annotate] Leaving');
+
+    };
+
+    var onScroll = function(event){
+        //console.log('[onScroll] Entering');
+
+        if(timeoutId){
+            //console.log(`[onScroll] clearing timeout ${timeoutId}`);
+            clearTimeout(timeoutId);
+        }
+
+        // if(annotating === true){
+        //     console.log('[onScroll] annotating == true; setting timeout for onScroll');
+        //     timeoutId = setTimeout(function(){onScroll(event);}, 200);
+        // } else {
+            // console.log('[onScroll] annotating == false; setting timeout for annotate');
+            timeoutId = setTimeout(annotate, delay);
+        // }
+
+        //console.log('[onScroll] Leaving');
+
+    };
+
+    $('#text-panel').on('scroll', onScroll);
+    onScroll();
+};
+
+/**
+ * Finds the pages that are in view at the given scroll offset in the 
+ * #text-panel element.
+ * 
+ * @param {integer} scrollTop The #text-panel scroll position to consider. If 
+ *                            undefined, the current position is used.
+ *                           
+ * @return A list of .content-page jQuery elements.
+ */
+var findPagesInView = function(scrollTop){
+    // console.log('[findPagesInView] Entering');
+
+    var $textPanel = $('#text-panel');
+    var viewportTop = (
+        scrollTop === undefined ? $textPanel.scrollTop() : scrollTop) + 
+        // This accounts for the padding present before pages are displayed.
+        $textPanel.find('.content-page[data-page="0"]').position().top;
+    var viewportBottom = $textPanel.height();
+
+    var pagesInView = [];
+    var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
+    var page, prevPage, nextPage;
+
+    var getPageTopBottom = function(pageNum){
+        var $page = $textPanel.find(`.content-page[data-page="${pageNum}"]`);
+        var pageTop, pageBottom;
+        if($page.length > 0){
+            pageTop = $page.position().top;
+            pageBottom = pageTop + $page.height();
+        }
+        return {$elm: $page, top: pageTop, bottom: pageBottom, index: pageNum};
+    }
+
+    while(max >= min){
+
+        page = getPageTopBottom(mid);
+
+        // console.log(`[findPagesInView] viewportTop: ${viewportTop}; `+
+        //    `viewportBottom: ${viewportBottom}; pageNum: ${page.index}; `+
+        //    `pageTop: ${page.top}; pageBottom: ${page.bottom}`);
+
+        // Found a visible page. Now find all the surrounding pages that are
+        // displayed and add them to `pagesInView`.
+        if(page.top <= viewportBottom && page.bottom >= viewportTop){
+
+            //console.log(`[findPagesInView] Found page in view: ${page.index}`);
+
+            pagesInView.push(page.$elm);
+
+            // Find previous pages that are visible.
+            prevPage = getPageTopBottom(mid-1);
+            while(prevPage.index >= 0 && 
+                    prevPage.bottom >= viewportTop){
+                //console.log(`[findPagesInView] Adding prev page ${prevPage.index} `+
+                //    `because ${prevPage.bottom} >= ${viewportTop}`);
+                
+                pagesInView.push(prevPage.$elm);
+                prevPage = getPageTopBottom(prevPage.index-1);
+            }
+
+            // Find following pages that are visible.
+            nextPage = getPageTopBottom(mid+1);
+            while(nextPage.index < contentPages.length && 
+                    nextPage.top <= viewportBottom){
+
+                
+                //console.log(`[findPagesInView] Adding next page ${nextPage.index} `+
+                //    `because ${nextPage.bottom} <= ${viewportBottom}`);
+                pagesInView.push(nextPage.$elm);
+                nextPage = getPageTopBottom(nextPage.index+1);            
+            }
+
+            //console.log('[findPagesInView] Leaving', pagesInView);
+            return pagesInView;
+
+        // Search later pages.
+        } else if(page.bottom < viewportTop) {
+            min = mid+1;
+            mid = Math.floor((min+max)/2);
+
+        // Search earlier pages.
+        } else {
+            max = mid-1;
+            mid = Math.floor((min+max)/2);
+        }
+    }
+
+    //console.log('[findPagesInView] Leaving', pagesInView);
+    return pagesInView;
+};
+
+
+/**
+ * Generates the HTML for the given page of tokens and replaces the text-only
+ * page in the #text-panel element with it.
+ * 
+ * @param {integer | jQuery element} pageElmOrIndex The index of the page to 
+ *                                                  annotate in the #text-panel.
+ */
+var annotateContentPage = function(pageElmOrIndex) {
+    //console.log('[annotateContentPage] Entering', pageElmOrIndex);
+
+    var $newPageElm = pageElmOrIndex;
+    var pageIndex = pageElmOrIndex;
+
+    if(typeof pageElmOrIndex === "number"){
+        $newPageElm = $(`#text-panel .content-page[data-page="${pageElmOrIndex}"]`); 
+    } else {
+        pageIndex = parseInt($newPageElm.data('page'));
+    }
+
+    if($newPageElm.attr('data-is_displayed') === '1') return;
+
+
+    // Replace the text-only content with span-wrapped HTML.
+    $newPageElm.html(tokensToHTML(contentPages[pageIndex][START], 
+        contentPages[pageIndex][END]));
+
+    contentPages[pageIndex][IS_DISPLAYED] = true;
+    currentPage = pageIndex;
+
+    // Highlight locations for this page.
+    //console.log(`[annotateContentPage] Highlighting entities`);
+    highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
+    //console.log(`[annotateContentPage] Highlighting ties`);
+    highlightTiesInContent(contentPages[pageIndex][START], 
+        contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
+
+    $newPageElm.attr('data-is_displayed', '1');
+
+    //console.log(`[annotateContentPage] Leaving`);
+}
+
+/**
+ * Removes all annotations and HTML markup from a content page in the 
+ * #text-panel.
+ * 
+ * @param {integer | jQuery element} pageElmOrIndex The index of the page in the 
+ *                                                  #text-panel to remove HTML 
+ *                                                  from.
+ */
+var unannotateContentPage = function(pageElmOrIndex){
+    // console.log('[unannotateContentPage] Entering');
+
+
+    var $newPageElm = pageElmOrIndex;
+    var pageIndex = pageElmOrIndex;
+
+    if(typeof pageElmOrIndex === "number"){
+        $newPageElm = $(`#text-panel .content-page[data-page="${pageElmOrIndex}"]`); 
+    } else {
+        pageIndex = parseInt($newPageElm.data('page'));
+    }
+
+    if($newPageElm.attr('data-is_displayed') !== '1'){
+        // console.log(`[unannotateContentPage] Leaving (is_displayed = ${$newPageElm.attr('data-is_displayed')})`);
+        return;
+    }
+
+
+    $newPageElm.html($newPageElm.text());
+
+    $newPageElm.attr('data-is_displayed', '0');
+    contentPages[pageIndex][IS_DISPLAYED] = false;
+
+    // console.log('[unannotateContentPage] Leaving');
+}
 
 
 /**
@@ -456,7 +753,7 @@ var findPageWithLocation = function(location) {
 /**
  * Tests if the given element is visible in the #text-panel element.
  * 
- * @param {Event} event The DOM scroll event that triggered this listerner.
+ * @param {Event} event The DOM scroll event that triggered this listener.
  * @param {jQuery Element} $element The element to test.
  * @param {function(jQuery element)} The function to invoke when a visible
  *                                   element is found. Should take a jQuery
@@ -546,8 +843,8 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
  * @param {jQuery Element} $element The element to highlight entities in.
  */
  var highlightEntitiesInContent = function(locationKeys, $element){
-    console.log(`[highlightEntitiesInContent] entering (locationKeys, element):`,
-        locationKeys, $element);
+    // console.log(`[highlightEntitiesInContent] entering (locationKeys, element):`,
+        // locationKeys, $element);
 
     var i, j, location, $token, tokenId, prevTokenId;
     for(i = 0; i < locationKeys.length; i++){
@@ -588,7 +885,7 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
         });
    }
 
-    console.log(`[highlightEntitiesInContent] leaving`);
+    // console.log(`[highlightEntitiesInContent] leaving`);
  }
 
 /**
@@ -729,8 +1026,10 @@ var checkSelectedText = function(event) {
 
     var contextMenuOptions = [];
 
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i><span id=\"addEntity\">Add Entity</span></i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i><span id=\"addMention\">Add Mention</span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i><span id=\"addEntity\">Add entity</span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityUnderlineMentionsOption'><i><span id=\"addEntity\">Add entity + underline mentions for review </span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityAnnotateMentionsOption'><i><span id=\"addEntity\">Add entity + annotate mentions</span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i><span id=\"addMention\">Add mention</span></i></a></li>");
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i><span id=\"addTie\">Add Tie</span></i></a></li>");
 
     menuConfigData.textSpans = textSpans;
@@ -1282,7 +1581,25 @@ var addEntityFromSelection = function() {
     var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null);
 
     resetMenuConfigData();
-}
+
+    return {name: name, id: entityId};
+};
+
+/**
+ * Adds the selected tokens as an entity and makrs every sequence of tokens that
+ * matches the selected tokens for review. 
+ */
+var addEntityFromSelectionAndUnderlineMentions = function(){
+    entityData = addEntityFromSelection();
+
+    // 
+
+};
+
+var addEntityFromSelectionAndAnnotateMentions = function(){
+    entityData = addEntityFromSelection();
+
+};
 
 var openAddTieModal = function(e) {
 
@@ -2099,6 +2416,8 @@ $(document).ready(function(){
     $(document).on('click', '.reassignMentionOption', openReassignMentionModal);
     $(document).on('click', '#confirmReassignMention', confirmReassignMention);
     $(document).on('click', '.addEntityOption', addEntityFromSelection);
+    $(document).on('click', '.addEntityUnderlineMentionsOption', addEntityFromSelectionAndUnderlineMentions);
+    $(document).on('click', '.addEntityAnnotateMentionsOption', addEntityFromSelectionAndAnnotateMentions);
     $(document).on('click', '.deleteMentionOption', deleteSelectedMention);
     $(document).on('click', '.deleteEntityOption', deleteSelectedEntity);
     $(document).on('click', '.deletedSelectedEntitiesOption', deleteSelectedEntities);
