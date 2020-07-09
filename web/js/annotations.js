@@ -388,9 +388,6 @@ var findPageWithLocation = function(location) {
     return [-1,-1];
 };
 
-// TODO binary search through pages and their scroll tops to find out which
-// is in view.
-
 /**
  * Listens for scrolls in the #text-panel. When a page is viewed, it and the 
  * `pagesMargin` pages just before and after will be annotated. All other pages
@@ -934,7 +931,76 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
     };
 }
 
+/**
+ * Finds the mentions associated with the given token span.
+ * 
+ * @param {number} tokenStartId The id of the first token in the span.
+ * @param {number} tokenEndId The id of the last token in the span. 
+ * @return A list of mention ids that subsume the range of tokens.
+ */
+var findSupersetMentions = function(tokenStartId, tokenEndId){
+    var supersetMentions = [];
+    for(let locationId in annotationManager.locations){
+        let mention =  annotationManager.locations[locationId];
+        if(mention.start <= tokenStartId && mention.end >= tokenEndId){
+            supersetMentions.push(locationId);
+        }
+    }
+    return supersetMentions;
+}
 
+
+/**
+ * Finds the mentions in the text that match the given entity (sequence of 
+ * tokens).
+ * 
+ * @param {string[]} entityTokens A sequence of tokens representing an entity.
+ * @param {number} entityId The id of the entity.
+ * @return A list of locations where the entity is mentioned. Each mention is
+ *         an object with these fields:
+ *              - entity_id
+ *              - start (the token id where the mention starts)
+ *              - end (the token id where the mention ends)
+ */
+var findMentionsOfEntity = function(entityTokens, entityId){
+    var mentions = [];
+    var entityTokensText = [];
+    var i, j;
+    var matchFound;
+
+    // Replace html codes in entityTokens (&lt;, &gr; and &amp;)
+    for(i = 0; i < entityTokens.length; i++){
+        entityTokensText.push(entityTokens[i].replace("&amp;", "&").
+         replace("&lt;", "<").
+         replace("&gt;", ">"));
+    }
+
+    for(i = 0; i < tokens.length; i++){
+        matchFound = true;
+
+        for(j = 0; j < entityTokensText.length; j++){
+            if(tokens[i+j] != entityTokensText[j]){
+                matchFound = false;
+                break;
+            }
+        }
+
+        let candidateMention = {
+            start: i,
+            end: i+entityTokensText.length,
+            entity_id: entityId
+        };
+
+        // Add this mention if it's not a subset of an existing mention.
+        if(matchFound && findSupersetMentions(
+            candidateMention.start, candidateMention.end).length == 0){
+
+            mentions.push(candidateMention);
+        }
+    }
+   
+    return mentions;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // MANUAL ANNOTATION MANIPULATION FUNCTIONS
@@ -1558,6 +1624,11 @@ var confirmReassignMention = function() {
     resetMenuConfigData();
 }
 
+/**
+ * Creates a new entity from the selected text.
+ * 
+ * @return The selected text (name) and the id assigned to it (entityId).
+ */
 var addEntityFromSelection = function() {
     console.log("In addEntityFromSelection");
     closeContextMenu();
@@ -1586,13 +1657,19 @@ var addEntityFromSelection = function() {
 };
 
 /**
- * Adds the selected tokens as an entity and makrs every sequence of tokens that
+ * Adds the selected tokens as an entity and marks every sequence of tokens that
  * matches the selected tokens for review. 
  */
 var addEntityFromSelectionAndUnderlineMentions = function(){
     entityData = addEntityFromSelection();
 
-    // 
+    // TODO
+    // Add token sequence to list of tokens to check during highlighting, then
+    // re-annotate the currently annotated pages (reannotatePages should be a
+    // function).
+    //
+    // Questions:
+    //  - should these be handled as locations? or just strings?
 
 };
 
