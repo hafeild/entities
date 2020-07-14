@@ -232,6 +232,11 @@ var contentPages = []; // tuples: [startIndex, endIndex, isDisplayed]
 var currentPage = 0;
 var locationsByPages = [];
 
+// TODO -- this should be accessed via annotationManager in the future so that
+// changes are saved to and loaded from the server.
+// A list of mentions to suggest.
+var suggestedMentions = [];
+
 
 /**
  * Processes the tokenized content (made available in the annotation view HTML,
@@ -494,6 +499,16 @@ var annotatePagesOnDisplay = function(pagesMargin, delay){
 };
 
 /**
+ * Reannotates the currently annotated pages. Use this, e.g., when the
+ * underlying data has changed.
+ */
+var reannotatePagesAnnotatedPages = function(){
+    $('#text-panel .content-page[data-is_displayed=1]').each(function(i,elm){
+        annotateContentPage($(elm), true);
+    });
+};
+
+/**
  * Finds the pages that are in view at the given scroll offset in the 
  * #text-panel element.
  * 
@@ -587,12 +602,15 @@ var findPagesInView = function(scrollTop){
 
 /**
  * Generates the HTML for the given page of tokens and replaces the text-only
- * page in the #text-panel element with it.
+ * page in the #text-panel element with it. If the page is displayed and 
+ * refresh is false or unset, then no action is taken.
  * 
  * @param {integer | jQuery element} pageElmOrIndex The index of the page to 
  *                                                  annotate in the #text-panel.
+ * @param {boolean} refresh If true, refreshes the page if it's already
+ *                          displayed. Default: false.
  */
-var annotateContentPage = function(pageElmOrIndex) {
+var annotateContentPage = function(pageElmOrIndex, refresh) {
     //console.log('[annotateContentPage] Entering', pageElmOrIndex);
 
     var $newPageElm = pageElmOrIndex;
@@ -604,7 +622,7 @@ var annotateContentPage = function(pageElmOrIndex) {
         pageIndex = parseInt($newPageElm.data('page'));
     }
 
-    if($newPageElm.attr('data-is_displayed') === '1') return;
+    if(!refresh && $newPageElm.attr('data-is_displayed') === '1') return;
 
 
     // Replace the text-only content with span-wrapped HTML.
@@ -620,6 +638,7 @@ var annotateContentPage = function(pageElmOrIndex) {
     //console.log(`[annotateContentPage] Highlighting ties`);
     highlightTiesInContent(contentPages[pageIndex][START], 
         contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
+    markSuggestedMentions(suggestedMentions[pageIndex], $newPageElm);
 
     $newPageElm.attr('data-is_displayed', '1');
 
@@ -697,6 +716,7 @@ var unannotateContentPage = function(pageElmOrIndex){
     console.log(`[appendContentPage] Highlighting ties`);
     highlightTiesInContent(contentPages[pageIndex][START], 
         contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
+    
 
     // Load the next page after the specified timeout, if one was given.
     if(appendNextTimeout !== undefined && appendNextTimeout >= 0 && 
@@ -839,7 +859,7 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
  *                                $element.
  * @param {jQuery Element} $element The element to highlight entities in.
  */
- var highlightEntitiesInContent = function(locationKeys, $element){
+var highlightEntitiesInContent = function(locationKeys, $element){
     // console.log(`[highlightEntitiesInContent] entering (locationKeys, element):`,
         // locationKeys, $element);
 
@@ -883,7 +903,7 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
    }
 
     // console.log(`[highlightEntitiesInContent] leaving`);
- }
+}
 
 /**
  * Highlights ties in the given text content element. This relies on the global
@@ -932,6 +952,62 @@ var incrementDataAttribute = function($elm, attribute, incrementValue){
 }
 
 /**
+ * Marks suggested entity mentions in the given text content element. 
+ * Tokens in the given element must contain an data-id="..." attribute with the token's id. Colors
+ * are chosen by the global pallet. 
+ *
+ * @param {object{}} suggestedMentions A map of keys to suggested mentions
+ *                                        specific to the $element. Each should 
+ *                                        the fields:
+ *              - entity_id
+ *              - start (the token id where the mention starts)
+ *              - end (the token id where the mention ends)
+ *              - page_start (the content page where the mention begins)
+ *              - page_end (the content page where the mention stops)
+ * @param {jQuery Element} $element The element to highlight entities in.
+ */
+var markSuggestedMentions = function(suggestedMentions, $element){
+//     // console.log(`[highlightEntitiesInContent] entering (locationKeys, element):`,
+//         // locationKeys, $element);
+
+    for(let key in suggestedMentions){
+        let mention = suggestedMentions[key];
+
+        var entityGroupId = annotation_data.annotation.
+            entities[mention.entity_id].group_id;
+        
+
+        // Moves down each token in the location, including the spaces.
+        iterateOverTokens($element, mention.start, mention.end, 
+            function($token, tokenId, isWhitespace){
+
+            $token.
+                addClass(`g${entityGroupId}`). 
+                addClass('entity').
+                addClass('suggested-entity').
+                attr({
+                    'data-entity-id': mention.entity_id,
+                    'data-group-id': entityGroupId,
+                    'data-location-id': key  
+                });
+            // incrementDataAttribute($token, 'entity-count');
+
+            // Special treatment for the first and last tokens.
+            if(tokenId == mention.start){
+                $token.addClass('start-token');
+                // incrementDataAttribute($token, 'start-token-count');
+            }
+            if(tokenId == mention.end){
+                $token.addClass('end-token');
+                // incrementDataAttribute($token, 'end-token-count');
+            }
+        });
+   }
+
+//     // console.log(`[highlightEntitiesInContent] leaving`);
+}
+
+/**
  * Finds the mentions associated with the given token span.
  * 
  * @param {number} tokenStartId The id of the first token in the span.
@@ -961,11 +1037,13 @@ var findSupersetMentions = function(tokenStartId, tokenEndId){
  *              - entity_id
  *              - start (the token id where the mention starts)
  *              - end (the token id where the mention ends)
+ *              - page_start (the content page where the mention begins)
+ *              - page_end (the content page where the mention stops)
  */
 var findMentionsOfEntity = function(entityTokens, entityId){
     var mentions = [];
     var entityTokensText = [];
-    var i, j;
+    var startingPage, endingPage, i, j;
     var matchFound;
 
     // Replace html codes in entityTokens (&lt;, &gr; and &amp;)
@@ -975,19 +1053,35 @@ var findMentionsOfEntity = function(entityTokens, entityId){
          replace("&gt;", ">"));
     }
 
+    console.log('[findMentionsOfEntity]', entityTokens, entityTokensText);
+
+    startingPage = 0;
     for(i = 0; i < tokens.length; i++){
+        // See if we've crossed to a new page.
+        if(i > contentPages[startingPage][END]){
+            startingPage++;
+        }
+        endingPage = startingPage;
         matchFound = true;
 
-        for(j = 0; j < entityTokensText.length; j++){
-            if(tokens[i+j] != entityTokensText[j]){
+        // See if there's a match starting here.
+        for(j = 0; j < entityTokensText.length && j+i < tokens.length; j++){
+            if(tokens[i+j][TOKEN_CONTENT] != entityTokensText[j]){
                 matchFound = false;
                 break;
+            }
+            console.log('Found a match:', tokens[i+j][TOKEN_CONTENT], entityTokensText[j]);
+            // Advance ending page if we've crossed to the next page.
+            if(i+j > contentPages[endingPage][END]){
+                endingPage++;
             }
         }
 
         let candidateMention = {
+            page_start: startingPage,
+            page_end: endingPage,
             start: i,
-            end: i+entityTokensText.length,
+            end: i+entityTokensText.length-1,
             entity_id: entityId
         };
 
@@ -999,7 +1093,39 @@ var findMentionsOfEntity = function(entityTokens, entityId){
         }
     }
    
+    console.log('[findMentionsOfEntity] found these mentions:', mentions);
     return mentions;
+}
+
+/**
+ * Adds each mention to the `suggestedMentions` object under its corresponding
+ * page.
+ * 
+ * @param {object[]} mentions A list of entity mentions in the format returned
+ *                            by `findMentionsOfEntity`.
+ */
+var addToSuggestedMentions = function(mentions){
+    var i;
+    for(i = 0; i < mentions.length; i++){
+        let mention = mentions[i];
+        let startPage = suggestedMentions[mention.page_start];
+        if(startPage === undefined){
+            suggestedMentions[mention.page_start] = {};
+            startPage = suggestedMentions[mention.page_start];
+        } 
+        
+        startPage[`${mention.start}_${mention.end}`] = mention;
+
+        // // If this mention spans two pages, add it to both.
+        // if(mention.page_start != mention.page_end){
+        //     let endPage = suggestedMentions[mention.page_end];
+        //     if(endPage === undefined){
+        //         suggestedMentions[mention.page_end] = {};
+        //         endPage = suggestedMentions[mention.page_end];
+        //     }
+        //     endPage[`${mention.start}_${mention.end}`] = mention;
+        // }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1093,7 +1219,7 @@ var checkSelectedText = function(event) {
     var contextMenuOptions = [];
 
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i><span id=\"addEntity\">Add entity</span></i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityUnderlineMentionsOption'><i><span id=\"addEntity\">Add entity + underline mentions for review </span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntitySuggestMentionsOption'><i><span id=\"addEntity\">Add entity + underline mentions for review </span></i></a></li>");
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityAnnotateMentionsOption'><i><span id=\"addEntity\">Add entity + annotate mentions</span></i></a></li>");
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i><span id=\"addMention\">Add mention</span></i></a></li>");
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i><span id=\"addTie\">Add Tie</span></i></a></li>");
@@ -1627,7 +1753,8 @@ var confirmReassignMention = function() {
 /**
  * Creates a new entity from the selected text.
  * 
- * @return The selected text (name) and the id assigned to it (entityId).
+ * @return The selected text (name), token sequence (token_sequence), and the 
+ *         id assigned to it (entityId).
  */
 var addEntityFromSelection = function() {
     console.log("In addEntityFromSelection");
@@ -1639,38 +1766,39 @@ var addEntityFromSelection = function() {
 
     var spans = menuConfigData.textSpans;
     var name = "";
+    var tokenSequence = [];
 
     spans.forEach(s => {
         // name += s.innerHTML + " ";
         // name += " ";
         name += s.innerText;
+        if(s.getAttribute('data-token') != null){
+            tokenSequence.push(s.innerText);
+        }
     })
     name = name.trim();
     
 
     // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
-    var entityId = annotationManager.addEntity(name, $(spans[0]).attr('data-token'), $(spans[spans.length-1]).attr('data-token'), null);
+    var entityId = annotationManager.addEntity(name, 
+        $(spans[0]).attr('data-token'), 
+        $(spans[spans.length-1]).attr('data-token'), null);
 
     resetMenuConfigData();
 
-    return {name: name, id: entityId};
+    return {name: name, token_sequence: tokenSequence, id: entityId};
 };
 
 /**
  * Adds the selected tokens as an entity and marks every sequence of tokens that
  * matches the selected tokens for review. 
  */
-var addEntityFromSelectionAndUnderlineMentions = function(){
+var addEntityFromSelectionAndSuggestMentions = function(){
     entityData = addEntityFromSelection();
 
-    // TODO
-    // Add token sequence to list of tokens to check during highlighting, then
-    // re-annotate the currently annotated pages (reannotatePages should be a
-    // function).
-    //
-    // Questions:
-    //  - should these be handled as locations? or just strings?
-
+    addToSuggestedMentions(
+        findMentionsOfEntity(entityData.token_sequence, entityData.id));
+    reannotatePagesAnnotatedPages();
 };
 
 var addEntityFromSelectionAndAnnotateMentions = function(){
@@ -2493,7 +2621,7 @@ $(document).ready(function(){
     $(document).on('click', '.reassignMentionOption', openReassignMentionModal);
     $(document).on('click', '#confirmReassignMention', confirmReassignMention);
     $(document).on('click', '.addEntityOption', addEntityFromSelection);
-    $(document).on('click', '.addEntityUnderlineMentionsOption', addEntityFromSelectionAndUnderlineMentions);
+    $(document).on('click', '.addEntitySuggestMentionsOption', addEntityFromSelectionAndSuggestMentions);
     $(document).on('click', '.addEntityAnnotateMentionsOption', addEntityFromSelectionAndAnnotateMentions);
     $(document).on('click', '.deleteMentionOption', deleteSelectedMention);
     $(document).on('click', '.deleteEntityOption', deleteSelectedEntity);
