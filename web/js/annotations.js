@@ -1463,6 +1463,7 @@ var openHoverMenu = function(hoverOption) {
         $('[data-location-id="' + entity.attr('data-location-id') + '"]').addClass('selectedEntity');
     }
     else if (hoverOption.hasClass('thisEntityHover')) {
+        options.push("<li class='context-menu__item suggestMentions'><a class='context-menu__link'><i><span d=\"suggestMentions\">Suggest Mentions</span></i></a></li>");
         options.push("<li class='context-menu__item deleteEntityOption'><a class='context-menu__link'><i><span d=\"deleteEntity\">Delete</span></i></a></li>");
         options.push("<li class='context-menu__item moveEntityToGroupOption'><a class='context-menu__link'><i><span id=\"moveEntityToGroup\">Move to Group</span></i></a></li>");
 
@@ -1801,10 +1802,23 @@ var addEntityFromSelectionAndSuggestMentions = function(){
     reannotatePagesAnnotatedPages();
 };
 
+/**
+ * Adds the selected tokens as an entity annotates every occurrence of them that
+ * doesn't overlap with another entity in the text as mentions of the entity. 
+ */
 var addEntityFromSelectionAndAnnotateMentions = function(){
     entityData = addEntityFromSelection();
 
+    // TODO
 };
+
+/**
+ * Finds all matches of the selected entity in the text and suggests them as 
+ * mentions.
+ */
+var suggestMentionsOfSelectedEntity = function(){
+
+}
 
 var openAddTieModal = function(e) {
 
