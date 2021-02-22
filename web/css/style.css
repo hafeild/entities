@@ -688,3 +688,10 @@ body.fullscreen #text-panel-wrapper .shrink {
     padding-top: 200px;
     text-align: center;
 }
+
+.suggested-entity {
+    background-color: white !important;
+    color: black !important;
+    border-bottom-width: 2px;
+    border-bottom-style: dashed;
+}
