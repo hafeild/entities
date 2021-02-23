@@ -1219,8 +1219,9 @@ var checkSelectedText = function(event) {
     var contextMenuOptions = [];
 
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i><span id=\"addEntity\">Add entity</span></i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntitySuggestMentionsOption'><i><span id=\"addEntity_suggest_mentions\">Add entity + highlight mentions for review </span></i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityAnnotateMentionsOption'><i><span id=\"addEntity_annotate_mentions\">Add entity + annotate mentions</span></i></a></li>");
+    // These are the menu items for suggest and auto-annotation of mentions. Still in development, so commented out.
+    // contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntitySuggestMentionsOption'><i><span id=\"addEntity_suggest_mentions\">Add entity + highlight mentions for review </span></i></a></li>");
+    // contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityAnnotateMentionsOption'><i><span id=\"addEntity_annotate_mentions\">Add entity + annotate mentions</span></i></a></li>");
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i><span id=\"addMention\">Add mention</span></i></a></li>");
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i><span id=\"addTie\">Add Tie</span></i></a></li>");
 
