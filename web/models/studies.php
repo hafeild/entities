@@ -176,6 +176,8 @@ function getStudy($studyId){
  *           - annotation_id (could be null) 
  *                           (study_participant_steps.annotation_id)
  *           - annotation_label (could be null) (annotations.label)
+ *           - annotation (could be null) 
+ *                        (participant's annotation: annotations.annotation)
  *           - study_data_uploaded_at (study_data.created_at)
  *           - study_data (could be null) (annotations.data)
  * 
@@ -205,7 +207,8 @@ select studies.id as study_id, studies.begin_at as study_begin_at,
 	study_participant_steps.completed_at as step_completed_at, 
     texts.id as text_id, texts.title as text_title, 
     annotations.id as annotation_id, 
-	annotations.label as annotation_label, 
+	baseAnnotations.label as annotation_label, 
+    annotations.annotation as annotation,
     study_data.id as study_data_id, 
     study_data.created_at as study_data_uploaded_at, 
     study_data.data as study_data
@@ -218,7 +221,8 @@ from studies join study_steps on studies.id = study_steps.study_id
         study_groups.id = study_participants.group_id
 	join study_step_orderings on study_groups.id = study_step_orderings.group_id
         and study_steps.id = study_step_orderings.step_id
-	left join annotations on annotations.id = study_steps.base_annotation_id
+	left join annotations as baseAnnotations on baseAnnotations.id = study_steps.base_annotation_id
+    left join annotations on annotations.id = study_participant_steps.annotation_id
 	left join texts on annotations.text_id = texts.id
 	left join study_data on study_data.step_id = study_steps.id and 
         study_data.study_participant_id = study_participants.id
