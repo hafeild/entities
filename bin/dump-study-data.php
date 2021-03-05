@@ -116,6 +116,11 @@ class StudyInitializer {
     function processStudyRecord($record){
 
         try{
+            if($record["annotation"] != null){
+                $record["annotation"] = json_decode($record["annotation"]);
+
+            }
+
             if($record["study_data"] == null){
                 $record["event_timestamp"] = null;
                 $record["event_name"] = null;
