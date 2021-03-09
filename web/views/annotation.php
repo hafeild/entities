@@ -1,6 +1,7 @@
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="/js/network-viz.js"></script>
 <script src="/js/annotation-manager.js"></script>
+<script src="/js/token-navigator.js"></script>
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
@@ -62,6 +63,8 @@
                 <script>
                     annotation_data = <?= json_encode($data["annotation"]) ?>;
                     annotationManager = AnnotationManager(annotation_data);
+                    tokenNavigator = TokenNavigator(annotation_data);
+                    console.log(tokenNavigator);
                     displayAnnotation();
                 </script>
             </div>
