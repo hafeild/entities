@@ -1,3 +1,4 @@
+// this should have been a JQuery function to begin with
 $.fn.hasAttr = function (name) {
     return this.attr(name) !== undefined;
 };
@@ -13,7 +14,10 @@ let TokenNavigator = function (annotation_data) {
     };
 
     function isWordyToken($token) {
-        if ($token != null && $token.length > 0 && $token.hasAttr("data-token") && $token.html().trim() !== "" && !(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g.test($token.html().trim()))) {
+        if ($token != null && $token.length > 0
+            && $token.hasAttr("data-token")
+            && $token.html().trim() !== ""
+            && !(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g.test($token.html().trim()))) {
             return true;
         }
 
@@ -21,14 +25,18 @@ let TokenNavigator = function (annotation_data) {
     }
 
     self.getTokenContext = function ($token, range) {
-        let startDataToken = Math.max(1, $token.attr("data-token") - range / 2);
+        let startDataToken = Math.max(2, $token.attr("data-token") - range / 2);
         let curToken = $token;
 
-        // skip punctuative and spacing spans
-        while (!(isWordyToken(curToken.prev((sibling) => sibling.hasAttr("data-token"))))) {
-            curToken = curToken.prev((sibling) => sibling.hasAttr("data-token"));
+        // step backward until start of range is found
+        while (curToken.attr("data-token") != startDataToken) {
+            curToken = curToken.prevAll(`[data-token]:first`);
         }
-        curToken = curToken.prev((sibling) => sibling.hasAttr("data-token"));
+
+        // skip punctuation and empty spans
+        do {
+            curToken = curToken.prevAll(`[data-token]:first`);
+        } while (!(isWordyToken(curToken.prevAll(`[data-token]:first`))))
 
         const tokenList = [];
 
@@ -38,7 +46,8 @@ let TokenNavigator = function (annotation_data) {
             }
 
             tokenList.push(curToken.clone());
-            curToken = curToken.next((sibling) => sibling.hasAttr("data-token"));
+            // step forward
+            curToken = curToken.next();
             if (isWordyToken(curToken)) {
                 // punctuation doesn't count as context
                 // only increment if not punctuation
@@ -46,13 +55,32 @@ let TokenNavigator = function (annotation_data) {
             }
         }
 
-        let str = "";
-        tokenList.forEach((token) => {
-            str += token.html();
+        return tokenList;
+    };
+
+    self.predictTieTokens = function(tokenList, $startToken) {
+        let predictedTokenFirst = undefined;
+        let predictedTokenSecond = undefined;
+
+        let startDataToken = parseInt($startToken.attr("data-token"));
+
+        tokenList.forEach(($token) => {
+            if ($token.hasClass("entity")) {
+
+                if (parseInt($token.attr("data-token")) < startDataToken) {
+                    predictedTokenFirst = $token;
+                }
+                if (parseInt($token.attr("data-token")) > startDataToken && predictedTokenSecond == undefined) {
+                    predictedTokenSecond = $token;
+                }
+            }
         })
 
-        console.log(str);
-    };
+        return {
+            predictedTokenFirst: predictedTokenFirst,
+            predictedTokenSecond: predictedTokenSecond,
+        };
+    }
 
     return self;
 }

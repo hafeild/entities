@@ -6,7 +6,6 @@
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
 
-
 <?php if($data["is_study"]) { ?>
 <script src="/js/study-logging.js"></script>
 <?php } ?>
@@ -64,7 +63,6 @@
                     annotation_data = <?= json_encode($data["annotation"]) ?>;
                     annotationManager = AnnotationManager(annotation_data);
                     tokenNavigator = TokenNavigator(annotation_data);
-                    console.log(tokenNavigator);
                     displayAnnotation();
                 </script>
             </div>
@@ -260,7 +258,7 @@
                 <h4 class="modal-title">Create a tie between two entities</h4>
             </div>
             <div class="modal-body" id="addTieModal-body">
-                <div class="row" id="tieModalTextArea">
+                <div class="row" class="tie-modal-text-area" id="tieModalTextArea">
                 </div>
                 <div class="row">
                 </div>
@@ -337,11 +335,11 @@
     </div>
 </div>  
 
-<!-- Tie Selector Modal -->
+<!-- Edit Tie Selector Modal -->
 <div class="modal fade" id="editTieModal" role="dialog">
     <div class="modal-dialog">
     
-        <!-- Tie Modal content-->
+        <!-- Edit Tie Modal content-->
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" 
@@ -349,6 +347,10 @@
                 <h4 class="modal-title">Edit Tie</h4>
             </div>
             <div class="modal-body" id="editTieModal-body">
+                <div class="row" class="tie-modal-text-area" id="edit-tieModalTextArea">
+                </div>
+                <div class="row">
+                </div>
                 <div class="row" style="margin-top: 20px">
                     <div class="col-sm-1"></div>
                     <div class="col-sm-4">
