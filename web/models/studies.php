@@ -176,8 +176,6 @@ function getStudy($studyId){
  *           - annotation_id (could be null) 
  *                           (study_participant_steps.annotation_id)
  *           - annotation_label (could be null) (annotations.label)
- *           - annotation (could be null) 
- *                        (participant's annotation: annotations.annotation)
  *           - study_data_uploaded_at (study_data.created_at)
  *           - study_data (could be null) (annotations.data)
  * 
@@ -208,7 +206,6 @@ select studies.id as study_id, studies.begin_at as study_begin_at,
     texts.id as text_id, texts.title as text_title, 
     annotations.id as annotation_id, 
 	baseAnnotations.label as annotation_label, 
-    annotations.annotation as annotation,
     study_data.id as study_data_id, 
     study_data.created_at as study_data_uploaded_at, 
     study_data.data as study_data
@@ -230,6 +227,95 @@ from studies join study_steps on studies.id = study_steps.study_id
 where studies.id = :study_id
 order by study_participants.id, study_step_orderings.ordering, 
     study_data.created_at");
+        $success = $statement->execute([
+            ":study_id" => $studyId
+        ]);
+        while($record = $statement->fetch(PDO::FETCH_ASSOC,PDO::FETCH_ORI_NEXT)){
+            $function($record);
+        }
+           
+    } catch(PDOException $e){
+        error("There was an error reading the study data from the database",
+            [$e->getMessage()]);
+    }
+}
+
+
+/**
+ * Runs the given function on all of the study steps associated with a given study from
+ * the database. Each record is passed to the function as an associative array
+ * and contains the following keys:
+ * 
+ *           - study_id (studies.id)
+ *           - study_begin_at (studies.begin_at)
+ *           - study_end_at (studies.end_at)
+ *           - study_name (studies.name)
+ *           - study_data_id (study_data.id)
+ *           - step_id (study_data.step_id)
+ *           - step_label (study_steps.step_label)
+ *           - step_ordering (study_step_orderings.ordering)
+ *           - base_annotation_id (could be null) (study_steps.base_annotation_id)
+ *           - step_url (could be null) (study_steps.step_url)
+ *           - participant_id (study_data.study_participant_id)
+ *           - participant_user_id (users.id)
+ *           - participant_username (users.username)
+ *           - participant_group_id (study_participants.group_id)
+ *           - participant_group_label (study_groups.label)
+ *           - step_started_at (study_participant_steps.started_at)
+ *           - step_completed_at (study_participant_steps.completed_at)
+ *           - text_id (could be null) (annotations.text_id)
+ *           - text_title (could be null) (texts.title)
+ *           - annotation_id (could be null)
+ *                           (study_participant_steps.annotation_id)
+ *           - annotation_label  (could be null)
+ *                               (annotations.label using base_annotation_id)
+ *           - annotation (could be null)
+ *                        (annotations.annotation using annotation_id)
+ * 
+ * @param studyId The id of the study.
+ * @param function The function to apply to each record retrieved from the 
+ *                 database.
+ */
+function applyToParticipantStudySteps($studyId, $function){
+    $dbh = connectToDB();
+
+    try {
+        $statement = $dbh->prepare("
+select studies.id as study_id, studies.begin_at as study_begin_at, 
+    studies.end_at as study_end_at, 
+    studies.name as study_name,
+	study_steps.id as step_id, 
+    study_steps.label as step_label, 
+    study_step_orderings.ordering as step_ordering, 
+    study_steps.base_annotation_id as base_annotation_id,
+	study_steps.url as step_url, 
+    study_participants.id as participant_id, 
+    users.id as participant_user_id,
+    users.username as participant_username,
+    study_participants.group_id as participant_group_id, 
+	study_groups.label as participant_group_label, 
+    study_participant_steps.started_at as step_started_at,
+	study_participant_steps.completed_at as step_completed_at, 
+    texts.id as text_id, texts.title as text_title, 
+    annotations.id as annotation_id, 
+	baseAnnotations.label as annotation_label, 
+    annotations.annotation as annotation
+from studies join study_steps on studies.id = study_steps.study_id
+	join study_participant_steps 
+        on study_steps.id = study_participant_steps.step_id
+	join study_participants
+        on study_participant_steps.study_participant_id = study_participants.id
+	join study_groups on studies.id = study_groups.study_id and 
+        study_groups.id = study_participants.group_id
+	join study_step_orderings on study_groups.id = study_step_orderings.group_id
+        and study_steps.id = study_step_orderings.step_id
+	left join annotations as baseAnnotations on baseAnnotations.id = study_steps.base_annotation_id
+    left join annotations on annotations.id = study_participant_steps.annotation_id
+	left join texts on annotations.text_id = texts.id
+    left join users on study_participants.user_id = users.id
+where studies.id = :study_id
+order by study_participants.id, study_step_orderings.ordering, 
+    study_participant_steps.started_at");
         $success = $statement->execute([
             ":study_id" => $studyId
         ]);
