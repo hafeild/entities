@@ -1360,26 +1360,8 @@ var openTieContextMenu = function(e) {
 
     var tieRefs = $(this).attr('tie-refs');
     if (tieRefs === undefined || tieRefs === null) {return;}
-    tieRefs = tieRefs.trim().split(' ');
 
-    tieRefs.forEach(function(tieRef) {
-        var tie = annotation_data.annotation.ties[tieRef];
-        if(!tie){ return; }
-
-        // get names of entities involved in tie
-        if (typeof tie.source_entity.entity_id !== typeof null && typeof tie.source_entity.entity_id !== typeof undefined) {
-            var entityNameOne = annotation_data.annotation.entities[tie.source_entity.entity_id].name;
-        } else {
-            var entityNameOne = annotation_data.annotation.entities[annotation_data.annotation.locations[tie.source_entity.location_id].entity_id].name;
-        }
-        if (typeof tie.target_entity.entity_id !== typeof null && typeof tie.target_entity.entity_id !== typeof undefined) {
-            var entityNameTwo = annotation_data.annotation.entities[tie.target_entity.entity_id].name;
-        } else {
-            var entityNameTwo = annotation_data.annotation.entities[annotation_data.annotation.locations[tie.target_entity.location_id].entity_id].name;
-        }
-        contextMenuOptions.push("<li class='context-menu__item hover-option tieHover' tie-ref='" + tieRef + "'><a class='context-menu__link'><i> "
-            + entityNameOne + " --\> " + entityNameTwo + " \></i></a></li>");
-    });
+    contextMenuOptions.push(`<li class='context-menu__item editTieOption' tie-refs='${tieRefs}'><a class='context-menu__link'><i><span id=\"editTie\">Edit Tie</span></i></a></li>`);
 
     openContextMenu(contextMenuOptions, null, e);
 }
@@ -2129,14 +2111,19 @@ var confirmAddTie = function() {
 }
 
 var openEditTieModal = function(e) {
-    var tie = annotation_data.annotation.ties[$(this).attr('tie-ref')];
+    var tieRefs = $(this).attr('tie-refs').trim().split(" ");
+    var ties = [];
+    
+    tieRefs.forEach((tieRef) => {
+        ties.push(annotation_data.annotation.ties[tieRef]);
+    });
 
     tieModalTextArea = $('#edit-tieModalTextArea');
     tieNameBox = $('#edit-tieNameBox');
     tieWeightBox = $('#edit-tieWeightBox');
     tieDirectedToggle = $('#edit-tieDirectedToggle')
 
-    const tokenContext = tokenNavigator.getTokenContext($(`[data-token='${(tie.start + tie.end) / 2}']`), 100);
+    const tokenContext = tokenNavigator.getTokenContext($(`[data-token='${(ties[0].start + ties[0].end) / 2}']`), 100);
 
     tieModalTextArea.empty();
     tokenContext.forEach((token) => {
@@ -2150,15 +2137,29 @@ var openEditTieModal = function(e) {
         tieModalTextArea.append(clone);
     })
 
-    // Fill in current tie values
-    if (typeof tie.label === typeof null) {
-        tieNameBox.val("");
-    } else { tieNameBox.val(tie.label); }
-    // Fill in current tie values
-    if (typeof tie.directed === typeof null || typeof tie.directed === typeof undefined) {
-        tieDirectedToggle.prop('checked', false);
-    } else { tieDirectedToggle.prop('checked', tie.directed); }
-    tieWeightBox.val(tie.weight);
+    console.log(ties);
+
+    $('#editTieModal').one('shown.bs.modal', () => {
+        const editTieNetworkViz = NetworkVisualizer();
+        editTieNetworkViz.init("#edit-tie-network-svg");
+        
+        editTieNetworkViz.loadTieNetwork(Object.keys(annotation_data.annotation.ties)
+            .filter(key => tieRefs.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = annotation_data.annotation.ties[key];
+                return obj;
+            }, {}), annotation_data.annotation);
+      })
+
+    // // Fill in current tie values
+    // if (typeof tie.label === typeof null) {
+    //     tieNameBox.val("");
+    // } else { tieNameBox.val(tie.label); }
+    // // Fill in current tie values
+    // if (typeof tie.directed === typeof null || typeof tie.directed === typeof undefined) {
+    //     tieDirectedToggle.prop('checked', false);
+    // } else { tieDirectedToggle.prop('checked', tie.directed); }
+    // tieWeightBox.val(tie.weight);
 
     $('#confirmEditTie').attr("tie-ref", $(this).attr('tie-ref'));
     $('#editTieModalOpener').click();

@@ -4,7 +4,7 @@
 // Purpose: Takes care of drawing and updating the entity network in the network
 //          panel on the annotations page.
 
-var networkViz = (function(){
+var NetworkVisualizer = function() {
     var self = {};
     var entitiesData = {};
     var seenGroups = {};
@@ -20,18 +20,27 @@ var networkViz = (function(){
     var movingNode = false, drawingLinkMode = false, selectedNode = undefined;
     var readjustOnMove = true;
     
-    function gatherDimensions(){
-        svgElm = document.querySelector("#network-svg");
-        svg = d3.select('#network-svg');
-        svgWidth = svgElm.getBoundingClientRect().width;
-        svgHeight = svgElm.getBoundingClientRect().height;
+    function gatherDimensions(svgSelector) {
+        svgElm = document.querySelector(svgSelector);
+        if (svgElm) {
+            svg = d3.select(svgSelector);
+            svgWidth = svgElm.getBoundingClientRect().width;
+            svgHeight = svgElm.getBoundingClientRect().height;
+
+            return true;
+        }
+        return false;
     }
 
     /**
      * Initializes the network and D3 objects. Does NOT draw the network.
      */
-    self.init = function(){
-        gatherDimensions();
+    self.init = function(svgSelector){
+        let success = gatherDimensions(svgSelector);
+        if (!success) {
+            console.log("NetworkVisualizer: Could not find specified SVG");
+            return;
+        }
         simulation =  d3.forceSimulation()
             .force("link", d3.forceLink().id(function(d) { return d.id; }))
             .force("charge", d3.forceManyBody())
@@ -58,6 +67,23 @@ var networkViz = (function(){
     function yCoord(y){
         return Math.min(Math.max(0, y), svgHeight);
     }
+
+    function refreshNetwork() {
+        gnodes.attr("transform", function(d) { 
+            d.x = xCoord(d.x);
+            d.y = yCoord(d.y);
+            return 'translate(' + [d.x, d.y] + ')';
+        }); 
+
+        // links.attr("x1", function(d) { return xCoord(d.source.x); })
+        //     .attr("y1", function(d) { return yCoord(d.source.y); })
+        //     .attr("x2", function(d) { return xCoord(d.target.x); })
+        //     .attr("y2", function(d) { return yCoord(d.target.y); });
+        links.attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+    }
     
     /**
      * Draws the network and places listeners on nodes for clicking/dragging/
@@ -69,26 +95,10 @@ var networkViz = (function(){
      *   - ties
      *   - groups
      */
+
     self.loadNetwork = function(entitiesData_) {
         entitiesData = entitiesData_;
         networkData = entitiesDataToGraph(entitiesData);
-
-        refreshNetwork = function() {
-            gnodes.attr("transform", function(d) { 
-                d.x = xCoord(d.x);
-                d.y = yCoord(d.y);
-                return 'translate(' + [d.x, d.y] + ')';
-            }); 
-
-            // links.attr("x1", function(d) { return xCoord(d.source.x); })
-            //     .attr("y1", function(d) { return yCoord(d.source.y); })
-            //     .attr("x2", function(d) { return xCoord(d.target.x); })
-            //     .attr("y2", function(d) { return yCoord(d.target.y); });
-            links.attr("x1", function(d) { return d.source.x; })
-                .attr("y1", function(d) { return d.source.y; })
-                .attr("x2", function(d) { return d.target.x; })
-                .attr("y2", function(d) { return d.target.y; });
-        };
 
         simulation
             .nodes(networkData.nodes)
@@ -99,6 +109,39 @@ var networkViz = (function(){
         drawLinks();
         drawNodes();
     };
+    
+    /**
+     * Draws the network and places listeners on nodes for clicking/dragging/
+     * hovering.
+     * 
+     * @param {object} tieData Map containing ties with the following keys
+     *   - start
+     *   - end
+     *   - source_entity
+     *   - target_entity
+     *   - label
+     * 
+     * @param {object} entitiesData_ EntiTies map with the following keys:
+     *   - entities
+     *   - locations
+     *   - ties
+     *   - groups
+     */
+    self.loadTieNetwork = function(tieData, entitiesData_) {
+        entitiesData = entitiesData_;
+        networkData = tiesDataToGraph(tieData);
+
+        console.log(networkData);
+
+        simulation
+            .nodes(networkData.nodes)
+            .on("tick", refreshNetwork);
+        simulation.force("link")
+            .links(networkData.links);
+
+        drawLinks();
+        drawNodes();
+    }
 
     /**
      * Resolves the entity alias group id associated with the tie node's entity 
@@ -115,11 +158,11 @@ var networkViz = (function(){
         if(tieNode.entity_id !== undefined){
             return entitiesData.entities[tieNode.entity_id].group_id;
         } else if(tieNode.location_id != undefined){
-            if(entitiesData.locations[tieNode.location_id].entity_id !== undefined){
+            if(entitiesData && entitiesData.locations[tieNode.location_id].entity_id !== undefined){
                 return entitiesData.entities[
                     entitiesData.locations[
                         tieNode.location_id].entity_id].group_id;
-            }
+            } 
         }
 
         console.log("Hmm...can't identify the entity or location "+
@@ -299,6 +342,17 @@ var networkViz = (function(){
         for(groupId in entitiesData.groups){
             addInternalNode(graph, groupId);
         }
+
+        return graph;
+    }
+
+    function tiesDataToGraph(tiesData) {
+        let graph = { nodes: [], links: [] };
+        let tie;
+
+        for (tieId in tiesData) {
+            addInternalTie(graph, tieId, tiesData[tieId]);
+        }        
 
         return graph;
     }
@@ -850,4 +904,4 @@ var networkViz = (function(){
 
 
     return self;
-})();
+};

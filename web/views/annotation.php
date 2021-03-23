@@ -63,6 +63,7 @@
                     annotation_data = <?= json_encode($data["annotation"]) ?>;
                     annotationManager = AnnotationManager(annotation_data);
                     tokenNavigator = TokenNavigator(annotation_data);
+                    networkViz = NetworkVisualizer();
                     displayAnnotation();
                 </script>
             </div>
@@ -113,7 +114,7 @@
             
             <svg id="network-svg"></svg>
             <script>
-                networkViz.init();
+                networkViz.init("#network-svg");
                 networkViz.loadNetwork(annotation_data.annotation);
             </script>
         </div>
@@ -350,6 +351,9 @@
                 <div class="row" class="tie-modal-text-area" id="edit-tieModalTextArea">
                 </div>
                 <div class="row">
+                    <div class="tie-network-panel">
+                        <svg class="tie-network-svg" id="edit-tie-network-svg"></svg>
+                    </div>
                 </div>
                 <div class="row" style="margin-top: 20px">
                     <div class="col-sm-1"></div>
