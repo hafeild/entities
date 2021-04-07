@@ -16,6 +16,7 @@ var NetworkVisualizer = function() {
     var networkData;
     var refreshNetwork;
     var links, gnodes, linkHitboxes, nodeHitboxes;
+    var alwaysShowName = false;
     // For dragging and making new links.
     var movingNode = false, drawingLinkMode = false, selectedNode = undefined;
     var readjustOnMove = true;
@@ -139,6 +140,8 @@ var NetworkVisualizer = function() {
      *   - groups
      */
     self.loadTieNetwork = function(tieData, entitiesData_) {
+        alwaysShowName = true;
+
         entitiesData = entitiesData_;
         networkData = tiesDataToGraph(tieData);
 
@@ -495,9 +498,6 @@ var NetworkVisualizer = function() {
         links = svg.selectAll(".link")
             .data(networkData.links);
         
-        linkHitboxes = svg.selectAll(".link-hitbox")
-            .data(networkData.links);
-        
         links.enter().append("line")
             .attr("class", "link")
             .attr("line", function(d, i , n) { return i; })
@@ -507,42 +507,11 @@ var NetworkVisualizer = function() {
             .style("stroke-width", function(d) { return 3 * Math.sqrt(d.value); })
             .style("stroke", "#555555");
 
-        links.enter().append("line")
-            .attr("class", "link-hitbox")
-            .attr("belongs-to-line", function(d, i , n) { return i; })
-            .style("stroke-width", function(d) { return 20 * Math.sqrt(d.value); })
-            .style("stroke", "#55555500")
-            .on('mouseover', function (d, i, n) { 
-                $(document).trigger('entities.network-link-mouseover', {
-                    group_id: d.id, 
-                    name: d.name,
-                    x: d.x,
-                    y: d.y
-                });
-                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', true); 
-            })
-            .on('mouseout', function(d, i, n){ 
-                    $(document).trigger('entities.network-link-mouseout', {
-                       group_id: d.id, 
-                       name: d.name,
-                       x: d.x,
-                       y: d.y
-                   });
-                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', false); 
-        })
-            .on('click', (d, i, n) => {
-                self.toggleTieDirection(d);
-            });
-
         links.attr( "d", (d) => { console.log(d); return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
-        linkHitboxes.attr( "d", (d) => { console.log(d); return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
 
         links.exit().remove();
-        linkHitboxes.exit().remove();
 
         links = svg.selectAll(".link")
-            .data(networkData.links);
-        linkHitboxes = svg.selectAll(".link-hitbox")
             .data(networkData.links);
     }
     
@@ -564,7 +533,7 @@ var NetworkVisualizer = function() {
             .style("border", "none")
             .style("fill", "#11111100")
             .on('mousemove.passThru', function(d) {
-                d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hover', true); 
+                d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hitbox-hover', true); 
 
                 var e = d3.event;
                 var pointerEventsCurrentNode = this.style.pointerEvents;
@@ -573,21 +542,21 @@ var NetworkVisualizer = function() {
                 var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
 
                 var nextEvent = document.createEvent('MouseEvent');
-                nextEvent.initMouseEvent(e.type, e.bubbles, e.cancelable, e.view,  e.detail, e.screenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
 
+                nextEvent.initMouseEvent(e.type, e.bubbles, e.cancelable, e.view,  e.detail, e.screenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
                 elementBeneath.dispatchEvent(nextEvent);
 
                 this.style.pointerEvents = pointerEventsCurrentNode;
             })
             .on('mouseout', function(d, i, n){ 
                 d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hover', false); 
-
+                
                 var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
 
-                if (elementBeneath.nodeName.toLowerCase() == "svg") {
+                if (elementBeneath && elementBeneath.nodeName && elementBeneath.nodeName.toLowerCase() == "svg") {
                     elementBeneath.querySelectorAll(".gnode").forEach((gnode) => {
                         console.log("removing extra");
-                        d3.select(gnode).classed("node-hover", false);
+                        d3.select(gnode).classed("node-hitbox-hover", false);
                     })
                 }
             });
@@ -624,7 +593,44 @@ var NetworkVisualizer = function() {
         newG.insert("text")
             .text((d,i,n) => { return d.name })
             .attr("dy", function(d){return RADIUS * 2})
-            .attr("class", (d)=>{ return `node-text gn${d.group}` });
+            .attr("class", (d)=>{ return `node-text gn${d.group}${alwaysShowName ? " always-shown" : ""}` });
+        
+        linkHitboxes = svg.selectAll(".link-hitbox")
+            .data(networkData.links);
+
+        linkHitboxes.enter().append("line")
+            .attr("class", "link-hitbox")
+            .attr("belongs-to-line", function(d, i , n) { return i; })
+            .style("stroke-width", function(d) { return 20 * Math.sqrt(d.value); })
+            .style("stroke", "#55555500")
+            .on('mousemove.passThru', function (d, i, n) { 
+                $(document).trigger('entities.network-link-mouseover', {
+                    group_id: d.id, 
+                    name: d.name,
+                    x: d.x,
+                    y: d.y
+                });
+                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', true); 
+            })
+            .on('mouseout', function(d, i, n){ 
+                    $(document).trigger('entities.network-link-mouseout', {
+                       group_id: d.id, 
+                       name: d.name,
+                       x: d.x,
+                       y: d.y
+                   });
+                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', false); 
+        })
+        .on('click', (d, i, n) => {
+            self.toggleTieDirection(d);
+        });
+
+        linkHitboxes.attr( "d", (d) => { console.log(d); return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
+
+        linkHitboxes.exit().remove();
+
+        linkHitboxes = svg.selectAll(".link-hitbox")
+            .data(networkData.links);
 
         gnodes.exit().remove();
         nodeHitboxes.exit().remove();
@@ -634,79 +640,6 @@ var NetworkVisualizer = function() {
         
         nodeHitboxes = svg.selectAll(".node-hitbox")
             .data(networkData.nodes);
-
-        // gnodes = svg.selectAll('g.gnode')//('g.gnode')
-        //     .data(networkData.nodes);
-    
-        // var newG = gnodes
-        //     .enter()
-        //     .append('g')
-        //     .classed('gnode', true)
-        //     // .on('mouseover', function(d, i, n){ 
-        //     //     $(document).trigger('entities.network-node-mouseover', {
-        //     //         group_id: d.id, 
-        //     //         name: d.name,
-        //     //         x: d.x,
-        //     //         y: d.y
-        //     //     });
-        //     //     d3.select(this).classed('node-hover', true); })
-        //     .on('mouseout', function(d, i, n){ 
-        //         d3.select(this).classed('node-hover', false);
-        //     });
-            
-        // newG.insert("circle")
-        //     .attr("class", (d)=>{ return `node-hitbox g${d.group}` })
-        //     .attr("r", RADIUS * 10)
-        //     .style("border", "none")
-        //     .style("fill", "#11111113")
-        //     .on('mousemove.passThru', function(d) {
-        //         d3.select(this.parentElement).classed('node-hover', true);
-
-        //         var e = d3.event;
-        //         var pointerEventsCurrentNode = this.style.pointerEvents;
-        //         this.style.pointerEvents = 'none';
-
-        //         var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
-
-        //         var nextEvent = document.createEvent('MouseEvent');
-        //         nextEvent.initMouseEvent(e.type, e.bubbles, e.cancelable, e.view,  e.detail, e.screenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
-
-        //         elementBeneath.dispatchEvent(nextEvent);
-
-        //         this.style.pointerEvents = pointerEventsCurrentNode;
-        //     })
-        //     .on('mouseout', function(d, i, n){ 
-        //         d3.select(this.parentElement).classed('node-hover', false);
-
-        //         var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
-
-        //         console.log(elementBeneath.nodeName);
-        //         if (elementBeneath.nodeName.toLowerCase() == "svg") {
-        //             elementBeneath.querySelectorAll(".gnode").forEach((gnode) => {
-        //                 console.log("removing extra");
-        //                 d3.select(gnode).classed("node-hover", false);
-        //             })
-        //         }
-        //     });
-
-        // newG.append("circle")
-        //     .attr("class", (d)=>{ return `node g${d.group}` })
-        //     .attr("r", RADIUS)
-        //     .call(d3.drag()
-        //     .on("start", dragstarted)
-        //     .on("drag", dragged)
-        //     .on("end", dragended))
-        //     .on('click', nodeClicked);
-
-        // newG.insert("text")
-        //     .text((d,i,n) => { return d.name })
-        //     .attr("dy", function(d){return RADIUS * 2})
-        //     .attr("class", (d)=>{ return `node-text gn${d.group}` });
-
-        // gnodes.exit().remove();
-
-        // gnodes = svg.selectAll('g.gnode')//('g.gnode')
-        //     .data(networkData.nodes);
     }
     
     /**

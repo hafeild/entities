@@ -385,7 +385,7 @@ g .node-text {
     transition: opacity 0.3s ease;
 }
 
-.node-hover .node-text, .node-selected .node-text {
+.node-hover .node-text, .node-selected .node-text, .node-hitbox-hover .node-text, .always-shown.node-text {
     opacity: 100%;
 }
 
