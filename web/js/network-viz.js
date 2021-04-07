@@ -45,7 +45,7 @@ var NetworkVisualizer = function() {
         simulation =  d3.forceSimulation()
             .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(60).strength(2))
             .force("charge", d3.forceManyBody().strength(-15))
-            .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
+            // .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
             .force("collision", d3.forceCollide(RADIUS))
 
         // simulation.force("charge").strength(-100).distanceMax(svgWidth);
@@ -54,7 +54,7 @@ var NetworkVisualizer = function() {
         $(window).on('resize', function(){
             gatherDimensions();
             simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
-            svg.selectAll('g,link').remove();
+            svg.selectAll('g,link,link-hitbox,node-hitbox').remove();
             drawLinks(self);
             drawNodes();
         });
