@@ -15,7 +15,7 @@ var NetworkVisualizer = function() {
     var simulation;
     var networkData;
     var refreshNetwork;
-    var links, gnodes;
+    var links, gnodes, linkHitboxes, nodeHitboxes;
     // For dragging and making new links.
     var movingNode = false, drawingLinkMode = false, selectedNode = undefined;
     var readjustOnMove = true;
@@ -41,21 +41,21 @@ var NetworkVisualizer = function() {
             console.log("NetworkVisualizer: Could not find specified SVG");
             return;
         }
+        
         simulation =  d3.forceSimulation()
-            .force("link", d3.forceLink().id(function(d) { return d.id; }))
-            .force("charge", d3.forceManyBody())
-            // .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
-            .force("collision", d3.forceCollide(RADIUS));
+            .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(60).strength(2))
+            .force("charge", d3.forceManyBody().strength(-15))
+            .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
+            .force("collision", d3.forceCollide(RADIUS))
 
         // simulation.force("charge").strength(-100).distanceMax(svgWidth);
-        simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
-
+        // simulation.force("charge").strength(-300).distanceMax(svgWidth/4);
 
         $(window).on('resize', function(){
             gatherDimensions();
             simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
             svg.selectAll('g,link').remove();
-            drawLinks();
+            drawLinks(self);
             drawNodes();
         });
     };
@@ -74,12 +74,23 @@ var NetworkVisualizer = function() {
             d.y = yCoord(d.y);
             return 'translate(' + [d.x, d.y] + ')';
         }); 
+        
+        nodeHitboxes.attr("transform", function(d) { 
+            d.x = xCoord(d.x);
+            d.y = yCoord(d.y);
+            return 'translate(' + [d.x, d.y] + ')';
+        }); 
 
         // links.attr("x1", function(d) { return xCoord(d.source.x); })
         //     .attr("y1", function(d) { return yCoord(d.source.y); })
         //     .attr("x2", function(d) { return xCoord(d.target.x); })
         //     .attr("y2", function(d) { return yCoord(d.target.y); });
         links.attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+
+        linkHitboxes.attr("x1", function(d) { return d.source.x; })
             .attr("y1", function(d) { return d.source.y; })
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; });
@@ -106,7 +117,7 @@ var NetworkVisualizer = function() {
         simulation.force("link")
             .links(networkData.links);
     
-        drawLinks();
+        drawLinks(self);
         drawNodes();
     };
     
@@ -131,15 +142,13 @@ var NetworkVisualizer = function() {
         entitiesData = entitiesData_;
         networkData = tiesDataToGraph(tieData);
 
-        console.log(networkData);
-
         simulation
             .nodes(networkData.nodes)
             .on("tick", refreshNetwork);
         simulation.force("link")
             .links(networkData.links);
 
-        drawLinks();
+        drawLinks(self);
         drawNodes();
     }
 
@@ -219,7 +228,10 @@ var NetworkVisualizer = function() {
 
         if(seenLinks[key] == undefined){
             seenLinks[key] = {
+                id: tieId,
                 linkId: key,
+                source_entity: tie.source_entity,
+                target_entity: tie.target_entity,   
                 source: sourceGroupId,
                 target: targetGroupId,
                 value: 0,
@@ -469,17 +481,68 @@ var NetworkVisualizer = function() {
      * (Re)Draws the edges in the network. This relies on the networkData 
      * object.
      */
-    function drawLinks() {
+    function drawLinks(self) {
+        svg.append("svg:defs").append("svg:marker")
+            .attr("id", "arrow")
+            .attr("viewBox", "0 -5 10 10")
+            .attr('refX', -20)//so that it comes towards the center.
+            .attr("markerWidth", 5)
+            .attr("markerHeight", 5)
+            .attr("orient", "auto")
+            .append("svg:path")
+            .attr("d", "M0,-5L10,0L0,5");
+
         links = svg.selectAll(".link")
+            .data(networkData.links);
+        
+        linkHitboxes = svg.selectAll(".link-hitbox")
             .data(networkData.links);
         
         links.enter().append("line")
             .attr("class", "link")
-            .style("stroke-width", function(d) { return 0.5*Math.sqrt(d.value); })
+            .attr("line", function(d, i , n) { return i; })
+            .attr('marker-start', (d) => { 
+                return d.directed ? "url(#arrow)" : "";
+            })
+            .style("stroke-width", function(d) { return 3 * Math.sqrt(d.value); })
             .style("stroke", "#555555");
-    
+
+        links.enter().append("line")
+            .attr("class", "link-hitbox")
+            .attr("belongs-to-line", function(d, i , n) { return i; })
+            .style("stroke-width", function(d) { return 20 * Math.sqrt(d.value); })
+            .style("stroke", "#55555500")
+            .on('mouseover', function (d, i, n) { 
+                $(document).trigger('entities.network-link-mouseover', {
+                    group_id: d.id, 
+                    name: d.name,
+                    x: d.x,
+                    y: d.y
+                });
+                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', true); 
+            })
+            .on('mouseout', function(d, i, n){ 
+                    $(document).trigger('entities.network-link-mouseout', {
+                       group_id: d.id, 
+                       name: d.name,
+                       x: d.x,
+                       y: d.y
+                   });
+                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', false); 
+        })
+            .on('click', (d, i, n) => {
+                self.toggleTieDirection(d);
+            });
+
+        links.attr( "d", (d) => { console.log(d); return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
+        linkHitboxes.attr( "d", (d) => { console.log(d); return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
+
         links.exit().remove();
+        linkHitboxes.exit().remove();
+
         links = svg.selectAll(".link")
+            .data(networkData.links);
+        linkHitboxes = svg.selectAll(".link-hitbox")
             .data(networkData.links);
     }
     
@@ -490,45 +553,160 @@ var NetworkVisualizer = function() {
     function drawNodes() {
         gnodes = svg.selectAll('g.gnode')//('g.gnode')
             .data(networkData.nodes);
+        
+        nodeHitboxes = svg.selectAll(".node-hitbox")
+            .data(networkData.nodes);
+
+        gnodes.enter().append("circle")
+            .attr("class", (d)=>{ return `node-hitbox g${d.group}` })
+            .attr("r", RADIUS * 10)
+            .attr("belongs-to-node", function(d, i , n) { return i; })
+            .style("border", "none")
+            .style("fill", "#11111100")
+            .on('mousemove.passThru', function(d) {
+                d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hover', true); 
+
+                var e = d3.event;
+                var pointerEventsCurrentNode = this.style.pointerEvents;
+                this.style.pointerEvents = 'none';
+
+                var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
+
+                var nextEvent = document.createEvent('MouseEvent');
+                nextEvent.initMouseEvent(e.type, e.bubbles, e.cancelable, e.view,  e.detail, e.screenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
+
+                elementBeneath.dispatchEvent(nextEvent);
+
+                this.style.pointerEvents = pointerEventsCurrentNode;
+            })
+            .on('mouseout', function(d, i, n){ 
+                d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hover', false); 
+
+                var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
+
+                if (elementBeneath.nodeName.toLowerCase() == "svg") {
+                    elementBeneath.querySelectorAll(".gnode").forEach((gnode) => {
+                        console.log("removing extra");
+                        d3.select(gnode).classed("node-hover", false);
+                    })
+                }
+            });
     
         var newG = gnodes
             .enter()
             .append('g')
             .classed('gnode', true)
-            // .on('click', nodeClicked)
+            .attr("node", function(d, i , n) { return i; })
+            // .on('mouseover', function(d, i, n){ 
+            //     $(document).trigger('entities.network-node-mouseover', {
+            //         group_id: d.id, 
+            //         name: d.name,
+            //         x: d.x,
+            //         y: d.y
+            //     });
+            //     d3.select(this).classed('node-hover', true); })
             .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended))
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended))
+            .on('click', nodeClicked)
             .on('mouseover', function(d, i, n){ 
-                 $(document).trigger('entities.network-node-mouseover', {
-                    group_id: d.id, 
-                    name: d.name,
-                    x: d.x,
-                    y: d.y
-                });
-                d3.select(this).classed('node-hover', true); })
+                d3.select(this).classed('node-hover', true);
+            })
             .on('mouseout', function(d, i, n){ 
-                 $(document).trigger('entities.network-node-mouseout', {
-                    group_id: d.id, 
-                    name: d.name,
-                    x: d.x,
-                    y: d.y
-                });
-                d3.select(this).classed('node-hover', false); });;
+                d3.select(this).classed('node-hover', false);
+            });
 
         newG.append("circle")
             .attr("class", (d)=>{ return `node g${d.group}` })
             .attr("r", RADIUS);
 
-        newG.append("text")
+        newG.insert("text")
             .text((d,i,n) => { return d.name })
-            .attr("class", (d)=>{ return `gn${d.group}` });
+            .attr("dy", function(d){return RADIUS * 2})
+            .attr("class", (d)=>{ return `node-text gn${d.group}` });
 
         gnodes.exit().remove();
+        nodeHitboxes.exit().remove();
 
         gnodes = svg.selectAll('g.gnode')//('g.gnode')
             .data(networkData.nodes);
+        
+        nodeHitboxes = svg.selectAll(".node-hitbox")
+            .data(networkData.nodes);
+
+        // gnodes = svg.selectAll('g.gnode')//('g.gnode')
+        //     .data(networkData.nodes);
+    
+        // var newG = gnodes
+        //     .enter()
+        //     .append('g')
+        //     .classed('gnode', true)
+        //     // .on('mouseover', function(d, i, n){ 
+        //     //     $(document).trigger('entities.network-node-mouseover', {
+        //     //         group_id: d.id, 
+        //     //         name: d.name,
+        //     //         x: d.x,
+        //     //         y: d.y
+        //     //     });
+        //     //     d3.select(this).classed('node-hover', true); })
+        //     .on('mouseout', function(d, i, n){ 
+        //         d3.select(this).classed('node-hover', false);
+        //     });
+            
+        // newG.insert("circle")
+        //     .attr("class", (d)=>{ return `node-hitbox g${d.group}` })
+        //     .attr("r", RADIUS * 10)
+        //     .style("border", "none")
+        //     .style("fill", "#11111113")
+        //     .on('mousemove.passThru', function(d) {
+        //         d3.select(this.parentElement).classed('node-hover', true);
+
+        //         var e = d3.event;
+        //         var pointerEventsCurrentNode = this.style.pointerEvents;
+        //         this.style.pointerEvents = 'none';
+
+        //         var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
+
+        //         var nextEvent = document.createEvent('MouseEvent');
+        //         nextEvent.initMouseEvent(e.type, e.bubbles, e.cancelable, e.view,  e.detail, e.screenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
+
+        //         elementBeneath.dispatchEvent(nextEvent);
+
+        //         this.style.pointerEvents = pointerEventsCurrentNode;
+        //     })
+        //     .on('mouseout', function(d, i, n){ 
+        //         d3.select(this.parentElement).classed('node-hover', false);
+
+        //         var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
+
+        //         console.log(elementBeneath.nodeName);
+        //         if (elementBeneath.nodeName.toLowerCase() == "svg") {
+        //             elementBeneath.querySelectorAll(".gnode").forEach((gnode) => {
+        //                 console.log("removing extra");
+        //                 d3.select(gnode).classed("node-hover", false);
+        //             })
+        //         }
+        //     });
+
+        // newG.append("circle")
+        //     .attr("class", (d)=>{ return `node g${d.group}` })
+        //     .attr("r", RADIUS)
+        //     .call(d3.drag()
+        //     .on("start", dragstarted)
+        //     .on("drag", dragged)
+        //     .on("end", dragended))
+        //     .on('click', nodeClicked);
+
+        // newG.insert("text")
+        //     .text((d,i,n) => { return d.name })
+        //     .attr("dy", function(d){return RADIUS * 2})
+        //     .attr("class", (d)=>{ return `node-text gn${d.group}` });
+
+        // gnodes.exit().remove();
+
+        // gnodes = svg.selectAll('g.gnode')//('g.gnode')
+        //     .data(networkData.nodes);
     }
     
     /**
@@ -626,6 +804,7 @@ var NetworkVisualizer = function() {
     self.addTies = function(ties, adjustLayout){
         var linkAdded = false;
 
+        console.log("Adding ties...");
         ties.forEach((tie)=>{
             linkAdded = addInternalTie(networkData, tie.id, tie) || linkAdded;
         });
@@ -633,7 +812,7 @@ var NetworkVisualizer = function() {
         if(linkAdded){
             linkAdded = true;
             svg.selectAll('g,link').remove();
-            drawLinks();
+            drawLinks(self);
             drawNodes();
             simulation.force("link").links(networkData.links);
         }
@@ -726,7 +905,7 @@ var NetworkVisualizer = function() {
 
         if(updateRequired){
             svg.selectAll('g,link').remove();
-            drawLinks();
+            drawLinks(self);
             drawNodes();
             simulation.force("link").links(networkData.links);
 
@@ -764,6 +943,13 @@ var NetworkVisualizer = function() {
         self.removeTies([tie], adjustLayout);
     }
 
+    self.toggleTieDirection = function(tie) {
+        this.removeTie(tie, false);
+        tie.directed = true;
+
+        this.addTie(tie, true);
+    }
+
     /**
      * Removes a group from the network. 
      * 
@@ -787,7 +973,7 @@ var NetworkVisualizer = function() {
             delete seenGroups[group.id];
            
 
-            drawLinks();
+            drawLinks(self);
             drawNodes();
             simulation.force("link").links(networkData.links);
 

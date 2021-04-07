@@ -364,25 +364,37 @@ body.fullscreen #text-panel-wrapper {
 
 circle {
 }
-.node-hover circle, .node-selected circle {
+
+.node-hover .node, .node-selected .node {
     stroke: blue;
     fill-opacity: 0.5;
-    stroke-width: 3;
-    
-}
+    stroke-width: 3; 
 
-g text {
-    display: none;
-    text-anchor: middle;
-    stroke-width: 1;
-    stroke: #fff;
-    fill: #000;
-    font-size: 20pt;
-    user-select: none;
     cursor: pointer;
 }
-.node-hover text, .node-selected text {
-    display: block;
+
+g .node-text {
+    opacity: 0%;
+    text-anchor: middle;
+    stroke-width: 1;
+    fill: #000;
+    font-size: 12pt;
+    user-select: none;
+    cursor: pointer;
+
+    transition: opacity 0.3s ease;
+}
+
+.node-hover .node-text, .node-selected .node-text {
+    opacity: 100%;
+}
+
+.link-hover.link {
+    stroke: blue !important;
+    fill-opacity: 0.5;
+    stroke-width: 3;
+
+    cursor: cell;
 }
 
 button.annotated-entity {
