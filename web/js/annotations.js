@@ -23,6 +23,8 @@ var menu;
 var mouseClicked = 0;
 var menuTimer = null;
 
+var editTieNetworkViz = null;
+
 var getTexts = function(){
     $.get({
         url: 'json/texts',
@@ -1161,11 +1163,11 @@ var existingEntityClicked = function(event) {
 
     var contextMenuOptions = [];
 
-    contextMenuOptions.push("<li class='context-menu__item hover-option thisMentionHover'><a class='context-menu__link'><i>This Mention \></i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item hover-option thisEntityHover'><a class='context-menu__link'><i>This Entity \></i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item hover-option thisGroupHover'><a class='context-menu__link'><i>All Aliases \></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item hover-option thisMentionHover'><a class='context-menu__link'><i>This Mention...</i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item hover-option thisEntityHover'><a class='context-menu__link'><i>This Entity...</i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item hover-option thisGroupHover'><a class='context-menu__link'><i>All Aliases...</i></a></li>");
     if (menuConfigData.numSelectedEntities > 1) {
-        contextMenuOptions.push("<li class='context-menu__item hover-option selectedHover'><a class='context-menu__link'><i>Selected \></i></a></li>");
+        contextMenuOptions.push("<li class='context-menu__item hover-option selectedHover'><a class='context-menu__link'><i>Selected...</i></a></li>");
     }
     
     openContextMenu(contextMenuOptions, clickedEntity, event);
@@ -1223,7 +1225,7 @@ var checkSelectedText = function(event) {
     // contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntitySuggestMentionsOption'><i><span id=\"addEntity_suggest_mentions\">Add entity + highlight mentions for review </span></i></a></li>");
     // contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityAnnotateMentionsOption'><i><span id=\"addEntity_annotate_mentions\">Add entity + annotate mentions</span></i></a></li>");
     contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i><span id=\"addMention\">Add mention</span></i></a></li>");
-    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i><span id=\"addTie\">Add Tie</span></i></a></li>");
+    contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i><span id=\"addTie\">View Tie...</span></i></a></li>");
 
     menuConfigData.textSpans = textSpans;
     menuConfigData.newGroupID = newGroupID;
@@ -1361,7 +1363,7 @@ var openTieContextMenu = function(e) {
     var tieRefs = $(this).attr('tie-refs');
     if (tieRefs === undefined || tieRefs === null) {return;}
 
-    contextMenuOptions.push(`<li class='context-menu__item editTieOption' tie-refs='${tieRefs}'><a class='context-menu__link'><i><span id=\"editTie\">Edit Tie</span></i></a></li>`);
+    contextMenuOptions.push(`<li class='context-menu__item editTieOption' tie-refs='${tieRefs}'><a class='context-menu__link'><i><span id=\"editTie\">View Tie...</span></i></a></li>`);
 
     openContextMenu(contextMenuOptions, null, e);
 }
@@ -1478,7 +1480,7 @@ var openHoverMenu = function(hoverOption) {
         });
     }
     else if (hoverOption.hasClass('tieHover')) {
-        options.push("<li class='context-menu__item editTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i><span id=\"editTie\">Edit Tie</span></i></a></li>");
+        options.push("<li class='context-menu__item editTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i><span id=\"editTie\">View Tie...</span></i></a></li>");
         options.push("<li class='context-menu__item deleteTieOption' tie-ref='" + hoverOption.attr('tie-ref') + "'><a class='context-menu__link'><i><span id=\"deleteTie\">Delete Tie</span></i></a></li>");
 
 
@@ -2111,19 +2113,25 @@ var confirmAddTie = function() {
 }
 
 var openEditTieModal = function(e) {
+
     var tieRefs = $(this).attr('tie-refs').trim().split(" ");
     var ties = [];
+
+
     
     tieRefs.forEach((tieRef) => {
         ties.push(annotation_data.annotation.ties[tieRef]);
     });
+
+
 
     tieModalTextArea = $('#edit-tieModalTextArea');
     tieNameBox = $('#edit-tieNameBox');
     tieWeightBox = $('#edit-tieWeightBox');
     tieDirectedToggle = $('#edit-tieDirectedToggle')
 
-    const tokenContext = tokenNavigator.getTokenContext($(`[data-token='${(ties[0].start + ties[0].end) / 2}']`), 100);
+    const tokenContext = tokenNavigator.getTokenContext($(`[data-token='${parseInt((ties[0].start + ties[0].end) / 2)}']`), 100);
+
 
     tieModalTextArea.empty();
     tokenContext.forEach((token) => {
@@ -2137,18 +2145,34 @@ var openEditTieModal = function(e) {
         tieModalTextArea.append(clone);
     })
 
-    console.log(ties);
+
+
+    const $dropdown = $("#edit-addEntityToNetworkDropdownMenu");
+    console.log($dropdown);
+    Object.keys(annotation_data.annotation.groups).map((groupId, i) => {
+        $dropdown.append(`<li><a id="edit-addEntityToNetworkDropdownItem" group=${groupId} class="dropdown-item" href="#">${annotation_data.annotation.groups[groupId].name}</a></li>`);
+    });
 
     $('#editTieModal').one('shown.bs.modal', () => {
-        const editTieNetworkViz = NetworkVisualizer();
+        editTieNetworkViz = NetworkVisualizer();
         editTieNetworkViz.init("#edit-tie-network-svg");
-        
+
         editTieNetworkViz.loadTieNetwork(Object.keys(annotation_data.annotation.ties)
             .filter(key => tieRefs.includes(key))
             .reduce((obj, key) => {
                 obj[key] = annotation_data.annotation.ties[key];
                 return obj;
             }, {}), annotation_data.annotation);
+
+        editTieNetworkViz.setAnnotationBlock(annotationManager, ties[0].start, ties[0].end);
+
+        $(document).on("click", "#edit-addEntityToNetworkDropdownItem", (e) => {
+            const groupId = e.target.getAttribute("group");
+            const group = annotation_data.annotation.groups[groupId];
+            group.id = groupId;
+
+            editTieNetworkViz.addGroup(group, true);
+        });
       })
 
     // // Fill in current tie values
@@ -2165,33 +2189,49 @@ var openEditTieModal = function(e) {
     $('#editTieModalOpener').click();
 }
 
+var confirmEditTieAdjustTie = function(e) {
+    if (editTieNetworkViz == undefined) { return; }
+
+    editTieNetworkViz.adjustSelectedTie({
+        label: tieNameBox.val(),
+        weight: parseFloat($('#edit-tieWeightBox').val()),
+        directed: $('#edit-tieDirectedToggle').is(':checked')
+    });
+
+    $(document).trigger('entities.annotation.edit-tie-selected-changed', {
+        tie: undefined
+    });
+}
+
 var confirmEditTie = function(e) {
     console.log("In confirmEditTie");
 
-    var tie = annotation_data.annotation.ties[$(this).attr('tie-ref')];
+    // var tie = annotation_data.annotation.ties[$(this).attr('tie-ref')];
 
-    /* tieData {
-            start: 10, 
-            end: 30, 
-            source_entity: {location_id: "10_11"}, 
-            target_entity: {entity_id: "5"}, 
-            label: "speak",
-            weight: 3,
-            directed: true
-        }
-    */
-    var tieData = {
-        start: tie.start,
-        end: tie.end,
-        source_entity: tie.source_entity,
-        target_entity: tie.target_entity,
-        label: $('#edit-tieNameBox').val(),
-        weight: parseFloat($('#edit-tieWeightBox').val()),
-        directed: $('#edit-tieDirectedToggle').is(':checked')
-    }
+    // /* tieData {
+    //         start: 10, 
+    //         end: 30, 
+    //         source_entity: {location_id: "10_11"}, 
+    //         target_entity: {entity_id: "5"}, 
+    //         label: "speak",
+    //         weight: 3,
+    //         directed: true
+    //     }
+    // */
+    // var tieData = {
+    //     start: tie.start,
+    //     end: tie.end,
+    //     source_entity: tie.source_entity,
+    //     target_entity: tie.target_entity,
+    //     label: $('#edit-tieNameBox').val(),
+    //     weight: parseFloat($('#edit-tieWeightBox').val()),
+    //     directed: $('#edit-tieDirectedToggle').is(':checked')
+    // }
 
     // addTie(tieData, callback)
-    annotationManager.updateTie($(this).attr('tie-ref'), tieData);
+    // annotationManager.updateTie($(this).attr('tie-ref'), tieData);
+
+    editTieNetworkViz.annotation_confirmChanges();
 
     resetMenuConfigData();
 }
@@ -2670,6 +2710,7 @@ $(document).ready(function(){
     $(document).on('click', '#confirmAddTie', confirmAddTie);
     $(document).on('click', '.editTieOption', openEditTieModal);
     $(document).on('click', '#confirmEditTie', confirmEditTie);
+    $(document).on('click', '#edit-adjustTieBtn', confirmEditTieAdjustTie);
     $(document).on('click', '.deleteTieOption', deleteSelectedTie)
     $(document).on('click', '.tie-text', openTieContextMenu)
     $(document).on('click', '.tie-object', tieModalObjectChosen)

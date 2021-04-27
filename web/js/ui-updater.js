@@ -399,6 +399,53 @@ var UIUpdater = function(){
         });
     };
 
+    self.setEditTieSelectedTie = function(event, data) {
+        console.log(`[UIUpdater] setting edit-tie selected tie ${data.tie == undefined ? "to undefined" : data.tie.id}`);
+
+        const nameBox = $('#edit-tieNameBox');
+        const weightBox = $('#edit-tieWeightBox');
+        const directedToggle = $('#edit-tieDirectedToggle');
+        const adjustTieBtn = $('#edit-adjustTieBtn');
+
+        if (data.tie) {
+            if (data.tie.label == undefined) {
+                nameBox.val("");
+            } else { 
+                nameBox.val(data.tie.label);
+            }
+            weightBox.val(data.tie.weight);
+            if (data.tie.directed == undefined) {
+                directedToggle.prop('checked', false);
+            } else { 
+                directedToggle.prop('checked', data.tie.directed);
+            }
+
+            nameBox.prop('disabled', false);
+            weightBox.prop('disabled', false);
+            directedToggle.prop('disabled', false);
+            adjustTieBtn.prop('disabled', false);
+
+            $(".edit-editTieValue").removeClass('edit-hide');
+        } else {
+            nameBox.val("");
+            weightBox.val(0);
+            directedToggle.prop('checked', false);
+
+            nameBox.prop('disabled', true);
+            weightBox.prop('disabled', true);
+            directedToggle.prop('disabled', true);
+            adjustTieBtn.prop('disabled', true);
+
+            $(".edit-editTieValue").addClass('edit-hide');
+        }
+    }
+
+    self.setAllowConfirmTieChanges = function(event, data) {
+        console.log(`[UIUpdater] setting allow confirm tie changes button to ${data.allowed == undefined || !data.allowed? "disabled" : "enabled"}`);
+
+        $("#confirmEditTie").prop('disabled', !data.allowed);
+    }
+
     /**
      * Adds listeners for annotation update events.
      */
@@ -431,6 +478,24 @@ var UIUpdater = function(){
         $(document).on('entities.annotation.mention-added', self.addMention);
         $(document).on('entities.annotation.mention-updated', 
                        self.updateMention);
+        $(document).on('entities.annotation.edit-tie-selected-changed', 
+                       self.setEditTieSelectedTie);
+        $(document).on('entities.annotation.set-allow-confirm-tie-changes',
+                        self.setAllowConfirmTieChanges);
+
+        $(document).ready(function(){
+            $('#visualizer-tutorial[data-toggle="popover"]').popover({
+                html: true,
+                content: function() {
+                    return $("#visualizer-tutorial-content").html();
+                },
+                trigger: "hover",
+                container: 'body',
+            })
+            .on("show.bs.popover", function() {
+                $(this).data("bs.popover").tip().css("max-width", "600px");
+            });
+        });
 
     }
 

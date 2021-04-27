@@ -28,8 +28,10 @@ let TokenNavigator = function (annotation_data) {
         let startDataToken = Math.max(2, $token.attr("data-token") - range / 2);
         let curToken = $token;
 
+        console.log($token);
+
         // step backward until start of range is found
-        while (curToken.attr("data-token") != startDataToken) {
+        while (curToken.length > 0 && curToken.attr("data-token") != startDataToken) {
             curToken = curToken.prevAll(`[data-token]:first`);
         }
 

@@ -7,6 +7,9 @@
 var NetworkVisualizer = function() {
     var self = {};
     var entitiesData = {};
+    var changesQueue = undefined;
+    var annotationManager = false;
+    var start, end;
     var seenGroups = {};
     var seenLinks = {};
     var tieToLinkIdLookup = {};
@@ -19,6 +22,8 @@ var NetworkVisualizer = function() {
     var alwaysShowName = false;
     // For dragging and making new links.
     var movingNode = false, drawingLinkMode = false, selectedNode = undefined;
+    // For dragging links
+    var adjustingLinkWeight = false, selectedTie = undefined, selectedLink = undefined;
     var readjustOnMove = true;
     
     function gatherDimensions(svgSelector) {
@@ -139,7 +144,7 @@ var NetworkVisualizer = function() {
      *   - ties
      *   - groups
      */
-    self.loadTieNetwork = function(tieData, entitiesData_) {
+    self.loadTieNetwork = function(tieData, entitiesData_, annotationManager) {
         alwaysShowName = true;
 
         entitiesData = entitiesData_;
@@ -153,6 +158,23 @@ var NetworkVisualizer = function() {
 
         drawLinks(self);
         drawNodes();
+    }
+
+    /**
+     * Sets the start and end of the annotation being referenced, as well
+     * as the annotation manager for that annotation.
+     * 
+     * @param {object} annotationManager_ 
+     * @param {int} start_
+     * @param {int} end_
+     * 
+     */
+    self.setAnnotationBlock = function(annotationManager_, start_, end_) {
+        annotationManager = annotationManager_;
+        start = start_;
+        end = end_;
+
+        changesQueue = [];
     }
 
     /**
@@ -189,7 +211,7 @@ var NetworkVisualizer = function() {
      * @param {object} graph The internal graph object; should have the 
      *                       following structure:
      *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
-     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *   - links --> [{source: ..., target: ..., weight: ..., directed,
      *                 label: ..., count: ...}, ...]
      * @param {string} groupId The id of the entity alias group to add.
      */
@@ -229,26 +251,36 @@ var NetworkVisualizer = function() {
         var targetGroupId = getTieNodeGroup(tie.target_entity);
         var key = tieToLinkId(tieId, tie);
 
-        if(seenLinks[key] == undefined){
-            seenLinks[key] = {
-                id: tieId,
-                linkId: key,
-                source_entity: tie.source_entity,
-                target_entity: tie.target_entity,   
-                source: sourceGroupId,
-                target: targetGroupId,
-                value: 0,
-                directed: tie.directed == undefined ? 
-                                false : tie.directed,
-                label: tie.label,
-                count: 0 // The number of links hidden in this one.
-            }
+        var newTie = true;
+        if (seenLinks[key] != undefined) {
+            newTie = false;
         }
 
-        seenLinks[key].value += tie.weight == undefined ? 1.0 : tie.weight;
+        seenLinks[key] = {
+            id: tieId,
+            linkId: key,
+            source_entity: tie.source_entity,
+            target_entity: tie.target_entity,   
+            source: sourceGroupId,
+            target: targetGroupId,
+            weight: 0,
+            directed: tie.directed == undefined ? 
+                            false : tie.directed,
+            label: tie.label,
+            count: seenLinks[key] != undefined ? Math.max(seenLinks[key].count, 0) : 0 // The number of links hidden in this one.
+        }
+
+        if (!newTie) {
+            self.annotation_updateTie({
+                tieId: tieId,
+                tie: tie,
+            }, true);
+        }
+
+        seenLinks[key].weight += tie.weight == undefined ? 1.0 : tie.weight;
         seenLinks[key].count++;        
 
-        return seenLinks[key].count === 1;
+        return newTie;
     }
 
     /**
@@ -258,7 +290,7 @@ var NetworkVisualizer = function() {
      * @param {object} graph The internal graph object; should have the 
      *                       following structure:
      *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
-     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *   - links --> [{source: ..., target: ..., weight: ..., directed,
      *                 label: ..., count: ...}, ...]
      * @param {object} tie A tie object with at least these fields:
      *   - start (token offset; integer)
@@ -282,6 +314,7 @@ var NetworkVisualizer = function() {
             addInternalNode(graph, seenLinks[linkId].target);
             return true;
         }
+        console.log("Returning false");
         return false;
     }
 
@@ -340,7 +373,7 @@ var NetworkVisualizer = function() {
      * 
      * @return An object with two keys:
      *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
-     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *   - links --> [{source: ..., target: ..., weight: ..., directed,
      *                 label: ..., count: ...}, ...]
      */
     function entitiesDataToGraph(entitiesData){
@@ -370,6 +403,45 @@ var NetworkVisualizer = function() {
         }        
 
         return graph;
+    }
+
+    function linkWeightFollowMouse(e) {
+        if (annotationManager === false) { return; }
+        var textPosition = { top: e.pageY + 10, left: e.pageX + 10 };
+        $('#adjustTie-besideMouseText').offset(textPosition);
+    }
+
+    function linkDragStarted(d, i, n) {
+        if (annotationManager === false) { return; }
+        console.log("drag started");
+        d3.event.subject.fx = d3.event.subject.x;
+        d3.event.subject.fy = d3.event.subject.y;
+    }
+
+    function linkDragged(d, i, n) {
+        if (annotationManager === false) { return; }
+        if (d3.event.metaKey) {
+            if (!adjustingLinkWeight) {
+                adjustingLinkWeight = true;
+                $(document).on("mousemove", (e) => linkDragEnded(e, d, i, n));
+                d3.event.preventDefault();
+            }
+            var textPosition = { top: d3.event.pageY + 10, left: d3.event.pageX + 10 };
+            $('#adjustTie-besideMouseText').offset(textPosition);
+            $("#adjustTie-besideMouseText").html(annotation_data.annotation.ties[d.id].weight);
+        } else if (adjustingLinkWeight) {
+            linkDragEnded(e, d, i, n);
+        }
+    }
+
+    function linkDragEnded(e, d, i, n) {
+        if (adjustingLinkWeight) {
+            console.log("drag ended");
+            adjustingLinkWeight = false;
+            $(document).off("mousemove", linkDragEnded(e, d, i, n));
+            // $(document).off("mousemove", linkWeightFollowMouse);
+            $("#adjustTie-besideMouseText").html("");
+        }
     }
     
     /**
@@ -470,14 +542,91 @@ var NetworkVisualizer = function() {
 
     
         // Case 3;
-        } else {
-            addLink(networkData.nodes[selectedNode], 
+        } else if (annotationManager) {
+            self.addLink(networkData.nodes[selectedNode], 
                 networkData.nodes[i], 1, true);
+            
+            const newTie = {
+                start: start,
+                end: end,
+                source_entity: { entity_id: networkData.nodes[selectedNode].id },
+                target_entity: { entity_id: networkData.nodes[i].id },
+            }
+
+            self.annotation_addTie({
+                tie: newTie,
+            }, true);
+            
             d3.select(n[selectedNode]).classed('node-selected', false);
             
             drawingLinkMode = false;
             selectedNode = undefined;
         }
+    }
+
+    function removeLinkTie(d, i, n) {
+        if (annotationManager === false) { return; }
+        d3.event.preventDefault();
+        console.log(d);
+        self.removeTie(d);
+    }
+
+    function unselectLink(i, n) {
+        if (i == undefined) {
+            i = selectedLink;
+        }
+        if (n != undefined) {
+            d3.select(linkHitboxToLink(n[i])).classed('link-selected', false);
+        }
+        selectedTie = undefined;
+        selectedLink = undefined;
+        $(document).trigger('entities.annotation.edit-tie-selected-changed', {
+            tie: undefined
+        });
+    }
+
+    function linkClicked(d, i, n) {
+        if (annotationManager === false) { return; }
+        if (!d3.event.shiftKey) {
+            console.log(d);
+            // toggle tie directedness
+            d.directed = !d.directed;
+
+            const tempSourceEntity = d.source_entity;
+            const tempSource = d.source;
+            d.source_entity = d.target_entity;
+            d.source = d.target;
+            d.target_entity = tempSourceEntity;
+            d.target = tempSource;
+
+            self.addTie(d.id, d);
+        } else {
+            // select link
+            if (selectedTie === d) {
+                // unset selected
+                unselectLink(i, n);
+            } else {
+                // set selected
+                d3.select(linkHitboxToLink(n[i])).classed('link-selected', true);
+                // unset previous if exists
+                if (selectedLink != undefined) {
+                    d3.select(linkHitboxToLink(n[selectedLink])).classed('link-selected', false);
+                }
+                selectedTie = d;
+                selectedLink = i;
+                $(document).trigger('entities.annotation.edit-tie-selected-changed', {
+                    tie: d
+                });
+            }
+        }
+    }
+
+    function linkHitboxToLink(d_hitbox) {
+        if (!d_hitbox) { return; }
+        if (d_hitbox.parentElement != undefined) {
+            return d_hitbox.parentElement.querySelector(`.link[line='${d_hitbox.getAttribute("belongs-to-line")}'`);
+        }
+        return $(`.link[line='${d_hitbox.getAttribute("belongs-to-line")}'`);
     }
 
     /**
@@ -504,10 +653,10 @@ var NetworkVisualizer = function() {
             .attr('marker-start', (d) => { 
                 return d.directed ? "url(#arrow)" : "";
             })
-            .style("stroke-width", function(d) { return 3 * Math.sqrt(d.value); })
+            .style("stroke-width", function(d) { return 3 * Math.sqrt(d.weight); })
             .style("stroke", "#555555");
 
-        links.attr( "d", (d) => { console.log(d); return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
+        links.attr( "d", (d) => { return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
 
         links.exit().remove();
 
@@ -533,6 +682,7 @@ var NetworkVisualizer = function() {
             .style("border", "none")
             .style("fill", "#11111100")
             .on('mousemove.passThru', function(d) {
+                if (d3.event.metaKey) { return; }
                 d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hitbox-hover', true); 
 
                 var e = d3.event;
@@ -592,16 +742,16 @@ var NetworkVisualizer = function() {
 
         newG.insert("text")
             .text((d,i,n) => { return d.name })
-            .attr("dy", function(d){return RADIUS * 2})
+            .attr("dy", function(d){return RADIUS * 3})
             .attr("class", (d)=>{ return `node-text gn${d.group}${alwaysShowName ? " always-shown" : ""}` });
-        
+                    
         linkHitboxes = svg.selectAll(".link-hitbox")
             .data(networkData.links);
 
         linkHitboxes.enter().append("line")
             .attr("class", "link-hitbox")
             .attr("belongs-to-line", function(d, i , n) { return i; })
-            .style("stroke-width", function(d) { return 20 * Math.sqrt(d.value); })
+            .style("stroke-width", function(d) { return 20 * Math.sqrt(d.weight); })
             .style("stroke", "#55555500")
             .on('mousemove.passThru', function (d, i, n) { 
                 $(document).trigger('entities.network-link-mouseover', {
@@ -610,7 +760,7 @@ var NetworkVisualizer = function() {
                     x: d.x,
                     y: d.y
                 });
-                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', true); 
+                d3.select(linkHitboxToLink(this)).classed('link-hover', true); 
             })
             .on('mouseout', function(d, i, n){ 
                     $(document).trigger('entities.network-link-mouseout', {
@@ -619,13 +769,19 @@ var NetworkVisualizer = function() {
                        x: d.x,
                        y: d.y
                    });
-                d3.select(this.parentElement.querySelector(`.link[line='${this.getAttribute("belongs-to-line")}'`)).classed('link-hover', false); 
-        })
-        .on('click', (d, i, n) => {
-            self.toggleTieDirection(d);
-        });
+                const linkTarget = linkHitboxToLink(this);
+                // mouseout will still trigger if link is removed, so this error check is required
+                if (linkTarget) {
+                    d3.select(linkTarget).classed('link-hover', false); 
+                }
+            })
+            .on("start", linkDragStarted)
+            .on("drag", (d, i, n) => linkDragged(d, i, n))
+            .on("end", (d, i, n) => linkDragEnded(d, i, n))
+            .on('click', (d, i, n) => linkClicked(d, i, n))
+            .on('contextmenu', (d, i, n) => removeLinkTie(d, i, n));
 
-        linkHitboxes.attr( "d", (d) => { console.log(d); return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
+        linkHitboxes.attr( "d", (d) => { return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
 
         linkHitboxes.exit().remove();
 
@@ -674,23 +830,23 @@ var NetworkVisualizer = function() {
      * 
      * @param {string} sourceId The id of the source node.
      * @param {string} targetId The id of the target node.
-     * @param {number} value The weight of the edge.
+     * @param {number} weight The weight of the edge.
      * @param {boolean} isDirected Whether this edge is directed or not.
      * @param {string} label The edge's label.
      * @param {boolean} adjustLayout Whether or not the network layout should be
      *                               re-adjusted after drawing the link.
      * 
      */
-    self.addLink = function(sourceId, targetId, value, isDirected, label, 
+    self.addLink = function(sourceId, targetId, weight, isDirected, label, 
             adjustLayout){
         // simulation.stop();
 
         var link = {
                 source: sourceId,
                 target: targetId,
-                value: value == undefined ? 1.0 : value,
+                weight: weight == undefined ? 1.0 : weight,
                 directed: isDirected == undefined ? 
-                                false : tie.directed,
+                                false : isDirected,
                 label: label
         }
 
@@ -809,6 +965,11 @@ var NetworkVisualizer = function() {
 
         console.log('Removing ties...');
         ties.forEach((tie)=>{
+            self.annotation_removeTie({
+                tieId: tie.id,
+            }, true);
+            
+
             var linkId = tieToLinkId(tie.id, tie);
             console.log('Considering tie ', tie, '(link id='+linkId+')');
             if(seenLinks[linkId] !== undefined){
@@ -876,11 +1037,31 @@ var NetworkVisualizer = function() {
         self.removeTies([tie], adjustLayout);
     }
 
-    self.toggleTieDirection = function(tie) {
-        this.removeTie(tie, false);
-        tie.directed = true;
+    /**
+     * Updates the selected tie in the network. If the link id created by the
+     * tie properties (see tieToLinkId) matches an existing link, the existing
+     * link's count is decremented and the tie's weight subtracted from the
+     * existing link's weight. If the resulting count is 0, the link is removed.
+     * If the link id is new, no action is performed.
+     * 
+     * @param {object} changes A tie object with at least these fields:
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after removing or updating the 
+     *                               link.
+     */
+    self.adjustSelectedTie = function(changes, adjustLayout) {
+        selectedTie.label = changes.label;
+        selectedTie.weight = changes.weight;
+        selectedTie.directed = changes.directed;
 
-        this.addTie(tie, true);
+        self.addTie(selectedTie, adjustLayout);
+
+        $(`.link[line='${selectedLink}']`).removeClass('link-selected');
+        selectedLink = undefined;
+        selectedTie = undefined;
     }
 
     /**
@@ -914,6 +1095,63 @@ var NetworkVisualizer = function() {
                 simulation.alpha(1).restart();
             } else {
                 refreshNetwork();
+            }
+        }
+    }
+
+    self.annotation_confirmChanges = function() {
+        changesQueue.forEach((change) => {
+            change.assignedFunction(change.data, false);
+        });
+        $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+            allowed: false,
+        });
+    }
+
+    self.annotation_removeTie = function(data, queue) {
+        if (annotationManager) {
+            if (queue) {
+                $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+                    allowed: true,
+                });
+                changesQueue.push({
+                    assignedFunction: self.annotation_removeTie,
+                    data: data
+                });
+            } else {
+                annotationManager.removeTie(data.tieId);
+            }
+        }
+    }
+
+    self.annotation_updateTie = function(data, queue) {
+        if (annotationManager) {
+            if (queue) {
+                $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+                    allowed: true,
+                });
+                changesQueue.push({
+                    assignedFunction: self.annotation_updateTie,
+                    data: data
+                });
+            } else {
+                annotationManager.updateTie(data.tieId, data.tie);
+            }
+        }
+    }
+
+    self.annotation_addTie = function(data, queue) {
+        if (annotationManager) {
+            if (queue) {
+                $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+                    allowed: true,
+                });
+                changesQueue.push({
+                    assignedFunction: self.annotation_addTie,
+                    data: data
+                });
+            } else {
+                annotationManager.addTie(data.tie);
             }
         }
     }

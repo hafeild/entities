@@ -27,7 +27,7 @@
 
 
 
-
+<p style="z-index:10; position:fixed;" id="adjustTie-besideMouseText"></p>
 
 <div id="annotation-panels-wrapper">
 
@@ -247,98 +247,9 @@
     </div>
 </div>  
 
-<!-- Tie Selector Modal -->
-<div class="modal fade" id="addTieModal" role="dialog">
-    <div class="modal-dialog">
-    
-        <!-- Tie Modal content-->
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" 
-                    id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Create a tie between two entities</h4>
-            </div>
-            <div class="modal-body" id="addTieModal-body">
-                <div class="row" class="tie-modal-text-area" id="tieModalTextArea">
-                </div>
-                <div class="row">
-                </div>
-                <div class="row" id="tieModalObjectSelectors">
-                    <div class="col-sm-6">
-                    <div class="dropdown">
-                        <button class="btn btn-primary dropdown-toggle" 
-                            id="tieObjectOneDropdown" type="button" 
-                            data-toggle="dropdown">Object One
-                        <span class="caret"></span></button>
-                        <ul class="dropdown-menu tieObjectSelector" 
-                            id="tieObjectOneSelector">
-                        
-                        </ul>
-                    </div>
-                    </div>
-                    <div class="col-sm-6">
-                    <div class="dropdown">
-                        <button class="btn btn-primary dropdown-toggle" 
-                            id="tieObjectTwoDropdown" type="button" 
-                            data-toggle="dropdown">Object Two
-                        <span class="caret"></span></button>
-                        <ul class="dropdown-menu tieObjectSelector" 
-                            id="tieObjectTwoSelector">
-                        
-                        </ul>
-                    </div>
-                    </div>
-                </div>
-                <hr />
-                <div class="row" style="margin-top: 20px">
-                    <div class="col-sm-1"></div>
-                    <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieWeightBox" class="form-control" 
-                            value="1" type="number" id="tieWeightBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Weight</label>
-                    </div>
-                    </div>
-                    <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieNameBox" class="form-control" 
-                            placeholder="" type="text" maxlength="100" 
-                            id="tieNameBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Label</label>
-                    </div>
-                    </div>
-                    <div class="col-sm-3" style="margin-top: 10px;">
-                    <div class="form-check">
-                        <div class="pretty p-switch p-fill">
-                        <input name="tieDirectedToggle" 
-                            class="form-check-input" type="checkbox" 
-                            id="tieDirectedToggle" />
-                        <div class="state p-primary">
-                            <label style="width: 100%; text-align: center;" 
-                                class="form-check-label" 
-                                for="tieDirectedToggle">
-                                Directed 
-                            </label>
-                        </div>
-                        </div>
-                    </div>
-                    </div>        
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
-                id="confirmAddTie" data-dismiss="modal">Confirm</button>
-            </div>
-        </div>
-        
-    </div>
-</div>  
-
 <!-- Edit Tie Selector Modal -->
 <div class="modal fade" id="editTieModal" role="dialog">
-    <div class="modal-dialog">
+    <div class="modal-dialog" id="editTieModal-dialog">
     
         <!-- Edit Tie Modal content-->
         <div class="modal-content">
@@ -348,52 +259,84 @@
                 <h4 class="modal-title">Edit Tie</h4>
             </div>
             <div class="modal-body" id="editTieModal-body">
-                <div class="row" class="tie-modal-text-area" id="edit-tieModalTextArea">
-                </div>
                 <div class="row">
-                    <div class="tie-network-panel">
-                        <svg class="tie-network-svg" id="edit-tie-network-svg"></svg>
+                    <div class="col-sm-6" class="tie-modal-text-area" id="edit-tieModalTextArea">
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="row">
+                            <div class="col-6">
+                                <a href="#" id="visualizer-tutorial" class="btn btn-secondary" data-toggle="popover" title="Tie Visualizer" data-trigger="hover" data-placement="bottom">
+                                        <span class="glyphicon glyphicon-question-sign"></span> 
+                                </a>
+                                <div id="edit-addEntityToNetworkDropdown" class="dropdown">
+                                    <div id="visualizer-tutorial-content" style="display: none">
+                                        <p>The tie visualizer is an interactive presentation of the ties represented by the text you've selected.
+                                        Changes made in the visualizer are reflected in the annotation upon choosing Confirm.</p>
+                                        <hr>
+                                        <p><strong>Add a Node</strong> - Click the + icon and choose an alias group</p>
+                                        <p><strong>Create a Tie</strong> - Left-click two unique nodes subsequently</p>
+                                        <p><strong>Delete a Tie</strong> - Right-click the link between two nodes</p>
+                                        <p><strong>Edit a Tie</strong> - Hold shift and left-click the link between two nodes</p>
+                                        <p><strong>Flip Tie Directedness</strong> - Left-click the link between two nodes</p>
+                                    </div>
+                                    <button id="edit-addEntityToNetworkButton" type="button" class="btn btn-light dropdown-toggle" data-toggle="dropdown">&#43;</button>
+                                    <ul id="edit-addEntityToNetworkDropdownMenu" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="tie-network-panel">
+                                <svg class="tie-network-svg" id="edit-tie-network-svg"></svg>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 20px">
+                    <div class="col-sm-1"></div>
+                    <div class="col-sm-4 edit-editTieValue edit-hide">
+                        <div class="" style="float: left">
+                            <input disabled name="tieWeightBox" class="form-control" 
+                                value="1" type="number" id="edit-tieWeightBox"/>
+                            <label style="width: 100%; text-align: center;" 
+                                for="tieWeightBox">Weight</label>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 edit-editTieValue edit-hide">
+                        <div style="float: left">
+                            <input disabled name="tieNameBox" class="form-control" 
+                                placeholder="" type="text" maxlength="100" 
+                                id="edit-tieNameBox"/>
+                            <label style="width: 100%; text-align: center;" 
+                                for="tieWeightBox">Label</label>
+                        </div>
+                    </div>
+                    <div class="col-sm-3 edit-editTieValue edit-hide" style="margin-top: 10px;">
+                        <div form-check">
+                            <div class="pretty p-switch p-fill">
+                                <input disabled name="tieDirectedToggle" 
+                                    class="form-check-input" type="checkbox" 
+                                    id="edit-tieDirectedToggle" />
+                                <div class="state p-primary">
+                                    <label style="width: 100%; text-align: center;"
+                                        class="form-check-label" 
+                                        for="tieDirectedToggle">
+                                        Directed 
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>        
+                </div>
                     </div>
                 </div>
-                <div class="row" style="margin-top: 20px">
-                    <div class="col-sm-1"></div>
-                    <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieWeightBox" class="form-control" 
-                            value="1" type="number" id="edit-tieWeightBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Weight</label>
-                    </div>
-                    </div>
-                    <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieNameBox" class="form-control" 
-                            placeholder="" type="text" maxlength="100" 
-                            id="edit-tieNameBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Label</label>
-                    </div>
-                    </div>
-                    <div class="col-sm-3" style="margin-top: 10px;">
-                    <div class="form-check">
-                        <div class="pretty p-switch p-fill">
-                        <input name="tieDirectedToggle" 
-                            class="form-check-input" type="checkbox" 
-                            id="edit-tieDirectedToggle" />
-                        <div class="state p-primary">
-                            <label style="width: 100%; text-align: center;"
-                                class="form-check-label" 
-                                for="tieDirectedToggle">
-                                Directed 
-                            </label>
-                        </div>
-                        </div>
-                    </div>
-                    </div>        
+
+                
+                <div class="row">
+                    <button disabled type="button" class="btn btn-primary edit-editTieValue edit-hide" 
+                            id="edit-adjustTieBtn">Save Changes</button>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
+                <button disabled type="button" class="btn btn-primary" 
                     id="confirmEditTie" data-dismiss="modal">Confirm</button>
             </div>
         </div>
