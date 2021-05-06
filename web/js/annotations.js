@@ -1806,199 +1806,15 @@ var suggestMentionsOfSelectedEntity = function(){
 }
 
 var openAddTieModal = function(e) {
-
-    if (menuConfigData.textSpans.length < 1) { return; }
-
-    tieModalTextArea = $('#tieModalTextArea');
-    dropdownOne = $('#tieObjectOneSelector');
-    dropdownTwo = $('#tieObjectTwoSelector');
-    tieNameBox = $('#tieNameBox');
-    tieWeightBox = $('#tieWeightBox');
-
-    // Clear old modal body
-    tieModalTextArea.empty();
-    dropdownOne.empty();
-    dropdownTwo.empty();
-    tieNameBox.val("");
-    tieNameBox.attr('placeholder', "").blur();
-    $('#tieObjectOneDropdown').empty().html("Object One <span class='caret'></span>");
-    $('#tieObjectTwoDropdown').empty().html("Object One <span class='caret'></span>");
-    menuConfigData.tieObjectOne = null;
-    menuConfigData.tieObjectTwo = null;
-
-    // display n spans before and after selected spans
-    var objectSearchWindowSize = 100;
-    var curSearch = 0;
-    var spanList = [];
-    // start of spans to be displayed
-    var startToken = parseInt($(menuConfigData.textSpans[0]).attr("data-token")) - objectSearchWindowSize/2;
-    if (startToken < 1) { startToken = 1;}
-    var curSpan = $("span[data-token=" + startToken.toString() + "]");
-    var curSpanClone = null;
-
-    // don't start on puncutative tokens
-    while (curSpan.prev().prev() !== null && curSpan.prev().prev() !== undefined &&
-           curSpan.prev().prev().length !== 0 && curSpan.prev().html().trim() !== "") {
-                curSpan = curSpan.prev();
-    }
-    curSpan = curSpan.prev();
-    while (curSearch < objectSearchWindowSize) {
-        if (curSpan === null || curSpan === undefined || curSpan.length===0) { break; }
-        if (typeof curSpan.attr('data-token') !== typeof undefined && typeof curSpan.attr('data-token') !== typeof null) {curSearch++;}
-        // need to push clone to spanList but need original for DOM navigation
-        curSpanClone = curSpan.clone();
-        if (curSpan.html().trim() !== "" && parseInt(curSpan.attr('data-token')) >= parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && parseInt(curSpan.attr('data-token')) <= parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token"))) {
-            curSpanClone.css('color', '#ff2d50');
-            curSpanClone.css('font-weight', 'bold');
-            curSearch--;
-            tieNameBox.attr('placeholder', tieNameBox.attr('placeholder') + curSpan.html() + " ").blur();
-        }
-        spanList.push(curSpanClone); 
-        curSpan = curSpan.next();
-    }
-    curSpan = curSpan.prev();
-    // don't end on punctuative tokens
-    while (curSpan.next() !== null && curSpan.next() !== undefined &&
-           curSpan.next().length !== 0) {
-                spanList.push(curSpan.next().clone());
-                if (curSpan.next().html().trim() === "") {break};
-                console.log(curSpan.next());
-                curSpan = curSpan.next();
-    }
-
-    // set tooltip of tie name box to show entire label
-    tieNameBox.attr('title', tieNameBox.attr('placeholder'));
-
-    // old method for pushing spans to text window
-    /*
-    for (var i = startToken; i <= endToken; i++) {
-        if (i < 1) { break; }
-        curSpan = $("span[data-token=" + i.toString() + "]").clone();
-        if (i >= parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && i <= parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr("data-token"))) {
-            curSpan.addClass('text-primary');
-            tieNameBox.attr('placeholder', tieNameBox.attr('placeholder') + curSpan.html() + " ").blur();
-        }
-        spanList.push(curSpan);
-    }
-    */
-
-    var objects = [];
-    var objectsAsString = "";
-    var preselectOne = null;
-    var preselectTwo = null;
-
-    // don't start on a space
-    if ($(spanList[0]).html().trim() === "") {
-        spanList.splice(0, 1);
-    }
-
-    var mentionIdToText = {};
-    var preselectMentionId1;
-    var preselectMentionId2;
-
-    // Assemble the text for each of the mentions in the selection.
-    spanList.forEach(span => {
-        tieModalTextArea.append(span.clone());
-        if (span.hasClass('entity')) {
-            var mentionId = span.attr('data-location-id');
-
-            if (parseInt(span.attr('data-token')) < parseInt($(menuConfigData.textSpans[0]).attr("data-token"))) {
-                preselectMentionId1 = mentionId;
-
-                // preselectOne = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
-                // '<span class="unselectable">' + span.text() + '</span></li>';
-            }
-            if (parseInt(span.attr('data-token')) > parseInt($(menuConfigData.textSpans[0]).attr("data-token")) && preselectMentionId2 === undefined) {
-                preselectMentionId2 = mentionId;
-
-                // preselectTwo = '<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
-                // '<span class="unselectable">' + span.text() + '</span></li>';
-            }
-
-            if(mentionIdToText[mentionId] == undefined){
-                mentionIdToText[mentionId] = '';
-            }
-            mentionIdToText[mentionId] += span.text();
-
-            // objects.push('<li class="tie-object list-group-item" data-location-id="' + span.attr('data-location-id') + '">' + 
-            //     '<span class="unselectable">' + span.text() + '</span></li>');
-        }
-    });
-
-    // Add the mentions as options in the dropdowns.
-    if(preselectMentionId1 !== undefined){
-        preselectOne = '<li class="tie-object list-group-item" '+
-            'data-location-id="' + preselectMentionId1 + '">' + 
-            '<span class="unselectable">' + 
-            mentionIdToText[preselectMentionId1].trim() + '</span></li>';
-    }
-
-    if(preselectMentionId2 !== undefined){
-        preselectTwo = '<li class="tie-object list-group-item" '+
-            'data-location-id="' + preselectMentionId2 + '">' + 
-            '<span class="unselectable">' + 
-            mentionIdToText[preselectMentionId2].trim()  + '</span></li>';
-    }
-
-    for(var mentionId in mentionIdToText){
-        objects.push('<li class="tie-object list-group-item" '+
-            'data-location-id="' + mentionId + '">' + 
-            '<span class="unselectable">' + mentionIdToText[mentionId].trim() + 
-            '</span></li>');
-    }
-
-    objects.push("<li class='list-group-item disabled' style='text-align: center;'><span style='text-align: center;'>--- Entities ---</span></li>");
-
-    for (entity in annotation_data.annotation.entities) {
-        objects.push('<li class="tie-object list-group-item" data-entity-id="' + entity.toString() + '">' + 
-                '<span class="unselectable">' + annotation_data.annotation.entities[entity].name + '</span></li>');
-    }
-
-    objectsAsString = objects.join("");
-    dropdownOne.append(objectsAsString);
-    dropdownTwo.append(objectsAsString);
-
-    // preselect objects closest to selected text area, if they exist
-    if (typeof preselectOne !== typeof null && typeof preselectOne !== typeof undefined) {
-        preselectOne = $(preselectOne);
-        var mention = $('#tieModalTextArea').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']');  
-        mention.addClass('selectedTieObject');
-        mention.addClass('selectedEntity');
-
-        // disable this mention in dropdowns
-        $('#tieObjectOneSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']').addClass("disabled");
-        menuConfigData.tieObjectOne = $('#tieObjectOneSelector').find('[data-location-id=' + preselectOne.attr('data-location-id') + ']');
-        var dropdownText = preselectOne.find('span').html();
-        if (preselectOne.attr('data-entity-id') !== undefined && preselectOne.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
-        $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
-    }
-    if (typeof preselectTwo !== typeof null && typeof preselectTwo !== typeof undefined) {
-        preselectTwo = $(preselectTwo);
-        var mention = $('#tieModalTextArea').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');  
-        mention.addClass('selectedTieObject');
-        mention.addClass('selectedEntity');
-
-        // disable this mention in dropdowns
-        $('#tieObjectTwoSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']').addClass("disabled");
-        preselectTwo.addClass("disabled");
-        menuConfigData.tieObjectTwo = $('#tieObjectTwoSelector').find('[data-location-id=' + preselectTwo.attr('data-location-id') + ']');
-        var dropdownText = preselectTwo.find('span').html();
-        if (preselectTwo.attr('data-entity-id') !== undefined && preselectTwo.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
-        $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
-    }
-
-    $('#addTieModalOpener').click();
-
-    $(document).trigger('entities.tie-modal-autofill', {
-        source_location_id: preselectOne ? preselectOne.attr('data-location-id') : null,
-        source_list: $('#tieObjectOneSelector')[0].outerHTML,
-        target_location_id: preselectTwo ? preselectTwo.attr('data-location-id') : null,
-        target_list: $('#tieObjectTwoSelector')[0].outerHTML
+    $(document).trigger('entities.annotation.set-tie-view', {
+        textSpans: menuConfigData.textSpans,
+        tieObjectOne: menuConfigData.tieObjectOne,
+        tieObjectTwo: menuConfigData.tieObjectTwo,
     });
 }
 
 var highlightTieModalTextArea = function(e) {
-    var location = $('#tieModalTextArea').find('[data-location-id=' + $(this).attr('data-location-id') + ']');
+    var location = tieModalTextArea.find('[data-location-id=' + $(this).attr('data-location-id') + ']');
     
     if (location.hasClass('selectedEntity') && !location.hasClass('selectedTieObject')) {
         location.removeClass('selectedEntity');
@@ -2009,57 +1825,63 @@ var highlightTieModalTextArea = function(e) {
 
 var tieModalObjectChosen = function(e) {
     
-    var object = $(this);
+    var selection = $(this);
 
-    var mention = $('#tieModalTextArea').find('[data-location-id=' + object.attr('data-location-id') + ']');  
-    mention.addClass('selectedTieObject');
-    mention.addClass('selectedEntity');
+    // var mention = $('#tieModalTextArea').find('[data-location-id=' + selection.attr('data-location-id') + ']');  
+    // mention.addClass('selectedTieObject');
+    // mention.addClass('selectedEntity');
 
-    if (object.parent().is('#tieObjectOneSelector')) {
-        if (menuConfigData.tieObjectOne !== null) {
-            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']').removeClass('selectedTieObject');
-            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']').removeClass('selectedEntity');
-            $('#tieObjectOneSelector').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']')
-                .removeClass("disabled");
-            $('#tieObjectTwoSelector').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']')
-                .removeClass("disabled");
-            $('#tieObjectOneSelector').find('[data-entity-id=' + menuConfigData.tieObjectOne.attr('data-entity-id') + ']')
-                .removeClass("disabled");
-        }
-        object.addClass("disabled");
-        $('#tieObjectTwoSelector').find('[data-location-id=' + object.attr('data-location-id') + ']').addClass("disabled");
-        menuConfigData.tieObjectOne = object;
-        console.log(menuConfigData.tieObjectOne);
-        var dropdownText = object.find('span').html();
-        if (object.attr('data-entity-id') !== undefined && object.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
-        $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
-
-        $(document).trigger('entities.tie-modal-source-change', {
-            source_location_id: object.attr('data-location-id'),
-            source_list: $('#tieObjectOneSelector')[0].outerHTML
+    if (selection.parent().is('#edit-tieObjectOneSelector')) {
+        $(document).trigger('entities.annotation.set-new-tie-modal-dropdown-source', {
+            selection: selection,
         });
+        // if (menuConfigData.tieObjectOne !== null) {
+        //     $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']').removeClass('selectedTieObject');
+        //     $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']').removeClass('selectedEntity');
+        //     $('#tieObjectOneSelector').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']')
+        //         .removeClass("disabled");
+        //     $('#tieObjectTwoSelector').find('[data-location-id=' + menuConfigData.tieObjectOne.attr('data-location-id') + ']')
+        //         .removeClass("disabled");
+        //     $('#tieObjectOneSelector').find('[data-entity-id=' + menuConfigData.tieObjectOne.attr('data-entity-id') + ']')
+        //         .removeClass("disabled");
+        // }
+        // selection.addClass("disabled");
+        // $('#tieObjectTwoSelector').find('[data-location-id=' + selection.attr('data-location-id') + ']').addClass("disabled");
+        // menuConfigData.tieObjectOne = selection;
+        // console.log(menuConfigData.tieObjectOne);
+        // var dropdownText = selection.find('span').html();
+        // if (selection.attr('data-entity-id') !== undefined && selection.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
+        // $('#tieObjectOneDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+
+        // $(document).trigger('entities.tie-modal-source-change', {
+        //     source_location_id: selection.attr('data-location-id'),
+        //     source_list: $('#tieObjectOneSelector')[0].outerHTML
+        // });
     } else {
-        if (menuConfigData.tieObjectTwo !== null) {
-            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']').removeClass('selectedTieObject');
-            $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']').removeClass('selectedEntity');
-            $('#tieObjectOneSelector').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']')
-                .removeClass("disabled");
-            $('#tieObjectTwoSelector').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']')
-                .removeClass("disabled");  
-            $('#tieObjectTwoSelector').find('[data-entity-id=' + menuConfigData.tieObjectTwo.attr('data-entity-id') + ']')
-                .removeClass("disabled");
-        }
-        $('#tieObjectOneSelector').find('[data-location-id=' + object.attr('data-location-id') + ']').addClass("disabled");
-        object.addClass("disabled");
-        menuConfigData.tieObjectTwo = object;
-        var dropdownText = object.find('span').html();
-        if (object.attr('data-entity-id') !== undefined && object.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
-        $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
-
-        $(document).trigger('entities.tie-modal-target-change', {
-            target_location_id: object.attr('data-location-id'),
-            target_list: $('#tieObjectTwoSelector')[0].outerHTML
+        $(document).trigger('entities.annotation.set-new-tie-modal-dropdown-target', {
+            selection: selection,
         });
+        // if (menuConfigData.tieObjectTwo !== null) {
+        //     $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']').removeClass('selectedTieObject');
+        //     $('#tieModalTextArea').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']').removeClass('selectedEntity');
+        //     $('#tieObjectOneSelector').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']')
+        //         .removeClass("disabled");
+        //     $('#tieObjectTwoSelector').find('[data-location-id=' + menuConfigData.tieObjectTwo.attr('data-location-id') + ']')
+        //         .removeClass("disabled");  
+        //     $('#tieObjectTwoSelector').find('[data-entity-id=' + menuConfigData.tieObjectTwo.attr('data-entity-id') + ']')
+        //         .removeClass("disabled");
+        // }
+        // $('#tieObjectOneSelector').find('[data-location-id=' + selection.attr('data-location-id') + ']').addClass("disabled");
+        // selection.addClass("disabled");
+        // menuConfigData.tieObjectTwo = selection;
+        // var dropdownText = selection.find('span').html();
+        // if (selection.attr('data-entity-id') !== undefined && selection.attr('data-entity-id') !== null) {dropdownText+=" (entity)";}
+        // $('#tieObjectTwoDropdown').empty().html(dropdownText + ' <span class="caret"></span>');
+
+        // $(document).trigger('entities.tie-modal-target-change', {
+        //     target_location_id: selection.attr('data-location-id'),
+        //     target_list: $('#tieObjectTwoSelector')[0].outerHTML
+        // });
     }
 }
 
@@ -2070,6 +1892,10 @@ var confirmAddTie = function() {
         resetMenuConfigData();
         return;
     }
+
+    const tieNameBox = $('#tieNameBox');
+    const weightBox = $('#tieWeightBox');
+    const directedToggle = $('#tieDirectedToggle');
 
     /* tieData {
             start: 10, 
@@ -2086,9 +1912,9 @@ var confirmAddTie = function() {
         end: parseInt($(menuConfigData.textSpans[menuConfigData.textSpans.length-1]).attr('data-token')),
         source_entity: null,
         target_entity: null,
-        label: $('#tieNameBox').val(),
-        weight: parseFloat($('#tieWeightBox').val()),
-        directed: $('#tieDirectedToggle').is(':checked')
+        label: tieNameBox.val(),
+        weight: parseFloat(weightBox.val()),
+        directed: directedToggle.is(':checked')
     }
 
     if (menuConfigData.tieObjectOne.attr('data-location-id') !== null && menuConfigData.tieObjectOne.attr('data-location-id') !== undefined) {
@@ -2103,90 +1929,94 @@ var confirmAddTie = function() {
     }
 
     if (tieData.label === "") {
-        tieData.label = $('#tieNameBox').attr('placeholder').trim();
+        tieData.label = tieNameBox.attr('placeholder').trim();
     }
 
+    var newTempId = Math.floor(Math.random() * 999999);  // need temp id for graph before added to annotation
+    while (Object.keys(annotation_data.annotation.ties).includes(newTempId)) {
+        newTempId = Math.floor(Math.random() * 999999);
+    }
+    tieData.id = newTempId;
+
     // addTie(tieData, callback)
-    annotationManager.addTie(tieData);
+    const tieObjectOneGroupId = $(`[data-location-id='${menuConfigData.tieObjectOne.attr("data-location-id")}'`).attr("data-group-id");
+    const tieObjectOneGroup = annotation_data.annotation.groups[tieObjectOneGroupId];
+    tieObjectOneGroup.id = tieObjectOneGroupId;
+
+    const tieObjectTwoGroupId = $(`[data-location-id='${menuConfigData.tieObjectTwo.attr("data-location-id")}'`).attr("data-group-id");
+    const tieObjectTwoGroup = annotation_data.annotation.groups[tieObjectTwoGroupId];
+    tieObjectTwoGroup.id = tieObjectTwoGroupId;
+
+    editTieNetworkViz.addGroup(tieObjectOneGroup, true);
+    editTieNetworkViz.addGroup(tieObjectTwoGroup, true);
+    editTieNetworkViz.addTie(tieData, true);
 
     resetMenuConfigData();
 }
 
 var openEditTieModal = function(e) {
-
     var tieRefs = $(this).attr('tie-refs').trim().split(" ");
     var ties = [];
-
-
     
     tieRefs.forEach((tieRef) => {
         ties.push(annotation_data.annotation.ties[tieRef]);
     });
 
-
-
-    tieModalTextArea = $('#edit-tieModalTextArea');
-    tieNameBox = $('#edit-tieNameBox');
-    tieWeightBox = $('#edit-tieWeightBox');
-    tieDirectedToggle = $('#edit-tieDirectedToggle')
-
-    const tokenContext = tokenNavigator.getTokenContext($(`[data-token='${parseInt((ties[0].start + ties[0].end) / 2)}']`), 100);
-
-
-    tieModalTextArea.empty();
-    tokenContext.forEach((token) => {
-        let clone = token.clone();
-        if (token.hasClass("tie-text")) {
-            // make tie text distinct from other ties in context
-            clone.css('color', '#ff2d50');
-            clone.css('text-decoration', 'none');
-            clone.css('font-weight', 'bold');
-        }
-        tieModalTextArea.append(clone);
-    })
-
-
-
-    const $dropdown = $("#edit-addEntityToNetworkDropdownMenu");
-    console.log($dropdown);
-    Object.keys(annotation_data.annotation.groups).map((groupId, i) => {
-        $dropdown.append(`<li><a id="edit-addEntityToNetworkDropdownItem" group=${groupId} class="dropdown-item" href="#">${annotation_data.annotation.groups[groupId].name}</a></li>`);
+    $(document).trigger('entities.annotation.set-tie-view', {
+        tieRefs: tieRefs,
+        ties: ties,
     });
 
-    $('#editTieModal').one('shown.bs.modal', () => {
-        editTieNetworkViz = NetworkVisualizer();
-        editTieNetworkViz.init("#edit-tie-network-svg");
+    // tieModalTextArea = $('#edit-tieModalTextArea');
+    // tieNameBox = $('#edit-tieNameBox');
+    // tieWeightBox = $('#edit-tieWeightBox');
+    // tieDirectedToggle = $('#edit-tieDirectedToggle');
 
-        editTieNetworkViz.loadTieNetwork(Object.keys(annotation_data.annotation.ties)
-            .filter(key => tieRefs.includes(key))
-            .reduce((obj, key) => {
-                obj[key] = annotation_data.annotation.ties[key];
-                return obj;
-            }, {}), annotation_data.annotation);
+    // const tokenContext = tokenNavigator.getTokenContext($(`[data-token='${parseInt((parseInt(ties[0].start) + parseInt(ties[0].end)) / 2)}']`), 100);
 
-        editTieNetworkViz.setAnnotationBlock(annotationManager, ties[0].start, ties[0].end);
+    // tieModalTextArea.empty();
+    // tokenContext.forEach((token) => {
+    //     let clone = token.clone();
+    //     if (token.hasClass("tie-text")) {
+    //         // make tie text distinct from other ties in context
+    //         clone.css('color', '#ff2d50');
+    //         clone.css('text-decoration', 'none');
+    //         clone.css('font-weight', 'bold');
+    //     }
+    //     tieModalTextArea.append(clone);
+    // })
 
-        $(document).on("click", "#edit-addEntityToNetworkDropdownItem", (e) => {
-            const groupId = e.target.getAttribute("group");
-            const group = annotation_data.annotation.groups[groupId];
-            group.id = groupId;
 
-            editTieNetworkViz.addGroup(group, true);
-        });
-      })
+    // const $dropdown = $("#edit-addEntityToNetworkDropdownMenu");
+    // console.log($dropdown);
+    // Object.keys(annotation_data.annotation.groups).map((groupId, i) => {
+    //     $dropdown.append(`<li><a id="edit-addEntityToNetworkDropdownItem" group=${groupId} class="dropdown-item" href="#">${annotation_data.annotation.groups[groupId].name}</a></li>`);
+    // });
 
-    // // Fill in current tie values
-    // if (typeof tie.label === typeof null) {
-    //     tieNameBox.val("");
-    // } else { tieNameBox.val(tie.label); }
-    // // Fill in current tie values
-    // if (typeof tie.directed === typeof null || typeof tie.directed === typeof undefined) {
-    //     tieDirectedToggle.prop('checked', false);
-    // } else { tieDirectedToggle.prop('checked', tie.directed); }
-    // tieWeightBox.val(tie.weight);
+    // $('#editTieModal').one('shown.bs.modal', () => {
+    //     editTieNetworkViz = NetworkVisualizer();
+    //     editTieNetworkViz.init("#edit-tie-network-svg");
 
-    $('#confirmEditTie').attr("tie-ref", $(this).attr('tie-ref'));
-    $('#editTieModalOpener').click();
+    //     editTieNetworkViz.loadTieNetwork(Object.keys(annotation_data.annotation.ties)
+    //         .filter(key => tieRefs.includes(key))
+    //         .reduce((obj, key) => {
+    //             obj[key] = annotation_data.annotation.ties[key];
+    //             return obj;
+    //         }, {}), annotation_data.annotation);
+
+    //     editTieNetworkViz.setAnnotationBlock(annotationManager, ties[0].start, ties[0].end);        
+    //   })
+
+    // $('#confirmEditTie').attr("tie-ref", $(this).attr('tie-ref'));
+    // $('#editTieModalOpener').click();
+}
+
+var addAliasGroupToNetwork = function(e) {
+        const groupId = e.target.getAttribute("group");
+        const group = annotation_data.annotation.groups[groupId];
+        group.id = groupId;
+
+        editTieNetworkViz.addGroup(group, true);
 }
 
 var confirmEditTieAdjustTie = function(e) {
@@ -2707,7 +2537,7 @@ $(document).ready(function(){
     $(document).on('click', '#confirmGroupSelect', confirmMoveEntityToGroup)
 
     $(document).on('click', '.addTieOption', openAddTieModal);
-    $(document).on('click', '#confirmAddTie', confirmAddTie);
+    $(document).on('click', '#edit-addTieBtn', confirmAddTie);
     $(document).on('click', '.editTieOption', openEditTieModal);
     $(document).on('click', '#confirmEditTie', confirmEditTie);
     $(document).on('click', '#edit-adjustTieBtn', confirmEditTieAdjustTie);
@@ -2717,6 +2547,7 @@ $(document).ready(function(){
     $(document).on('mouseenter', '.tie-object', highlightTieModalTextArea)
     $(document).on('mouseleave', '.tie-object', highlightTieModalTextArea)
 
+    $(document).on("click", "#edit-addEntityToNetworkDropdownItem", (e) => addAliasGroupToNetwork);
 
     $(document).on('mouseenter', '.thisMentionHover', startHoverMenuTimer);
     $(document).on('mouseenter', '.thisMentionHover', startHoverMenuTimer);

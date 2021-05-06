@@ -275,6 +275,10 @@ var NetworkVisualizer = function() {
                 tieId: tieId,
                 tie: tie,
             }, true);
+        } else {
+            self.annotation_addTie({
+                tie: tie,
+            }, true);
         }
 
         seenLinks[key].weight += tie.weight == undefined ? 1.0 : tie.weight;

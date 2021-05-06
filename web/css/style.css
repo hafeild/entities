@@ -471,7 +471,7 @@ span.selectedEntity.end-token {
 
 @keyframes selectedEntity_color {
     20% {
-        border-color: #ff2d50;
+        border-color: #ff002b;
     }
  }
 
@@ -620,9 +620,12 @@ span.selectedEntity.end-token {
     float: right;
 }
 
-.dropdown-menu.tieObjectSelector {         
-    max-height: 200px;
+.dropdown-menu.edit-tieObjectSelector {         
+    max-height: 350px;
     overflow-y: auto;
+
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 #visualizer-tutorial {
@@ -630,7 +633,7 @@ span.selectedEntity.end-token {
 }
 
 #editTieModal-dialog {
-    width: 50%;
+    width: 55%;
 }
 
 #editTieModal-body {

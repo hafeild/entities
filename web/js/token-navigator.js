@@ -28,8 +28,6 @@ let TokenNavigator = function (annotation_data) {
         let startDataToken = Math.max(2, $token.attr("data-token") - range / 2);
         let curToken = $token;
 
-        console.log($token);
-
         // step backward until start of range is found
         while (curToken.length > 0 && curToken.attr("data-token") != startDataToken) {
             curToken = curToken.prevAll(`[data-token]:first`);
@@ -38,12 +36,12 @@ let TokenNavigator = function (annotation_data) {
         // skip punctuation and empty spans
         do {
             curToken = curToken.prevAll(`[data-token]:first`);
-        } while (!(isWordyToken(curToken.prevAll(`[data-token]:first`))))
+        } while (!(isWordyToken(curToken.prevAll(`[data-token]:first`))) && curToken.attr("data-token") >= startDataToken)
 
         const tokenList = [];
 
         for (let i = 0; i < range;) {
-            if (curToken == null) {
+            if (curToken == null || curToken.length < 1) {
                 break;
             }
 
