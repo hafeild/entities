@@ -4,9 +4,12 @@
 // Purpose: Takes care of drawing and updating the entity network in the network
 //          panel on the annotations page.
 
-var networkViz = (function(){
+var NetworkVisualizer = function() {
     var self = {};
     var entitiesData = {};
+    var changesQueue = undefined;
+    var annotationManager = false;
+    var start, end;
     var seenGroups = {};
     var seenLinks = {};
     var tieToLinkIdLookup = {};
@@ -15,38 +18,50 @@ var networkViz = (function(){
     var simulation;
     var networkData;
     var refreshNetwork;
-    var links, gnodes;
+    var links, gnodes, linkHitboxes, nodeHitboxes;
+    var alwaysShowName = false;
     // For dragging and making new links.
     var movingNode = false, drawingLinkMode = false, selectedNode = undefined;
+    // For dragging links
+    var adjustingLinkWeight = false, selectedTie = undefined, selectedLink = undefined;
     var readjustOnMove = true;
     
-    function gatherDimensions(){
-        svgElm = document.querySelector("#network-svg");
-        svg = d3.select('#network-svg');
-        svgWidth = svgElm.getBoundingClientRect().width;
-        svgHeight = svgElm.getBoundingClientRect().height;
+    function gatherDimensions(svgSelector) {
+        svgElm = document.querySelector(svgSelector);
+        if (svgElm) {
+            svg = d3.select(svgSelector);
+            svgWidth = svgElm.getBoundingClientRect().width;
+            svgHeight = svgElm.getBoundingClientRect().height;
+
+            return true;
+        }
+        return false;
     }
 
     /**
      * Initializes the network and D3 objects. Does NOT draw the network.
      */
-    self.init = function(){
-        gatherDimensions();
+    self.init = function(svgSelector){
+        let success = gatherDimensions(svgSelector);
+        if (!success) {
+            console.log("NetworkVisualizer: Could not find specified SVG");
+            return;
+        }
+        
         simulation =  d3.forceSimulation()
-            .force("link", d3.forceLink().id(function(d) { return d.id; }))
-            .force("charge", d3.forceManyBody())
+            .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(60).strength(2))
+            .force("charge", d3.forceManyBody().strength(-15))
             // .force("center", d3.forceCenter(svgWidth / 2, svgHeight / 2))
-            .force("collision", d3.forceCollide(RADIUS));
+            .force("collision", d3.forceCollide(RADIUS))
 
         // simulation.force("charge").strength(-100).distanceMax(svgWidth);
-        simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
-
+        // simulation.force("charge").strength(-300).distanceMax(svgWidth/4);
 
         $(window).on('resize', function(){
             gatherDimensions();
             simulation.force("charge").strength(-100).distanceMax(svgWidth/4);
-            svg.selectAll('g,link').remove();
-            drawLinks();
+            svg.selectAll('g,link,link-hitbox,node-hitbox').remove();
+            drawLinks(self);
             drawNodes();
         });
     };
@@ -57,6 +72,34 @@ var networkViz = (function(){
 
     function yCoord(y){
         return Math.min(Math.max(0, y), svgHeight);
+    }
+
+    function refreshNetwork() {
+        gnodes.attr("transform", function(d) { 
+            d.x = xCoord(d.x);
+            d.y = yCoord(d.y);
+            return 'translate(' + [d.x, d.y] + ')';
+        }); 
+        
+        nodeHitboxes.attr("transform", function(d) { 
+            d.x = xCoord(d.x);
+            d.y = yCoord(d.y);
+            return 'translate(' + [d.x, d.y] + ')';
+        }); 
+
+        // links.attr("x1", function(d) { return xCoord(d.source.x); })
+        //     .attr("y1", function(d) { return yCoord(d.source.y); })
+        //     .attr("x2", function(d) { return xCoord(d.target.x); })
+        //     .attr("y2", function(d) { return yCoord(d.target.y); });
+        links.attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+
+        linkHitboxes.attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
     }
     
     /**
@@ -69,26 +112,10 @@ var networkViz = (function(){
      *   - ties
      *   - groups
      */
+
     self.loadNetwork = function(entitiesData_) {
         entitiesData = entitiesData_;
         networkData = entitiesDataToGraph(entitiesData);
-
-        refreshNetwork = function() {
-            gnodes.attr("transform", function(d) { 
-                d.x = xCoord(d.x);
-                d.y = yCoord(d.y);
-                return 'translate(' + [d.x, d.y] + ')';
-            }); 
-
-            // links.attr("x1", function(d) { return xCoord(d.source.x); })
-            //     .attr("y1", function(d) { return yCoord(d.source.y); })
-            //     .attr("x2", function(d) { return xCoord(d.target.x); })
-            //     .attr("y2", function(d) { return yCoord(d.target.y); });
-            links.attr("x1", function(d) { return d.source.x; })
-                .attr("y1", function(d) { return d.source.y; })
-                .attr("x2", function(d) { return d.target.x; })
-                .attr("y2", function(d) { return d.target.y; });
-        };
 
         simulation
             .nodes(networkData.nodes)
@@ -96,9 +123,59 @@ var networkViz = (function(){
         simulation.force("link")
             .links(networkData.links);
     
-        drawLinks();
+        drawLinks(self);
         drawNodes();
     };
+    
+    /**
+     * Draws the network and places listeners on nodes for clicking/dragging/
+     * hovering.
+     * 
+     * @param {object} tieData Map containing ties with the following keys
+     *   - start
+     *   - end
+     *   - source_entity
+     *   - target_entity
+     *   - label
+     * 
+     * @param {object} entitiesData_ EntiTies map with the following keys:
+     *   - entities
+     *   - locations
+     *   - ties
+     *   - groups
+     */
+    self.loadTieNetwork = function(tieData, entitiesData_, annotationManager) {
+        alwaysShowName = true;
+
+        entitiesData = entitiesData_;
+        networkData = tiesDataToGraph(tieData);
+
+        simulation
+            .nodes(networkData.nodes)
+            .on("tick", refreshNetwork);
+        simulation.force("link")
+            .links(networkData.links);
+
+        drawLinks(self);
+        drawNodes();
+    }
+
+    /**
+     * Sets the start and end of the annotation being referenced, as well
+     * as the annotation manager for that annotation.
+     * 
+     * @param {object} annotationManager_ 
+     * @param {int} start_
+     * @param {int} end_
+     * 
+     */
+    self.setAnnotationBlock = function(annotationManager_, start_, end_) {
+        annotationManager = annotationManager_;
+        start = start_;
+        end = end_;
+
+        changesQueue = [];
+    }
 
     /**
      * Resolves the entity alias group id associated with the tie node's entity 
@@ -115,11 +192,11 @@ var networkViz = (function(){
         if(tieNode.entity_id !== undefined){
             return entitiesData.entities[tieNode.entity_id].group_id;
         } else if(tieNode.location_id != undefined){
-            if(entitiesData.locations[tieNode.location_id].entity_id !== undefined){
+            if(entitiesData && entitiesData.locations[tieNode.location_id].entity_id !== undefined){
                 return entitiesData.entities[
                     entitiesData.locations[
                         tieNode.location_id].entity_id].group_id;
-            }
+            } 
         }
 
         console.log("Hmm...can't identify the entity or location "+
@@ -134,7 +211,7 @@ var networkViz = (function(){
      * @param {object} graph The internal graph object; should have the 
      *                       following structure:
      *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
-     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *   - links --> [{source: ..., target: ..., weight: ..., directed,
      *                 label: ..., count: ...}, ...]
      * @param {string} groupId The id of the entity alias group to add.
      */
@@ -174,23 +251,40 @@ var networkViz = (function(){
         var targetGroupId = getTieNodeGroup(tie.target_entity);
         var key = tieToLinkId(tieId, tie);
 
-        if(seenLinks[key] == undefined){
-            seenLinks[key] = {
-                linkId: key,
-                source: sourceGroupId,
-                target: targetGroupId,
-                value: 0,
-                directed: tie.directed == undefined ? 
-                                false : tie.directed,
-                label: tie.label,
-                count: 0 // The number of links hidden in this one.
-            }
+        var newTie = true;
+        if (seenLinks[key] != undefined) {
+            newTie = false;
         }
 
-        seenLinks[key].value += tie.weight == undefined ? 1.0 : tie.weight;
+        seenLinks[key] = {
+            id: tieId,
+            linkId: key,
+            source_entity: tie.source_entity,
+            target_entity: tie.target_entity,   
+            source: sourceGroupId,
+            target: targetGroupId,
+            weight: 0,
+            directed: tie.directed == undefined ? 
+                            false : tie.directed,
+            label: tie.label,
+            count: seenLinks[key] != undefined ? Math.max(seenLinks[key].count, 0) : 0 // The number of links hidden in this one.
+        }
+
+        if (!newTie) {
+            self.annotation_updateTie({
+                tieId: tieId,
+                tie: tie,
+            }, true);
+        } else {
+            self.annotation_addTie({
+                tie: tie,
+            }, true);
+        }
+
+        seenLinks[key].weight += tie.weight == undefined ? 1.0 : tie.weight;
         seenLinks[key].count++;        
 
-        return seenLinks[key].count === 1;
+        return newTie;
     }
 
     /**
@@ -200,7 +294,7 @@ var networkViz = (function(){
      * @param {object} graph The internal graph object; should have the 
      *                       following structure:
      *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
-     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *   - links --> [{source: ..., target: ..., weight: ..., directed,
      *                 label: ..., count: ...}, ...]
      * @param {object} tie A tie object with at least these fields:
      *   - start (token offset; integer)
@@ -224,6 +318,7 @@ var networkViz = (function(){
             addInternalNode(graph, seenLinks[linkId].target);
             return true;
         }
+        console.log("Returning false");
         return false;
     }
 
@@ -282,7 +377,7 @@ var networkViz = (function(){
      * 
      * @return An object with two keys:
      *   - nodes --> [{name: ..., id: ..., group: ...}, ...]
-     *   - links --> [{source: ..., target: ..., value: ..., directed,
+     *   - links --> [{source: ..., target: ..., weight: ..., directed,
      *                 label: ..., count: ...}, ...]
      */
     function entitiesDataToGraph(entitiesData){
@@ -301,6 +396,56 @@ var networkViz = (function(){
         }
 
         return graph;
+    }
+
+    function tiesDataToGraph(tiesData) {
+        let graph = { nodes: [], links: [] };
+        let tie;
+
+        for (tieId in tiesData) {
+            addInternalTie(graph, tieId, tiesData[tieId]);
+        }        
+
+        return graph;
+    }
+
+    function linkWeightFollowMouse(e) {
+        if (annotationManager === false) { return; }
+        var textPosition = { top: e.pageY + 10, left: e.pageX + 10 };
+        $('#adjustTie-besideMouseText').offset(textPosition);
+    }
+
+    function linkDragStarted(d, i, n) {
+        if (annotationManager === false) { return; }
+        console.log("drag started");
+        d3.event.subject.fx = d3.event.subject.x;
+        d3.event.subject.fy = d3.event.subject.y;
+    }
+
+    function linkDragged(d, i, n) {
+        if (annotationManager === false) { return; }
+        if (d3.event.metaKey) {
+            if (!adjustingLinkWeight) {
+                adjustingLinkWeight = true;
+                $(document).on("mousemove", (e) => linkDragEnded(e, d, i, n));
+                d3.event.preventDefault();
+            }
+            var textPosition = { top: d3.event.pageY + 10, left: d3.event.pageX + 10 };
+            $('#adjustTie-besideMouseText').offset(textPosition);
+            $("#adjustTie-besideMouseText").html(annotation_data.annotation.ties[d.id].weight);
+        } else if (adjustingLinkWeight) {
+            linkDragEnded(e, d, i, n);
+        }
+    }
+
+    function linkDragEnded(e, d, i, n) {
+        if (adjustingLinkWeight) {
+            console.log("drag ended");
+            adjustingLinkWeight = false;
+            $(document).off("mousemove", linkDragEnded(e, d, i, n));
+            // $(document).off("mousemove", linkWeightFollowMouse);
+            $("#adjustTie-besideMouseText").html("");
+        }
     }
     
     /**
@@ -401,9 +546,21 @@ var networkViz = (function(){
 
     
         // Case 3;
-        } else {
-            addLink(networkData.nodes[selectedNode], 
+        } else if (annotationManager) {
+            self.addLink(networkData.nodes[selectedNode], 
                 networkData.nodes[i], 1, true);
+            
+            const newTie = {
+                start: start,
+                end: end,
+                source_entity: { entity_id: networkData.nodes[selectedNode].id },
+                target_entity: { entity_id: networkData.nodes[i].id },
+            }
+
+            self.annotation_addTie({
+                tie: newTie,
+            }, true);
+            
             d3.select(n[selectedNode]).classed('node-selected', false);
             
             drawingLinkMode = false;
@@ -411,20 +568,102 @@ var networkViz = (function(){
         }
     }
 
+    function removeLinkTie(d, i, n) {
+        if (annotationManager === false) { return; }
+        d3.event.preventDefault();
+        console.log(d);
+        self.removeTie(d);
+    }
+
+    function unselectLink(i, n) {
+        if (i == undefined) {
+            i = selectedLink;
+        }
+        if (n != undefined) {
+            d3.select(linkHitboxToLink(n[i])).classed('link-selected', false);
+        }
+        selectedTie = undefined;
+        selectedLink = undefined;
+        $(document).trigger('entities.annotation.edit-tie-selected-changed', {
+            tie: undefined
+        });
+    }
+
+    function linkClicked(d, i, n) {
+        if (annotationManager === false) { return; }
+        if (!d3.event.shiftKey) {
+            console.log(d);
+            // toggle tie directedness
+            d.directed = !d.directed;
+
+            const tempSourceEntity = d.source_entity;
+            const tempSource = d.source;
+            d.source_entity = d.target_entity;
+            d.source = d.target;
+            d.target_entity = tempSourceEntity;
+            d.target = tempSource;
+
+            self.addTie(d.id, d);
+        } else {
+            // select link
+            if (selectedTie === d) {
+                // unset selected
+                unselectLink(i, n);
+            } else {
+                // set selected
+                d3.select(linkHitboxToLink(n[i])).classed('link-selected', true);
+                // unset previous if exists
+                if (selectedLink != undefined) {
+                    d3.select(linkHitboxToLink(n[selectedLink])).classed('link-selected', false);
+                }
+                selectedTie = d;
+                selectedLink = i;
+                $(document).trigger('entities.annotation.edit-tie-selected-changed', {
+                    tie: d
+                });
+            }
+        }
+    }
+
+    function linkHitboxToLink(d_hitbox) {
+        if (!d_hitbox) { return; }
+        if (d_hitbox.parentElement != undefined) {
+            return d_hitbox.parentElement.querySelector(`.link[line='${d_hitbox.getAttribute("belongs-to-line")}'`);
+        }
+        return $(`.link[line='${d_hitbox.getAttribute("belongs-to-line")}'`);
+    }
+
     /**
      * (Re)Draws the edges in the network. This relies on the networkData 
      * object.
      */
-    function drawLinks() {
+    function drawLinks(self) {
+        svg.append("svg:defs").append("svg:marker")
+            .attr("id", "arrow")
+            .attr("viewBox", "0 -5 10 10")
+            .attr('refX', -20)//so that it comes towards the center.
+            .attr("markerWidth", 5)
+            .attr("markerHeight", 5)
+            .attr("orient", "auto")
+            .append("svg:path")
+            .attr("d", "M0,-5L10,0L0,5");
+
         links = svg.selectAll(".link")
             .data(networkData.links);
         
         links.enter().append("line")
             .attr("class", "link")
-            .style("stroke-width", function(d) { return 0.5*Math.sqrt(d.value); })
+            .attr("line", function(d, i , n) { return i; })
+            .attr('marker-start', (d) => { 
+                return d.directed ? "url(#arrow)" : "";
+            })
+            .style("stroke-width", function(d) { return 3 * Math.sqrt(d.weight); })
             .style("stroke", "#555555");
-    
+
+        links.attr( "d", (d) => { return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
+
         links.exit().remove();
+
         links = svg.selectAll(".link")
             .data(networkData.links);
     }
@@ -436,44 +675,130 @@ var networkViz = (function(){
     function drawNodes() {
         gnodes = svg.selectAll('g.gnode')//('g.gnode')
             .data(networkData.nodes);
+        
+        nodeHitboxes = svg.selectAll(".node-hitbox")
+            .data(networkData.nodes);
+
+        gnodes.enter().append("circle")
+            .attr("class", (d)=>{ return `node-hitbox g${d.group}` })
+            .attr("r", RADIUS * 10)
+            .attr("belongs-to-node", function(d, i , n) { return i; })
+            .style("border", "none")
+            .style("fill", "#11111100")
+            .on('mousemove.passThru', function(d) {
+                if (d3.event.metaKey) { return; }
+                d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hitbox-hover', true); 
+
+                var e = d3.event;
+                var pointerEventsCurrentNode = this.style.pointerEvents;
+                this.style.pointerEvents = 'none';
+
+                var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
+
+                var nextEvent = document.createEvent('MouseEvent');
+
+                nextEvent.initMouseEvent(e.type, e.bubbles, e.cancelable, e.view,  e.detail, e.screenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
+                elementBeneath.dispatchEvent(nextEvent);
+
+                this.style.pointerEvents = pointerEventsCurrentNode;
+            })
+            .on('mouseout', function(d, i, n){ 
+                d3.select(this.parentElement.querySelector(`.gnode[node='${this.getAttribute("belongs-to-node")}'`)).classed('node-hover', false); 
+                
+                var elementBeneath = document.elementFromPoint(d3.event.x, d3.event.y);
+
+                if (elementBeneath && elementBeneath.nodeName && elementBeneath.nodeName.toLowerCase() == "svg") {
+                    elementBeneath.querySelectorAll(".gnode").forEach((gnode) => {
+                        console.log("removing extra");
+                        d3.select(gnode).classed("node-hitbox-hover", false);
+                    })
+                }
+            });
     
         var newG = gnodes
             .enter()
             .append('g')
             .classed('gnode', true)
-            // .on('click', nodeClicked)
+            .attr("node", function(d, i , n) { return i; })
+            // .on('mouseover', function(d, i, n){ 
+            //     $(document).trigger('entities.network-node-mouseover', {
+            //         group_id: d.id, 
+            //         name: d.name,
+            //         x: d.x,
+            //         y: d.y
+            //     });
+            //     d3.select(this).classed('node-hover', true); })
             .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended))
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended))
+            .on('click', nodeClicked)
             .on('mouseover', function(d, i, n){ 
-                 $(document).trigger('entities.network-node-mouseover', {
-                    group_id: d.id, 
-                    name: d.name,
-                    x: d.x,
-                    y: d.y
-                });
-                d3.select(this).classed('node-hover', true); })
+                d3.select(this).classed('node-hover', true);
+            })
             .on('mouseout', function(d, i, n){ 
-                 $(document).trigger('entities.network-node-mouseout', {
-                    group_id: d.id, 
-                    name: d.name,
-                    x: d.x,
-                    y: d.y
-                });
-                d3.select(this).classed('node-hover', false); });;
+                d3.select(this).classed('node-hover', false);
+            });
 
         newG.append("circle")
             .attr("class", (d)=>{ return `node g${d.group}` })
             .attr("r", RADIUS);
 
-        newG.append("text")
+        newG.insert("text")
             .text((d,i,n) => { return d.name })
-            .attr("class", (d)=>{ return `gn${d.group}` });
+            .attr("dy", function(d){return RADIUS * 3})
+            .attr("class", (d)=>{ return `node-text gn${d.group}${alwaysShowName ? " always-shown" : ""}` });
+                    
+        linkHitboxes = svg.selectAll(".link-hitbox")
+            .data(networkData.links);
+
+        linkHitboxes.enter().append("line")
+            .attr("class", "link-hitbox")
+            .attr("belongs-to-line", function(d, i , n) { return i; })
+            .style("stroke-width", function(d) { return 20 * Math.sqrt(d.weight); })
+            .style("stroke", "#55555500")
+            .on('mousemove.passThru', function (d, i, n) { 
+                $(document).trigger('entities.network-link-mouseover', {
+                    group_id: d.id, 
+                    name: d.name,
+                    x: d.x,
+                    y: d.y
+                });
+                d3.select(linkHitboxToLink(this)).classed('link-hover', true); 
+            })
+            .on('mouseout', function(d, i, n){ 
+                    $(document).trigger('entities.network-link-mouseout', {
+                       group_id: d.id, 
+                       name: d.name,
+                       x: d.x,
+                       y: d.y
+                   });
+                const linkTarget = linkHitboxToLink(this);
+                // mouseout will still trigger if link is removed, so this error check is required
+                if (linkTarget) {
+                    d3.select(linkTarget).classed('link-hover', false); 
+                }
+            })
+            .on("start", linkDragStarted)
+            .on("drag", (d, i, n) => linkDragged(d, i, n))
+            .on("end", (d, i, n) => linkDragEnded(d, i, n))
+            .on('click', (d, i, n) => linkClicked(d, i, n))
+            .on('contextmenu', (d, i, n) => removeLinkTie(d, i, n));
+
+        linkHitboxes.attr( "d", (d) => { return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y });
+
+        linkHitboxes.exit().remove();
+
+        linkHitboxes = svg.selectAll(".link-hitbox")
+            .data(networkData.links);
 
         gnodes.exit().remove();
+        nodeHitboxes.exit().remove();
 
         gnodes = svg.selectAll('g.gnode')//('g.gnode')
+            .data(networkData.nodes);
+        
+        nodeHitboxes = svg.selectAll(".node-hitbox")
             .data(networkData.nodes);
     }
     
@@ -509,23 +834,23 @@ var networkViz = (function(){
      * 
      * @param {string} sourceId The id of the source node.
      * @param {string} targetId The id of the target node.
-     * @param {number} value The weight of the edge.
+     * @param {number} weight The weight of the edge.
      * @param {boolean} isDirected Whether this edge is directed or not.
      * @param {string} label The edge's label.
      * @param {boolean} adjustLayout Whether or not the network layout should be
      *                               re-adjusted after drawing the link.
      * 
      */
-    self.addLink = function(sourceId, targetId, value, isDirected, label, 
+    self.addLink = function(sourceId, targetId, weight, isDirected, label, 
             adjustLayout){
         // simulation.stop();
 
         var link = {
                 source: sourceId,
                 target: targetId,
-                value: value == undefined ? 1.0 : value,
+                weight: weight == undefined ? 1.0 : weight,
                 directed: isDirected == undefined ? 
-                                false : tie.directed,
+                                false : isDirected,
                 label: label
         }
 
@@ -572,6 +897,7 @@ var networkViz = (function(){
     self.addTies = function(ties, adjustLayout){
         var linkAdded = false;
 
+        console.log("Adding ties...");
         ties.forEach((tie)=>{
             linkAdded = addInternalTie(networkData, tie.id, tie) || linkAdded;
         });
@@ -579,7 +905,7 @@ var networkViz = (function(){
         if(linkAdded){
             linkAdded = true;
             svg.selectAll('g,link').remove();
-            drawLinks();
+            drawLinks(self);
             drawNodes();
             simulation.force("link").links(networkData.links);
         }
@@ -643,6 +969,11 @@ var networkViz = (function(){
 
         console.log('Removing ties...');
         ties.forEach((tie)=>{
+            self.annotation_removeTie({
+                tieId: tie.id,
+            }, true);
+            
+
             var linkId = tieToLinkId(tie.id, tie);
             console.log('Considering tie ', tie, '(link id='+linkId+')');
             if(seenLinks[linkId] !== undefined){
@@ -672,7 +1003,7 @@ var networkViz = (function(){
 
         if(updateRequired){
             svg.selectAll('g,link').remove();
-            drawLinks();
+            drawLinks(self);
             drawNodes();
             simulation.force("link").links(networkData.links);
 
@@ -711,6 +1042,33 @@ var networkViz = (function(){
     }
 
     /**
+     * Updates the selected tie in the network. If the link id created by the
+     * tie properties (see tieToLinkId) matches an existing link, the existing
+     * link's count is decremented and the tie's weight subtracted from the
+     * existing link's weight. If the resulting count is 0, the link is removed.
+     * If the link id is new, no action is performed.
+     * 
+     * @param {object} changes A tie object with at least these fields:
+     *   - label (string)
+     *   - weight (floating point)
+     *   - directed (boolean)
+     * @param {boolean} adjustLayout Whether or not the network layout should be
+     *                               re-adjusted after removing or updating the 
+     *                               link.
+     */
+    self.adjustSelectedTie = function(changes, adjustLayout) {
+        selectedTie.label = changes.label;
+        selectedTie.weight = changes.weight;
+        selectedTie.directed = changes.directed;
+
+        self.addTie(selectedTie, adjustLayout);
+
+        $(`.link[line='${selectedLink}']`).removeClass('link-selected');
+        selectedLink = undefined;
+        selectedTie = undefined;
+    }
+
+    /**
      * Removes a group from the network. 
      * 
      * @param {object} group A group object with at least these fields:
@@ -733,7 +1091,7 @@ var networkViz = (function(){
             delete seenGroups[group.id];
            
 
-            drawLinks();
+            drawLinks(self);
             drawNodes();
             simulation.force("link").links(networkData.links);
 
@@ -741,6 +1099,63 @@ var networkViz = (function(){
                 simulation.alpha(1).restart();
             } else {
                 refreshNetwork();
+            }
+        }
+    }
+
+    self.annotation_confirmChanges = function() {
+        changesQueue.forEach((change) => {
+            change.assignedFunction(change.data, false);
+        });
+        $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+            allowed: false,
+        });
+    }
+
+    self.annotation_removeTie = function(data, queue) {
+        if (annotationManager) {
+            if (queue) {
+                $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+                    allowed: true,
+                });
+                changesQueue.push({
+                    assignedFunction: self.annotation_removeTie,
+                    data: data
+                });
+            } else {
+                annotationManager.removeTie(data.tieId);
+            }
+        }
+    }
+
+    self.annotation_updateTie = function(data, queue) {
+        if (annotationManager) {
+            if (queue) {
+                $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+                    allowed: true,
+                });
+                changesQueue.push({
+                    assignedFunction: self.annotation_updateTie,
+                    data: data
+                });
+            } else {
+                annotationManager.updateTie(data.tieId, data.tie);
+            }
+        }
+    }
+
+    self.annotation_addTie = function(data, queue) {
+        if (annotationManager) {
+            if (queue) {
+                $(document).trigger('entities.annotation.set-allow-confirm-tie-changes', {
+                    allowed: true,
+                });
+                changesQueue.push({
+                    assignedFunction: self.annotation_addTie,
+                    data: data
+                });
+            } else {
+                annotationManager.addTie(data.tie);
             }
         }
     }
@@ -850,4 +1265,4 @@ var networkViz = (function(){
 
 
     return self;
-})();
+};
