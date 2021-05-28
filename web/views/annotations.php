@@ -4,6 +4,11 @@
 <div id="annotations" class="page page-info" data-uri="/texts/<?= $data["text"]["id"] ?>">
     <h2><em>"<span class="text-title"><?= $data["text"]["title"] ?></span>"</em> Annotations</h2>
 
+<div id="error-alert" class="hidden alert alert-danger alert-dismissible" role="alert">
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+  <span class="content"></span>
+</div>
+
 <?php
 // Put the annotations in a tree structure based on parent_annotation_id. 
 $annotationNodeLookup = [];
@@ -201,26 +206,25 @@ function printUserPermissionControls($permissionUser){
                     <h4 class="modal-title">Rename text</h4>
 
                 </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Text title</label>
-                        <br/>
-                        <form id="rename-form">
-                            <input type="text" 
-                                name="new-text-title<?= $randNum ?>" 
-                                id="new-text-title" 
-                                class="form-control"
-                                value="<?= $data["text"]["title"] ?>">
-                        </form>
+                <form id="text-title-form">
+
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Text title</label>
+                            <br/>
+                                <input type="text" 
+                                    name="newTextTitle"
+                                    class="form-control"
+                                    value="<?= $data["text"]["title"] ?>">
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" 
-                            data-dismiss="modal">Cancel</button>
-                    <button id="save-new-text-title" type="button" 
-                        class="btn btn-primary" 
-                        data-dismiss="modal">Save</button>
-                </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" 
+                                data-dismiss="modal">Cancel</button>
+                        <input type="submit" type="button" 
+                            class="btn btn-primary" value="Save">
+                    </div>
+                </form>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->

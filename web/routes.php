@@ -232,6 +232,6 @@ foreach($routes as $route){
 }
 
 // We've only reached this point if the route wasn't recognized.
-error("Route not found: $path.");
+error("Route not found: $method $path.");
 
 ?>

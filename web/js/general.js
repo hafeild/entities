@@ -9,16 +9,46 @@
  * UI.
  */
 function onTextTitleChange(event){
-    var newTitle = $('#new-text-title').val();
-
-    console.log('Changing name to: ', newTitle);
+    var newTitle = this.newTextTitle.value;
+    var uri = `/json${$('#annotations').data('uri')}`;
+    var $errorAlert = $('#error-alert');
+    $('#rename-modal').modal('hide');
+    $errorAlert.addClass('hidden');
 
     // Send new name to server.
-        // on success: update name everywhere in the UI
-        $('.text-title').html(newTitle);
+    $.ajax({
+        url: uri,
+        method: 'post',
+        data: {
+            title: newTitle,
+            _method: 'PATCH'
+        },
+        success: function(data){
+            if(data.success){
+                $('.text-title').html(newTitle);
+            } else {
+                $errorAlert.find('.content').html(
+                    'There was an error saving your title change: '+
+                    data.message +'<br/>Please try again.');
+                $errorAlert.removeClass('hidden');
+            }
+        },
+        error: function(xhr, status, error){
+            $errorAlert.find('.content').html(
+                    'There was an error saving your title change: '+
+                    status +', ' + error +'<br/>Please try again.');
+            $errorAlert.removeClass('hidden');
+        }
+    });
+
+    event.preventDefault();
+    return false;
 }
 
+/**
+ * Sets all the event listeners.
+ */
 $(document).ready(function(){
-    $(document).on('click', '#save-new-text-title', onTextTitleChange);
+    $(document).on('submit', '#text-title-form', onTextTitleChange);
 
 });

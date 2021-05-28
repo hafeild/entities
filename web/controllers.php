@@ -940,7 +940,7 @@ public static function editText($path, $matches, $params, $format){
         error("You do not have authorization to modify permissions on ". 
               "this text.");
     } else if(!canModifyText($textId)) {
-        error("You do not have authormization to modify the metadata of ". 
+        error("You do not have authorization to modify the metadata of ". 
               "this text.");
     }
 
