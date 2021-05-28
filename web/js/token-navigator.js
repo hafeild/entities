@@ -29,19 +29,19 @@ let TokenNavigator = function (annotation_data) {
         let curToken = $token;
 
         // step backward until start of range is found
-        while (curToken.length > 0 && curToken.attr("data-token") != startDataToken) {
+        while (curToken.attr("data-token") != startDataToken) {
             curToken = curToken.prevAll(`[data-token]:first`);
         }
 
         // skip punctuation and empty spans
         do {
             curToken = curToken.prevAll(`[data-token]:first`);
-        } while (!(isWordyToken(curToken.prevAll(`[data-token]:first`))) && curToken.attr("data-token") >= startDataToken)
+        } while (!(isWordyToken(curToken.prevAll(`[data-token]:first`))))
 
         const tokenList = [];
 
         for (let i = 0; i < range;) {
-            if (curToken == null || curToken.length < 1) {
+            if (curToken == null) {
                 break;
             }
 
