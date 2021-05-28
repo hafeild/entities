@@ -1,7 +1,8 @@
 <script src="/js/permissions.js"></script>
+<script src="/js/general.js"></script>
 
 <div id="annotations" class="page page-info" data-uri="/texts/<?= $data["text"]["id"] ?>">
-    <h2><em>"<?= $data["text"]["title"] ?>"</em> Annotations</h2>
+    <h2><em>"<span class="text-title"><?= $data["text"]["title"] ?></span>"</em> Annotations</h2>
 
 <?php
 // Put the annotations in a tree structure based on parent_annotation_id. 
@@ -90,10 +91,11 @@ function printUserPermissionControls($permissionUser){
 <?php if($user != null){ // Begin logged-in user only section. ?>
 
     <?php
-    // Sharing settings are only exposed to owners.
+    // Sharing settings and renaming are only exposed to owners.
     global $PERMISSIONS;
     if(ownsText($data["text"]["id"])){ ?>
 
+    <!-- Sharing -->
     <button type="button" class="btn btn-primary btn-md sharing-button" 
         data-toggle="modal" data-target="#sharing-modal">
     Share text
@@ -180,6 +182,50 @@ function printUserPermissionControls($permissionUser){
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+
+
+    <!-- Renaming -->
+    <button type="button" class="btn btn-primary btn-md rename-button" 
+        data-toggle="modal" data-target="#rename-modal">
+    Rename
+    </button>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="rename-modal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close"
+                        ><span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Rename text</h4>
+
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Text title</label>
+                        <br/>
+                        <form id="rename-form">
+                            <input type="text" 
+                                name="new-text-title<?= $randNum ?>" 
+                                id="new-text-title" 
+                                class="form-control"
+                                value="<?= $data["text"]["title"] ?>">
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" 
+                            data-dismiss="modal">Cancel</button>
+                    <button id="save-new-text-title" type="button" 
+                        class="btn btn-primary" 
+                        data-dismiss="modal">Save</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+
     <?php } ?>
 
 
