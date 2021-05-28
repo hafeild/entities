@@ -254,7 +254,11 @@ body {
     top: 0px; */
 }
 
-#tieModalTextArea {
+/*
+    CSS class selectors not working for these elements
+    leave them be for now
+*/
+#edit-tieModalTextArea, #tieModalTextArea {
     font-family: Georgia, 'Times New Roman', Times, serif;
     white-space: pre-wrap;
     font-size: 14pt;
@@ -273,15 +277,6 @@ body {
 
     border-style: solid;
     border-width: 2px;
-
-
-    /* height: 200px; */
-    /* max-height: 200px; */
-    /* width: 40vw;
-    position: absolute;
-    left: 30vw;
-    bottom: 0px;
-    top: 0px; */
 }
 
 #entity-panel-wrapper{

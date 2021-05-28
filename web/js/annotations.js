@@ -2131,9 +2131,24 @@ var confirmAddTie = function() {
 var openEditTieModal = function(e) {
     var tie = annotation_data.annotation.ties[$(this).attr('tie-ref')];
 
+    tieModalTextArea = $('#edit-tieModalTextArea');
     tieNameBox = $('#edit-tieNameBox');
     tieWeightBox = $('#edit-tieWeightBox');
     tieDirectedToggle = $('#edit-tieDirectedToggle')
+
+    const tokenContext = tokenNavigator.getTokenContext($(`[data-token='${(tie.start + tie.end) / 2}']`), 100);
+
+    tieModalTextArea.empty();
+    tokenContext.forEach((token) => {
+        let clone = token.clone();
+        if (token.hasClass("tie-text")) {
+            // make tie text distinct from other ties in context
+            clone.css('color', '#ff2d50');
+            clone.css('text-decoration', 'none');
+            clone.css('font-weight', 'bold');
+        }
+        tieModalTextArea.append(clone);
+    })
 
     // Fill in current tie values
     if (typeof tie.label === typeof null) {

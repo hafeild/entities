@@ -1,10 +1,10 @@
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="/js/network-viz.js"></script>
 <script src="/js/annotation-manager.js"></script>
+<script src="/js/token-navigator.js"></script>
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
-
 
 <?php if($data["is_study"]) { ?>
 <script src="/js/study-logging.js"></script>
@@ -62,6 +62,7 @@
                 <script>
                     annotation_data = <?= json_encode($data["annotation"]) ?>;
                     annotationManager = AnnotationManager(annotation_data);
+                    tokenNavigator = TokenNavigator(annotation_data);
                     displayAnnotation();
                 </script>
             </div>
@@ -257,7 +258,7 @@
                 <h4 class="modal-title">Create a tie between two entities</h4>
             </div>
             <div class="modal-body" id="addTieModal-body">
-                <div class="row" id="tieModalTextArea">
+                <div class="row" class="tie-modal-text-area" id="tieModalTextArea">
                 </div>
                 <div class="row">
                 </div>
@@ -334,11 +335,11 @@
     </div>
 </div>  
 
-<!-- Tie Selector Modal -->
+<!-- Edit Tie Selector Modal -->
 <div class="modal fade" id="editTieModal" role="dialog">
     <div class="modal-dialog">
     
-        <!-- Tie Modal content-->
+        <!-- Edit Tie Modal content-->
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" 
@@ -346,6 +347,10 @@
                 <h4 class="modal-title">Edit Tie</h4>
             </div>
             <div class="modal-body" id="editTieModal-body">
+                <div class="row" class="tie-modal-text-area" id="edit-tieModalTextArea">
+                </div>
+                <div class="row">
+                </div>
                 <div class="row" style="margin-top: 20px">
                     <div class="col-sm-1"></div>
                     <div class="col-sm-4">
