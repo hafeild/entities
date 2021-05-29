@@ -313,8 +313,10 @@ function lookupAnnotation($id){
  *                is not being updated.
  * @param isPublic Boolean. Whether this annotation is publicly viewable or not.
  *                 Defaults to null (ignored).
+ * @param label The label (name) of the annotation. Defaults to null (ignored). 
  */
-function updateAnnotation($annotationId, $userId, $updater, $isPublic = null){
+function updateAnnotation($annotationId, $userId, $updater, $isPublic = null, 
+                          $label = null){
     $dbh = connectToAnnotationDB();
     $useLocalTransaction = !$dbh->inTransaction();
 
@@ -338,6 +340,10 @@ function updateAnnotation($annotationId, $userId, $updater, $isPublic = null){
             $params[":annotation"] = json_encode(
                 $updater($annotationData["annotation"]), true);
             array_push($updates, "annotation = :annotation");
+        }
+        if($label !== null){
+            $params[":label"] = $label;
+            array_push($updates, "label = :label");
         }
         
         $statement = $dbh->prepare(

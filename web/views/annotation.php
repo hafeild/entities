@@ -5,6 +5,7 @@
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
+<script src="/js/general.js"></script>
 
 <?php if($data["is_study"]) { ?>
 <script src="/js/study-logging.js"></script>
@@ -25,9 +26,10 @@
 
 </div> <!-- /.header -->
 
-
-
-
+<div id="error-alert" class="hidden alert alert-danger alert-dismissible" role="alert">
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+  <span class="content"></span>
+</div>
 
 <div id="annotation-panels-wrapper">
 
@@ -677,6 +679,42 @@ if(ownsAnnotation($data["annotation"]["annotation_id"])){ // Begin owner-only se
                 <button type="button" class="btn btn-primary" 
                     data-dismiss="modal">Done</button>
             </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+<!-- Renaming -->
+<div class="modal fade" tabindex="-1" role="dialog" id="rename-modal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"
+                    aria-label="Close"
+                    ><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Rename annotation</h4>
+
+            </div>
+            <form id="annotation-label-form">
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Text title</label>
+                        <br/>
+                            <input type="text" 
+                                name="newAnnotationLabel"
+                                class="form-control"
+                                value="<?= htmlentities($data["annotation"]["label"]) ?>">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" 
+                            data-dismiss="modal">Cancel</button>
+                    <input type="submit" type="button" 
+                        class="btn btn-primary" value="Save">
+                </div>
+            </form>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->

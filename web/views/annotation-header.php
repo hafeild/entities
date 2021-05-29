@@ -7,32 +7,30 @@
 <p class="navbar-text">
     <a href="/texts/<?= $data["text"]["id"] ?>/annotations"><em>"<?= 
         $data["text"]["title"] ?>"</em> Annotations</a> : 
-        <?= $data["annotation"]["label"] == "" ? 
+        <span class="annotation-label"><?= $data["annotation"]["label"] == "" ? 
             ("Annotation ". $data["annotation"]["annotation_id"]) : 
-            $data["annotation"]["label"] ?>
+            $data["annotation"]["label"] ?></span>
     <em>(<?= $data["annotation"]["username"] ?>)</em>
 </p>
 
 
-<?php // Fork. Only available to logged in users and non-study annotations. ?>
 <?php if($user != null && !$data["is_study"]){ // Begin user logged-in, non-study. ?>
 
-
-    <!-- Fork button -->
-    <li>
-    <button type="button" class="btn btn-primary btn-sm navbar-btn 
-        fork-button header-button" 
-        data-toggle="modal" data-target="#fork-modal">
-    Fork
-    </button>
-    </li>
-
     <?php
-    // Sharing settings are only exposed to owners.
+    // Sharing settings and renaming are only exposed to owners.
     global $PERMISSIONS;
     if(ownsAnnotation($data["annotation"]["annotation_id"])){ // Begin owner-only section.
         $randNum = rand();    
     ?>
+        <!-- Renaming -->
+        <li>
+        <button type="button" class="btn btn-primary btn-sm navbar-btn 
+            header-button rename-button" 
+            data-toggle="modal" data-target="#rename-modal">
+        Rename
+        </button>
+        </li>
+
         <!-- Sharing button -->
         <li>
         <button type="button" class="btn btn-primary btn-sm navbar-btn 
@@ -43,6 +41,15 @@
         </li>
 
     <?php } // End owner-only section. ?>
+
+    <?php // Fork. Only available to logged in users and non-study annotations. ?>
+    <li>
+    <button type="button" class="btn btn-primary btn-sm navbar-btn 
+        fork-button header-button" 
+        data-toggle="modal" data-target="#fork-modal">
+    Fork
+    </button>
+    </li>
 <?php } // End user logged-in, non-study. ?>
 
 

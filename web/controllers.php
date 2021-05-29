@@ -777,9 +777,10 @@ public static function getAnnotation($path, $matches, $params, $format){
  * 
  * @param path Ignored.
  * @param matches First group should contain the annotation id.
- * @param params The request parameters. Should contain a JSON string under
- *               "data" with the following structure:
- * 
+ * @param params The request parameters. Optional parameters:
+ *    * is_public (true | false) -- sets the public visibility of the annotation
+ *    * label (string) -- the name of the annotation
+ *    * data (a simple object with the following structure):
  *       - last_entity_id (integer)
  *       - last_group_id (integer)
  *       - last_tie_id (integer)
@@ -834,16 +835,19 @@ public static function editAnnotation($path, $matches, $params, $format){
 
     // Verify that at least one valid update field is present.
     if(!(array_key_exists("data", $params) || 
-         array_key_exists("is_public", $params))){
+         array_key_exists("is_public", $params) ||
+         array_key_exists("label", $params))){
 
-        error("You must specify at least one valid annotation field: 'data' ". 
-              "or 'is_public'.");
+        error("You must specify at least one valid annotation field: 'data', ". 
+              "'is_public', or 'label'.");
     }
 
     $data = null;
     $updater = null;
     $isPublic = array_key_exists("is_public", $params) ? 
         $params["is_public"] == "true" : null;
+
+    $label = array_key_exists("label", $params) ? $params["label"] : null;
 
     // If the annotation JSON is being updated, extract that data and define the
     // updater needed by the annotation model function.
@@ -887,7 +891,7 @@ public static function editAnnotation($path, $matches, $params, $format){
         };
     }
 
-    updateAnnotation($annotationId, $user["id"], $updater, $isPublic);
+    updateAnnotation($annotationId, $user["id"], $updater, $isPublic, $label);
 
     return [
         "success" => true
