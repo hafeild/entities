@@ -18,7 +18,7 @@
  *      
  * groups
  *      name
- *      entities* -- map of entity ids -> entity entrys
+ *      entities* -- map of entity ids -> entity entries
  * 
  * locations
  *      start

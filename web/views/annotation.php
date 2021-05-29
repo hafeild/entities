@@ -2,6 +2,7 @@
 <script src="/js/network-viz.js"></script>
 <script src="/js/annotation-manager.js"></script>
 <script src="/js/token-navigator.js"></script>
+<script src="/js/entities-panel-manager.js"></script>
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
@@ -58,14 +59,37 @@
 
     <div id="annotation-panels">
         <div id="entity-panel-wrapper">
-            <div id="entity-panel" class="entities-panel">
-                <div id="entity-list">
+            <div id="entities-panel" class="entities-panel">
+                <div id="alias-groups">
                 </div>
+
+                <!-- Entity panel templates -->
+                <div class="templates hidden">
+                    <div class="alias-group" data-id="">
+                        <div class="name-wrapper">
+                            <span class="name"></span>
+                            <span class="edit-alias-group-name">
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                            </span>
+                        </div>
+                        <div class="aliases"></div>
+                    </div>
+
+                    <span class="entity" data-id="">
+                        <span class="name"></span>
+                        <span class="edit-entity-name">
+                            <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                        </span>
+                    </span>
+                </div>
+
                 <script>
                     annotation_data = <?= json_encode($data["annotation"]) ?>;
                     annotationManager = AnnotationManager(annotation_data);
                     tokenNavigator = TokenNavigator(annotation_data);
-                    displayAnnotation();
+                    entitiesPanelManager = EntitiesPanelManager(annotationManager);
+                    entitiesPanelManager.addAliasGroupsFromAnnotation();
+                    // displayAnnotation();
                 </script>
             </div>
         </div>

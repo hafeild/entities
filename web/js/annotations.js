@@ -2,6 +2,7 @@ var timeoutId;
 var currentTextId = null;
 var annotation_data = null;
 var annotationManager = null;
+var entitiesPanelManager = null;
 
 var menuConfigData = {
     textSpans: null,
@@ -76,70 +77,12 @@ var upload = function(event){
     event.preventDefault();
 };
 
-var displayAnnotation = function(){
-    // Clear the annotation list.
-    // $('#annotation-list').html('');
-    console.log("In displayAnnotation");
-
-    var charListOuterElm = $('#entity-list');
-    var charListElm = $('<ul class="groups">');
-    charListOuterElm.html(
-        '<button id="group-selected">Group selected</button> ');
-    charListOuterElm.append(charListElm);
-
-
-    for(groupId in annotationManager.groups){
-        var group = annotationManager.groups[groupId];
-        charListElm.append(makeGroupChecklist(groupId, group.entities));
-    }
-};
-
 var size = function(obj){
     var s = 0;
     for(var x in obj) s++;
         return s;
 }
 
-var addEntityToGroupChecklist = function($entitiesList, entityId, entity){
-    return $entitiesList.append('<div class="pretty p-icon p-square p-jelly">'+
-        '<input type="checkbox" class="group-checkbox" '+
-        `data-id="${entityId}"><div class="state p-primary">`+ 
-        '<i class="icon mdi mdi-check"></i><label>'+ 
-        `<span class="g${entity.group_id} unselectable">`+ 
-        `${entity.name}</span></label></div></div>`);
-}
-
-var makeGroupChecklist = function(groupId, entities){
-    var $listItem = $(`<li class="group unselectable" data-id="${groupId}">`),
-        $entitiesList = $('<span class="entities">'),
-        entityId, i, entitiesSize = size(entities);
-
-    $listItem.append($entitiesList);
-    for(entityId in entities){
-        addEntityToGroupChecklist($entitiesList, entityId, entities[entityId]);
-        if(i < entitiesSize-1){
-            $entitiesList.append(', ')
-        }
-        i++;
-    }
-    if(entitiesSize > 1){
-        $listItem.append('<button class="select-all">[de]select all</button>');
-    }
-    return $listItem;
-};
-
-var groupSelected = function(){
-    //var selectedCheckboxes = 
-    var entityIds = []
-    
-    $('.groups input:checked').each(function(i, elm){
-        entityIds.push($(this).data('id'));
-    });
-    
-    annotationManager.groupEntities(entityIds);
-
-    displayAnnotation();
-};
 
 
 
@@ -192,13 +135,7 @@ var getAnnotations = function(){
 };
 
 
-var selectAllInGroup = function(){
-    if($(this).parents('.group').find('input:checked').length > 0){
-        $(this).parents('.group').find('input').prop('checked', false);
-    } else {
-        $(this).parents('.group').find('input').prop('checked', true);
-    }
-};
+
 
 var loadText = function(){
     pollTextStatus($(this).data('id'));
