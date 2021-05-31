@@ -78,14 +78,29 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
-     * ...
+     * Styles an entity that is being dragged (the original entity, not the
+     * helper).
      * 
      * @param {Event} The DON event associated with the drop.
      * @param {Object} Contains info and properties about the element being 
      *                 dragged.
      */
     var onEntityStartDrag = function(event, ui){
+        $(this).addClass('clone-being-dragged');
     };
+
+    /**
+     * Un-styles an entity that is finished being dragged (the original entity,
+     * not the helper).
+     *
+     * @param {Event} The DON event associated with the drop.
+     * @param {Object} Contains info and properties about the element being
+     * dragged.
+     */
+    var onEntityStopDrag = function(event, ui){
+        $(this).removeClass('clone-being-dragged');
+    };
+
 
     /**
      * Moves an entity to the alias group it was dropped on.
@@ -95,8 +110,19 @@ var EntitiesPanelManager = function(annotationManager){
      *                 of the drop.
      */
     var onEntityDropped = function(event, ui){
-        ui.draggable.appendTo($(this).find('.aliases'));
+        if(ui.draggable.parents('.alias-group')[0] != this){
+            ui.draggable.appendTo($(this).find('.aliases'));
+        }
+        $(this).removeClass('droppable-hover');
     };
+
+    var onEntityDraggedOverAliasGroup = function(event, ui){
+        $(this).addClass('droppable-hover');
+    }
+
+    var onEntityDraggedOutOfAliasGroup = function(event, ui){
+        $(this).removeClass('droppable-hover');
+    }
 
     /**
      * Adds listeners to UI elements in the entities panel, e.g., selecting
@@ -108,12 +134,19 @@ var EntitiesPanelManager = function(annotationManager){
 
     // Initialize settings (needed to wait for functions to be defined).
     droppableSettings = {
-        drop: onEntityDropped
+        drop: onEntityDropped,
+        over: onEntityDraggedOverAliasGroup,
+        out: onEntityDraggedOutOfAliasGroup
     };
+
     draggableSettings = {
         revert: 'invalid',
         helper: 'clone',
-        appendTo: $entitiesPanel
+        appendTo: $entitiesPanel,
+        cursor: 'grabbing',
+        handle: '.name',
+        start: onEntityStartDrag,
+        stop: onEntityStopDrag
     };
 
     return self;
