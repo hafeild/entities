@@ -23,6 +23,7 @@ var EntitiesPanelManager = function(annotationManager){
     var $aliasGroups = $('#alias-groups');
     var $aliasGroupTemplate = $entitiesPanel.find('.templates .alias-group');
     var $entityTemplate = $entitiesPanel.find('.templates .entity');
+    var droppableSettings, draggableSettings;
 
     /**
      * Adds all of the alias groups in the given annotation to the entities
@@ -35,15 +36,16 @@ var EntitiesPanelManager = function(annotationManager){
             var group = annotationManager.groups[groupId];
             self.addAliasGroup(group.name, groupId, group.entities);
         }
-    }
+    };
 
     /**
      * Adds a new alias group entry to the entities panel along with any
      * corresponding entities.
      * 
-     * @param groupName The name of the alias group.
-     * @param groupId The id of the alias group.
-     * @param entities The list of entities that make up the alias group.
+     * @param {string} groupName The name of the alias group.
+     * @param {string} groupId The id of the alias group.
+     * @param {Object} entities A map of entity ids to entity entries that make
+     *                          up the alias group.
      */
     self.addAliasGroup = function(groupName, groupId, entities){
         var i, entityId;
@@ -55,22 +57,64 @@ var EntitiesPanelManager = function(annotationManager){
         for(entityId in entities){
             self.addEntity($aliasGroup, entities[entityId].name, entityId);
         }
-    }
+        $aliasGroup.droppable(droppableSettings);
+    };
 
     /**
      * Adds a new entity to the given alias group UI element.
      * 
      * @param $aliasGroup The jQuery element for the alias group to which the
      *                    entity belongs.
-     * @param entityName The name of the entity.
-     * @param entityId The id of the entity.
+     * @param {jQuery} entityName The name of the entity.
+     * @param {string} entityName The name of the entity.
+     * @param {string} entityId The id of the entity.
      */
     self.addEntity = function($aliasGroup, entityName, entityId){
         var $entity = $entityTemplate.clone();
-        $aliasGroup.append($entity);
+        $aliasGroup.find('.aliases').append($entity);
         $entity.attr('data-id', entityId);
         $entity.find('.name').html(entityName);
-    }
+        $entity.draggable(draggableSettings);
+    };
+
+    /**
+     * ...
+     * 
+     * @param {Event} The DON event associated with the drop.
+     * @param {Object} Contains info and properties about the element being 
+     *                 dragged.
+     */
+    var onEntityStartDrag = function(event, ui){
+    };
+
+    /**
+     * Moves an entity to the alias group it was dropped on.
+     * 
+     * @param {Event} The DON event associated with the drop.
+     * @param {Object} Contains info and properties about the source and target
+     *                 of the drop.
+     */
+    var onEntityDropped = function(event, ui){
+        ui.draggable.appendTo($(this).find('.aliases'));
+    };
+
+    /**
+     * Adds listeners to UI elements in the entities panel, e.g., selecting
+     * entities, editing entity and alias group names, etc.
+     */
+    self.addListeners = function(){
+
+    };
+
+    // Initialize settings (needed to wait for functions to be defined).
+    droppableSettings = {
+        drop: onEntityDropped
+    };
+    draggableSettings = {
+        revert: 'invalid',
+        helper: 'clone',
+        appendTo: $entitiesPanel
+    };
 
     return self;
 };

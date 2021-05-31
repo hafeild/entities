@@ -9,6 +9,7 @@ global $user;
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> 
     <title><?= $title ?></title>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
     <link rel="stylesheet" href="/css/style.css"/>
     <link rel="stylesheet" href="/css/colors.css"/>
     <link rel="stylesheet" href="/css/restyle.css"/>

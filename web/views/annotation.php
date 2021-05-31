@@ -1,5 +1,6 @@
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="/js/network-viz.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 <script src="/js/annotation-manager.js"></script>
 <script src="/js/token-navigator.js"></script>
 <script src="/js/entities-panel-manager.js"></script>
@@ -68,16 +69,16 @@
                     <div class="alias-group" data-id="">
                         <div class="name-wrapper">
                             <span class="name"></span>
-                            <span class="edit-alias-group-name">
+                            <span class="edit-alias-group-name edit-name">
                                 <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                             </span>
                         </div>
                         <div class="aliases"></div>
                     </div>
 
-                    <span class="entity" data-id="">
+                    <span class="entity name-wrapper" data-id="">
                         <span class="name"></span>
-                        <span class="edit-entity-name">
+                        <span class="edit-entity-name edit-name">
                             <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
                         </span>
                     </span>
