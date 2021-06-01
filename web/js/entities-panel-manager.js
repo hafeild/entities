@@ -23,7 +23,7 @@ var EntitiesPanelManager = function(annotationManager){
     var $aliasGroups = $('#alias-groups');
     var $aliasGroupTemplate = $entitiesPanel.find('.templates .alias-group');
     var $entityTemplate = $entitiesPanel.find('.templates .entity');
-    var droppableSettings, draggableSettings;
+    var droppableSettings, draggableSettings, selectableSettings;
 
     /**
      * Adds all of the alias groups in the given annotation to the entities
@@ -58,11 +58,13 @@ var EntitiesPanelManager = function(annotationManager){
             self.addEntity($aliasGroup, entities[entityId].name, entityId);
         }
         $aliasGroup.droppable(droppableSettings);
+        $aliasGroup.find('.aliases').selectable(selectableSettings);
+
     };
 
     /**
      * Adds a new entity to the given alias group UI element.
-     * 
+     *          
      * @param $aliasGroup The jQuery element for the alias group to which the
      *                    entity belongs.
      * @param {jQuery} entityName The name of the entity.
@@ -110,16 +112,37 @@ var EntitiesPanelManager = function(annotationManager){
      *                 of the drop.
      */
     var onEntityDropped = function(event, ui){
-        if(ui.draggable.parents('.alias-group')[0] != this){
-            ui.draggable.appendTo($(this).find('.aliases'));
-        }
-        $(this).removeClass('droppable-hover');
+        var $aliasGroup = $(this)
+        $entitiesPanel.find('.entity.ui-selected').each(function(i,entityDOM){
+            var $entity = $(entityDOM);
+            if($entity.parents('.alias-group')[0] != $aliasGroup[0]){
+                $entity.appendTo($aliasGroup.find('.aliases'));
+            }
+        });
+
+        $aliasGroup.removeClass('droppable-hover');
+
     };
 
+    /**
+     * Highlights an alias group when an entity is dragged over it.
+     * 
+     * @param {Event} The DON event associated with the drop.
+     * @param {Object} Contains info and properties about the source and target
+     *                 of the drop.
+     */
     var onEntityDraggedOverAliasGroup = function(event, ui){
         $(this).addClass('droppable-hover');
     }
 
+    /**
+     * Removes highlighting from an alias group when an entity is dragged out 
+     * of it.
+     * 
+     * @param {Event} The DON event associated with the drop.
+     * @param {Object} Contains info and properties about the source and target
+     *                 of the drop.
+     */
     var onEntityDraggedOutOfAliasGroup = function(event, ui){
         $(this).removeClass('droppable-hover');
     }
@@ -128,7 +151,29 @@ var EntitiesPanelManager = function(annotationManager){
      * Adds listeners to UI elements in the entities panel, e.g., selecting
      * entities, editing entity and alias group names, etc.
      */
-    self.addListeners = function(){
+    var addListeners = function(){
+        // Listen for entity selections.
+        $entitiesPanel.on('mousedown', function(event){
+            var $target = $(event.target);
+            var $entity = $target.parents('.entity');
+
+            if($entity.length > 0){
+                console.log('Clicked on entity sub-tree');
+                if($target.hasClass('name')){
+                    console.log('Clicked in "name" field entity');
+
+                    if(!$entity.hasClass('ui-selected') && !event.ctrlKey){
+                        $entitiesPanel.find('.entity').removeClass('ui-selected');
+                    }
+
+                    $entity.addClass('ui-selected');
+                }
+            } else {
+                console.log('clicked on something else.');
+                $entitiesPanel.find('.entity').removeClass('ui-selected');
+            }
+        });
+
 
     };
 
@@ -148,6 +193,13 @@ var EntitiesPanelManager = function(annotationManager){
         start: onEntityStartDrag,
         stop: onEntityStopDrag
     };
+
+    selectableSettings = {
+        filter: '.entity'
+    };
+
+
+    addListeners();
 
     return self;
 };
