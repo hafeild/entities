@@ -53,12 +53,12 @@ var EntitiesPanelManager = function(annotationManager){
         $aliasGroups.append($aliasGroup);
         $aliasGroup.find('.name').html(groupName);
         $aliasGroup.attr('data-id', groupId);
-        $aliasGroup.addClass(`g${groupId}`);
+        $aliasGroup.find('.name-wrapper').addClass(`g${groupId}`);
         for(entityId in entities){
             self.addEntity($aliasGroup, entities[entityId].name, entityId);
         }
         $aliasGroup.droppable(droppableSettings);
-        $aliasGroup.find('.aliases').selectable(selectableSettings);
+        // $aliasGroup.find('.aliases').selectable(selectableSettings);
 
     };
 

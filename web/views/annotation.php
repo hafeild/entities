@@ -67,10 +67,10 @@
                 <!-- Entity panel templates -->
                 <div class="templates hidden">
                     <div class="alias-group" data-id="">
-                        <div class="name-wrapper">
+                        <div class="alias-group-name-wrapper name-wrapper">
                             <span class="name"></span>
-                            <span class="edit-alias-group-name edit-name">
-                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                            <span class="edit-alias-group-name edit-name options">
+                            <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
                             </span>
                         </div>
                         <div class="aliases"></div>
@@ -78,8 +78,8 @@
 
                     <span class="entity name-wrapper" data-id="">
                         <span class="name"></span>
-                        <span class="edit-entity-name edit-name">
-                            <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                        <span class="options">
+                            <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
                         </span>
                     </span>
                 </div>
