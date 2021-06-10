@@ -88,7 +88,7 @@ var EntitiesPanelManager = function(annotationManager){
      *                 dragged.
      */
     var onEntityStartDrag = function(event, ui){
-        $(this).addClass('clone-being-dragged');
+        ui.helper.addClass('clone-being-dragged');
     };
 
     /**
@@ -100,7 +100,7 @@ var EntitiesPanelManager = function(annotationManager){
      * dragged.
      */
     var onEntityStopDrag = function(event, ui){
-        $(this).removeClass('clone-being-dragged');
+        ui.helper.removeClass('clone-being-dragged');
     };
 
 
@@ -111,18 +111,29 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {Object} Contains info and properties about the source and target
      *                 of the drop.
      */
-    var onEntityDropped = function(event, ui){
-        var $aliasGroup = $(this)
-        $entitiesPanel.find('.entity.ui-selected').each(function(i,entityDOM){
+    var onEntitiesDropped = function(event, ui){
+        var $aliasGroup = $(this);
+        var entityIds = [];
+        $entitiesPanel.find('.entity.ui-selected').not('.clone-being-dragged').each(function(i,entityDOM){
             var $entity = $(entityDOM);
+            var $sourceAliasGroup = $entity.parents('.alias-group');
+            
             if($entity.parents('.alias-group')[0] != $aliasGroup[0]){
+                entityIds.push($entity.attr('data-id'));
                 $entity.appendTo($aliasGroup.find('.aliases'));
+
+                // Remove source alias group if it's now empty.
+                if($sourceAliasGroup.find('.entity').length === 0){
+                    $sourceAliasGroup.remove();
+                }
             }
         });
-
-        $aliasGroup.removeClass('droppable-hover');
-
+        console.log('Moving ', entityIds, 'to group',  $aliasGroup.attr('data-id'));
+        $aliasGroup.removeClass('droppable-hover');        
+        annotationManager.moveEntitiesToGroup(entityIds, $aliasGroup.attr('data-id'));
     };
+
+
 
     /**
      * Highlights an alias group when an entity is dragged over it.
@@ -179,7 +190,7 @@ var EntitiesPanelManager = function(annotationManager){
 
     // Initialize settings (needed to wait for functions to be defined).
     droppableSettings = {
-        drop: onEntityDropped,
+        drop: onEntitiesDropped,
         over: onEntityDraggedOverAliasGroup,
         out: onEntityDraggedOutOfAliasGroup
     };
