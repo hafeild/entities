@@ -144,7 +144,7 @@ var EntitiesPanelManager = function(annotationManager){
      */
     var onEntityDraggedOverAliasGroup = function(event, ui){
         $(this).addClass('droppable-hover');
-    }
+    };
 
     /**
      * Removes highlighting from an alias group when an entity is dragged out 
@@ -156,7 +156,60 @@ var EntitiesPanelManager = function(annotationManager){
      */
     var onEntityDraggedOutOfAliasGroup = function(event, ui){
         $(this).removeClass('droppable-hover');
-    }
+    };
+
+    /**
+     * Shows the name edit form field.
+     * 
+     * @param {DOM Event} The event that triggered this callback.
+     */
+    var showNameEditor = function(event){
+        var $nameWrapper = $(this).parents('.name-wrapper');
+        var $name = $nameWrapper.find('.name');
+        var $nameEditor = $nameWrapper.find('.name-edit');
+        $nameEditor.find('input').val($name.text());
+        $nameEditor.removeClass('hidden');  
+        $name.hide();
+        $nameEditor.show();
+    };
+
+    /**
+     * Saves edits made to an entity or alias group.
+     * 
+     * @param {DOM Event} The event that triggered this callback.
+     */
+    var saveNameEdits = function(event){
+        event.preventDefault();
+
+        var $nameWrapper = $(this).parents('.name-wrapper');
+        var $name = $nameWrapper.find('.name');
+        var $nameEditor = $nameWrapper.find('.name-edit');
+        var newName = cleanHTML($nameEditor.find('input').val());
+        $name.html(newName);
+        
+        
+
+        // Alias group name change.
+        if($nameWrapper.hasClass('alias-group-name-wrapper')){
+            var aliasGroupId = $nameWrapper.parents('.alias-group').attr('data-id');
+            annotationManager.changeGroupName(aliasGroupId, newName);
+
+            // TODO -- add error handling.
+
+        // Entity name change.
+        } else {
+            var entityId = $nameWrapper.attr('data-id');
+            annotationManager.updateEntity(entityId, {name: newName});
+
+            // TODO -- add error handling.
+        }
+
+        $name.show();
+        $nameEditor.hide();
+
+        
+    };
+
 
     /**
      * Adds listeners to UI elements in the entities panel, e.g., selecting
@@ -186,6 +239,10 @@ var EntitiesPanelManager = function(annotationManager){
         });
 
 
+        // Listen for renaming clicks.
+        $entitiesPanel.on('click', '.rename-option', showNameEditor);
+        // $entitiesPanel.on('click', '.submit-name-edit', saveNameEdits);
+        $entitiesPanel.on('submit', '.name-edit', saveNameEdits);
     };
 
     // Initialize settings (needed to wait for functions to be defined).

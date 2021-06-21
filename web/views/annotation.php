@@ -66,20 +66,46 @@
 
                 <!-- Entity panel templates -->
                 <div class="templates hidden">
+                    <!-- Alias group -->
                     <div class="alias-group" data-id="">
                         <div class="alias-group-name-wrapper name-wrapper">
                             <span class="name"></span>
-                            <span class="edit-alias-group-name edit-name options">
-                            <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
+                            <form class="name-edit hidden">
+                                <input type="text"/>
+                                <button type="button" class="submit-name-edit btn btn-primary btn-xs">Done</button>
+                            </form>
+                            <span class="dropdown">
+                                <a role="button" data-toggle="dropdown" 
+                                    aria-haspopup="true" aria-expanded="false"
+                                    class="edit-alias-group-name edit-name options">
+                                    <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li class="rename-option">Rename entity</li>
+                                    <li class="associate-option">Associate all aliases with another entity</li>
+                                </ul>
                             </span>
                         </div>
                         <div class="aliases"></div>
                     </div>
 
+                    <!-- Entity -->
                     <span class="entity name-wrapper" data-id="">
                         <span class="name"></span>
-                        <span class="options">
-                            <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
+                        <form  class="name-edit hidden">
+                            <input type="text"/>
+                            <button type="button" class="submit-name-edit btn btn-primary btn-xs">Done</button>
+                        </form>
+                        <span class="dropdown">
+                            <a role="button" data-toggle="dropdown" 
+                                aria-haspopup="true" aria-expanded="false"
+                                class="edit-alias-group-name edit-name options">
+                                <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="rename-option">Rename alias</li>
+                                <li class="associate-option">Associate with another entity</li>
+                            </ul>
                         </span>
                     </span>
                 </div>

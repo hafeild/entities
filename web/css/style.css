@@ -448,6 +448,28 @@ body.fullscreen #text-panel-wrapper {
     color: white;
 }
 
+#entities-panel .dropdown-menu {
+    cursor: pointer;
+
+}
+#entities-panel .dropdown-menu li {
+    padding: .5em;
+    padding-left: 1em;
+    text-indent: -.5em;
+}
+
+#entities-panel .dropdown-menu li:hover {
+    background-color: lightsteelblue;
+}
+#entities-panel .dropdown-menu li:active {
+    background-color: steelblue;
+    color: white;
+
+}
+
+form.name-edit {
+    display: inline-block;
+}
 
 
 circle {
@@ -590,7 +612,7 @@ span.selectedEntity.end-token {
 }
 
 #text-panel .entity {
-    cursor: pointer;
+    cursor: default;
 }
 
 .permission-username {

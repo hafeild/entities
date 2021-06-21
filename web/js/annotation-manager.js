@@ -210,8 +210,9 @@ var AnnotationManager = function(annotation_data){
      *                                 * textStatus
      */
     self.updateEntity = function(entityId, updatedEntity, callback){
-        var changes = {entities: {entityId: {}}, groups: {}, locations: {}, 
+        var changes = {entities: {}, groups: {}, locations: {}, 
             ties: {}};
+        changes.entities[entityId] = {};
         
         // Update group id.
         if(updatedEntity.group_id !== undefined){

@@ -24,6 +24,19 @@ var menu;
 var mouseClicked = 0;
 var menuTimer = null;
 
+
+/**
+ * Converts a string with potentially embedded HTML into text with HTML entities
+ * instead. 
+ */
+var cleanHTML = function(s) {
+    return String(s).
+        replace(/&/g, '&amp;').
+        replace(/</g, '&lt;').
+        replace(/>/g, '&gt;');
+}
+
+
 var getTexts = function(){
     $.get({
         url: 'json/texts',
