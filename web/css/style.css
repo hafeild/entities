@@ -204,7 +204,7 @@ body {
 }
 
 #annotation-panels {
-    /* position: absolute; */
+    position: absolute;
     display: table;
     height: 100%;
     /* top: 0;  */
@@ -363,7 +363,7 @@ body.fullscreen #text-panel-wrapper {
 
 #entities-panel .alias-group {
     /* padding: .5em .5em 1em .5em; */
-    padding-bottom: .5em;
+    /* padding-bottom: .5em; */
     margin: .5em 0 .5em 0;
     box-sizing: border-box;
     border: 1px solid gray;
@@ -399,6 +399,7 @@ body.fullscreen #text-panel-wrapper {
     border-radius: 1em;
     padding: .1em .5em .1em .5em;
     margin-right: .5em;
+    margin-bottom: .5em;
     color: black;
     font-size: 90%;
     background-color: white;
@@ -436,8 +437,6 @@ body.fullscreen #text-panel-wrapper {
     color: inherit;
 }
 
-
-
 #entities-panel .name {
     cursor: grab;
 }
@@ -450,26 +449,43 @@ body.fullscreen #text-panel-wrapper {
 
 #entities-panel .dropdown-menu {
     cursor: pointer;
+    color: black;
 
 }
-#entities-panel .dropdown-menu li {
+#entities-panel .dropdown-menu li,
+#entities-panel .dropdown-submenu li {
     padding: .5em;
     padding-left: 1em;
     text-indent: -.5em;
 }
 
-#entities-panel .dropdown-menu li:hover {
+#entities-panel .dropdown-menu li:hover,
+#entities-panel .dropdown-submenu a:hover {
     background-color: lightsteelblue;
 }
-#entities-panel .dropdown-menu li:active {
+
+#entities-panel .dropdown-menu li:active,
+#entities-panel .dropdown-submenu a:active {
     background-color: steelblue;
     color: white;
 
 }
 
-form.name-edit {
+#entities-panel form.name-edit {
     display: inline-block;
 }
+
+.entities-panel-menu {
+    position: fixed;
+    display: block;
+    background-color: white;
+    border: 1px solid gray;
+    border-radius: 3px;
+    z-index: 100;
+}
+
+
+
 
 
 circle {

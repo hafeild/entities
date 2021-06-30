@@ -24,6 +24,8 @@ var EntitiesPanelManager = function(annotationManager){
     var $aliasGroupTemplate = $entitiesPanel.find('.templates .alias-group');
     var $entityTemplate = $entitiesPanel.find('.templates .entity');
     var droppableSettings, draggableSettings, selectableSettings;
+    var $aliasGroupEditMenu = $('#entities-panel-alias-group-edit-menu');
+    var $aliasEditMenu = $('#entities-panel-alias-edit-menu');
 
     /**
      * Adds all of the alias groups in the given annotation to the entities
@@ -210,6 +212,52 @@ var EntitiesPanelManager = function(annotationManager){
         
     };
 
+    /**
+     * Displays the entity or alias options menu (two different menus). 
+     * Populates the suggested entities and full list of entities if stale.
+     */
+    var showMenu = function(event){
+        // Determine if this is an entity or alias menu.
+        var isAliasGroup = $(this).hasClass('alias-group-options');
+        var id, $menu;
+        if(isAliasGroup){
+            id = $(this).parents('.alias-group').attr('data-id');
+            $menu = $aliasGroupEditMenu;
+        } else {
+            id = $(this).parents('.entity').attr('data-id');
+            $menu = $aliasEditMenu;
+        }
+
+        // Move to the correct spot relative to the mouse (just to the right; 
+        // higher if not enough room below).
+        console.log($menu);
+        $menu.css({
+            left: event.originalEvent.pageX, 
+            top: event.originalEvent.pageY
+        });
+
+
+        // Change the data to point to the correct entity or alias.
+        
+        // Show the menu.
+        $menu.removeClass('hidden');
+        console.log($menu);
+
+        // Populate all.
+        // Populate suggested (different based on whether this is an entity or
+        // alias).
+    };
+
+    /**
+     * Hides the alias/alias group edit menus on clicks.
+     */
+    var hideMenu = function(event){
+        if($(event.target).parents('.options').length == 0){
+            $aliasEditMenu.addClass('hidden');
+            $aliasGroupEditMenu.addClass('hidden');
+        }
+    };
+
 
     /**
      * Adds listeners to UI elements in the entities panel, e.g., selecting
@@ -243,6 +291,9 @@ var EntitiesPanelManager = function(annotationManager){
         $entitiesPanel.on('click', '.rename-option', showNameEditor);
         // $entitiesPanel.on('click', '.submit-name-edit', saveNameEdits);
         $entitiesPanel.on('submit', '.name-edit', saveNameEdits);
+
+        $entitiesPanel.on('click', '.options', showMenu);
+        $(document).on('click', hideMenu);
     };
 
     // Initialize settings (needed to wait for functions to be defined).

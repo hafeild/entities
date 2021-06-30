@@ -33,6 +33,37 @@
   <span class="content"></span>
 </div>
 
+
+<!-- Menu for entity panel "alias options" -->
+<ul id="entities-panel-alias-edit-menu" class="hidden entities-panel-menu">
+    <li class="rename-option">Rename alias</li>
+    <li class="associate-option label">Associate with another entity</li>
+    <li class="associate-option label">Associate all aliases with another entity:
+    <li class="top-suggestions sublabel">Top suggestions
+        <ul>
+            <li class="sublabel">No suggestions</li>
+        </ul>
+    </li>
+    <li class="all-entities sublabel">All entities
+        <ul>
+        </ul>
+    </li>
+</ul>
+<!-- Menu for entity panel "entity (alias group) options" -->
+<ul id="entities-panel-alias-group-edit-menu" class="hidden entities-panel-menu">
+    <li class="rename-option">Rename entity</li>
+    <li class="associate-option label">Associate all aliases with another entity:
+    <li class="top-suggestions sublabel">Top suggestions
+        <ul>
+        </ul>
+    </li>
+    <li class="all-entities sublabel">All entities
+        <ul>
+        </ul>
+    </li>
+</ul>
+
+
 <div id="annotation-panels-wrapper">
 
     <?php if($data["annotation"]["automated_method_error"]){ ?>
@@ -74,16 +105,8 @@
                                 <input type="text"/>
                                 <button type="button" class="submit-name-edit btn btn-primary btn-xs">Done</button>
                             </form>
-                            <span class="dropdown">
-                                <a role="button" data-toggle="dropdown" 
-                                    aria-haspopup="true" aria-expanded="false"
-                                    class="edit-alias-group-name edit-name options">
-                                    <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li class="rename-option">Rename entity</li>
-                                    <li class="associate-option">Associate all aliases with another entity</li>
-                                </ul>
+                            <span class="alias-group-options options">
+                                <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
                             </span>
                         </div>
                         <div class="aliases"></div>
@@ -170,8 +193,12 @@
                 networkViz.loadNetwork(annotation_data.annotation);
             </script>
         </div>
+
     </div>
+
 </div>
+
+
 
 
 
