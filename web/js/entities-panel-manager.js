@@ -217,6 +217,10 @@ var EntitiesPanelManager = function(annotationManager){
      * Populates the suggested entities and full list of entities if stale.
      */
     var showMenu = function(event){
+        // Close any existing menus.
+        $aliasEditMenu.addClass('hidden');
+        $aliasGroupEditMenu.addClass('hidden');
+
         // Determine if this is an entity or alias menu.
         var isAliasGroup = $(this).hasClass('alias-group-options');
         var id, $menu;
@@ -228,14 +232,9 @@ var EntitiesPanelManager = function(annotationManager){
             $menu = $aliasEditMenu;
         }
 
-        // Move to the correct spot relative to the mouse (just to the right; 
-        // higher if not enough room below).
-        console.log($menu);
-        $menu.css({
-            left: event.originalEvent.pageX, 
-            top: event.originalEvent.pageY
-        });
-
+        // Populate all.
+        // Populate suggested (different based on whether this is an entity or
+        // alias).
 
         // Change the data to point to the correct entity or alias.
         
@@ -243,9 +242,23 @@ var EntitiesPanelManager = function(annotationManager){
         $menu.removeClass('hidden');
         console.log($menu);
 
-        // Populate all.
-        // Populate suggested (different based on whether this is an entity or
-        // alias).
+        // Move to the correct spot relative to the mouse (just to the right; 
+        // higher if not enough room below).
+        console.log(event.originalEvent.pageY, $menu.height(), $('body').height());
+        // If the height of the menu goes below the page fold, raise it up by
+        // the difference. Otherwise, leave it where the mouse is.
+        if(event.originalEvent.pageY + $menu.height() > $('body').height()){
+            $menu.css({
+                left: event.originalEvent.pageX, 
+                top: event.originalEvent.pageY-$menu.height()
+            });
+        } else {
+            $menu.css({
+                left: event.originalEvent.pageX, 
+                top: event.originalEvent.pageY
+            });
+        }
+
     };
 
     /**

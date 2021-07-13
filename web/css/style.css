@@ -482,9 +482,39 @@ body.fullscreen #text-panel-wrapper {
     border: 1px solid gray;
     border-radius: 3px;
     z-index: 100;
+    list-style-type: none;
+    padding: .5em 0 .5em 0;
+}
+.entities-panel-menu ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 
+.entities-panel-menu li {
+    cursor: pointer;
+    margin-left: 0;
+    padding: 0 1em 0 1em;
+    color: black;
+    font: inherit;
+}
 
+.entities-panel-menu ul li {
+    padding-right: 0;   
+}
+
+.entities-panel-menu li.clickable:hover {
+    background-color: lightsteelblue;
+
+}
+.entities-panel-menu li.clickable:active {
+    background-color: steelblue;
+    color: white;
+}
+
+.entities-panel-menu .menu-label {
+    font-style: italic;
+}
 
 
 

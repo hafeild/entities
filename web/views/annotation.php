@@ -36,29 +36,37 @@
 
 <!-- Menu for entity panel "alias options" -->
 <ul id="entities-panel-alias-edit-menu" class="hidden entities-panel-menu">
-    <li class="rename-option">Rename alias</li>
-    <li class="associate-option label">Associate with another entity</li>
-    <li class="associate-option label">Associate all aliases with another entity:
-    <li class="top-suggestions sublabel">Top suggestions
-        <ul>
-            <li class="sublabel">No suggestions</li>
-        </ul>
-    </li>
-    <li class="all-entities sublabel">All entities
-        <ul>
+    <li class="rename-option clickable">Rename alias</li>
+    <li class="associate-option">Associate with another entity
+        <ul class="submenu">
+            <li class="top-suggestions"><span class="menu-label">Top suggestions</span>
+                <ul>
+                    <li class="alias-group">No suggestions</li>
+                </ul>
+            </li>
+            <li class="all-entities"><span class="menu-label">All entities</span>
+                <ul>
+                    <li class="alias-group clickable">Test group A</li>
+                </ul>
+            </li>
         </ul>
     </li>
 </ul>
 <!-- Menu for entity panel "entity (alias group) options" -->
 <ul id="entities-panel-alias-group-edit-menu" class="hidden entities-panel-menu">
-    <li class="rename-option">Rename entity</li>
-    <li class="associate-option label">Associate all aliases with another entity:
-    <li class="top-suggestions sublabel">Top suggestions
-        <ul>
-        </ul>
-    </li>
-    <li class="all-entities sublabel">All entities
-        <ul>
+    <li class="rename-option clickable">Rename entity</li>
+    <li class="associate-option">Associate all aliases with another entity:
+        <ul class="submenu">
+            <li class="top-suggestions"><span class="menu-label">Top suggestions</span>
+                <ul>
+                    <li class="alias-group">No suggestions</li>
+                </ul>
+            </li>
+            <li class="all-entities"><span class="menu-label">All entities</span>
+                <ul>
+                    <li class="alias-group clickable">Test group A</li>
+                </ul>
+            </li>
         </ul>
     </li>
 </ul>
@@ -119,16 +127,9 @@
                             <input type="text"/>
                             <button type="button" class="submit-name-edit btn btn-primary btn-xs">Done</button>
                         </form>
-                        <span class="dropdown">
-                            <a role="button" data-toggle="dropdown" 
-                                aria-haspopup="true" aria-expanded="false"
-                                class="edit-alias-group-name edit-name options">
+                        <span class="entity-options options">
                                 <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
                             </a>
-                            <ul class="dropdown-menu">
-                                <li class="rename-option">Rename alias</li>
-                                <li class="associate-option">Associate with another entity</li>
-                            </ul>
                         </span>
                     </span>
                 </div>
