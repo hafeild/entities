@@ -38,6 +38,8 @@ var EntitiesPanelManager = function(annotationManager){
             var group = annotationManager.groups[groupId];
             self.addAliasGroup(group.name, groupId, group.entities);
         }
+
+        populateMenus();
     };
 
     /**
@@ -213,6 +215,40 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
+     * Populates the list of 'all-entities' in the given entities panel menu if 
+     * $menu is specified, or both the alias group and alias menus otherwise.
+     * 
+     * @param {jQuery} menu The menu to populate (optional).
+     */
+    var populateMenus = function($menu){
+        console.log('in populateMenus', $menu);
+        
+        if($menu === undefined){
+            populateMenus($aliasEditMenu);
+            populateMenus($aliasGroupEditMenu);
+            return;
+        }
+
+        var $itemTemplate = $menu.find('.templates .alias-group');
+        var groupId;
+        var $allEntitiesList = $menu.find('.all-entities ul')
+
+        // Clear the list.
+        $allEntitiesList.html('');
+
+        // Add each of the groups.
+        for(groupId in annotationManager.groups){
+            let group = annotationManager.groups[groupId];
+            let $groupListItem = $itemTemplate.clone();
+            $groupListItem.html(group.name);
+            $allEntitiesList.append($groupListItem);
+            $groupListItem.attr('data-group-id', groupId);
+            // $groupListItem.addClass(`g${groupId}`);
+        }
+
+    };
+
+    /**
      * Displays the entity or alias options menu (two different menus). 
      * Populates the suggested entities and full list of entities if stale.
      */
@@ -233,8 +269,11 @@ var EntitiesPanelManager = function(annotationManager){
         }
 
         // Populate all.
+        
+
         // Populate suggested (different based on whether this is an entity or
         // alias).
+        $menu.find('.top-suggestions ul').html('');
 
         // Change the data to point to the correct entity or alias.
         

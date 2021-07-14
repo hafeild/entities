@@ -51,6 +51,9 @@
             </li>
         </ul>
     </li>
+    <div class="hidden templates">
+        <li class="clickable alias-group"></li>
+    </div>
 </ul>
 <!-- Menu for entity panel "entity (alias group) options" -->
 <ul id="entities-panel-alias-group-edit-menu" class="hidden entities-panel-menu">
@@ -69,6 +72,9 @@
             </li>
         </ul>
     </li>
+    <div class="hidden templates">
+        <li class="clickable alias-group"></li>
+    </div>
 </ul>
 
 

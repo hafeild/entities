@@ -484,6 +484,8 @@ body.fullscreen #text-panel-wrapper {
     z-index: 100;
     list-style-type: none;
     padding: .5em 0 .5em 0;
+    max-height: 75%;
+    overflow-y: scroll;
 }
 .entities-panel-menu ul {
     list-style-type: none;
