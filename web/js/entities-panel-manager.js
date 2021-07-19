@@ -304,6 +304,18 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
+     * Adds a new entity.
+     */
+    var onAddCustomEntity = function(event){
+        var name = cleanHTML($('#new-entity-name').val());
+        annotationManager.addEntity(name, undefined, undefined, undefined, 
+            function(){
+                $('#new-entity-name').val('');
+                $entitiesPanel.find('#alias-groups .alias-group').last().prependTo($entitiesPanel.find('#alias-groups'));
+            });
+    };
+
+    /**
      * Saves edits made to an entity or alias group. This doesn't update the
      * interface; that is done via listeners to the AnnotationManager events
      * that updating a group or entity name trigger.
@@ -477,7 +489,7 @@ var EntitiesPanelManager = function(annotationManager){
         $(document).on('entities.annotation.entity-removed', onEntityRemovedFromAnnotation);
         $(document).on('entities.annotation.entity-renamed', onEntityRenamedInAnnotation);
         $(document).on('entities.annotation.group-renamed', onAliasGroupRenamedInAnnotation);
-        
+        $(document).on('submit', '#new-entity-form', onAddCustomEntity);
     };
 
     // Initialize settings (needed to wait for functions to be defined).

@@ -518,6 +518,10 @@ body.fullscreen #text-panel-wrapper {
     font-style: italic;
 }
 
+.entities-panel #new-entity-name {
+    width: 50%;
+}
+
 
 
 circle {

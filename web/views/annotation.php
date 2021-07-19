@@ -106,6 +106,12 @@
     <div id="annotation-panels">
         <div id="entity-panel-wrapper">
             <div id="entities-panel" class="entities-panel">
+                <form id="new-entity-form">
+                    <input type="text" id="new-entity-name" 
+                        placeholder="Enter the entity's name here"/> 
+                    <button type="submit" id="add-entity" class="btn btn-sm btn-primary"
+                        >Add an entity</button> 
+                </form>
                 <div id="alias-groups">
                 </div>
 
