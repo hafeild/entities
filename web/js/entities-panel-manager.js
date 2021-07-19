@@ -84,6 +84,33 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
+     * Triggered when an entity is added to the annotation
+     * manager.
+     * 
+     * @param {Event} event The DOM event. 
+     * @param {Object} data Should include the fields: id, groupId.
+     */
+    var onEntityAddedToAnnotation = function(event, data){
+        console.log('in onEntityAddedToAnnotation', data);
+        var entity = annotationManager.entities[data.id];
+        self.addEntity($entitiesPanel.find(
+            `.alias-group[data-id=${entity.group_id}]`), entity.name, data.id);
+    };
+
+    /**
+     * Triggered when an entity is added to the annotation
+     * manager.
+     * 
+     * @param {Event} event The DOM event. 
+     * @param {Object} data Should include the fields: id, name.
+     */
+    var onAliasGroupAddedToAnnotation = function(event, data){
+        console.log('in onAliasGroupAddedToAnnotation', data);
+        var aliasGroup = annotationManager.groups[data.id];
+        self.addAliasGroup(aliasGroup.name, data.id, []);
+    };
+
+    /**
      * Styles an entity that is being dragged (the original entity, not the
      * helper).
      * 
@@ -412,6 +439,9 @@ var EntitiesPanelManager = function(annotationManager){
 
         $(document).on('click', '.entities-panel-menu .alias-group', 
                 onEntitiesMovedViaMenu);
+
+        $(document).on('entities.annotation.group-added', onAliasGroupAddedToAnnotation);
+        $(document).on('entities.annotation.entity-added', onEntityAddedToAnnotation);
     };
 
     // Initialize settings (needed to wait for functions to be defined).
