@@ -2559,10 +2559,7 @@ $(document).ready(function(){
     $(document).on('click', '#add-annotation', addAnnotation);
     // $(document).on('click', '#get-annotations', getAnnotations);
     // $(document).on('click', '.get-annotation', getAnnotations);
-    $(document).on('click', '.group .select-all', selectAllInGroup);
-    $(document).on('click', '#group-selected', groupSelected);
     $(document).on('click', '.logout-button', ()=>{$('#logout-form').submit()});
-    $(document).on('click', "#entity-list > ul.groups > li > input.group-checkbox", groupListCheckboxClicked);
 
     // Bootstrap tooltips.
     $('[data-toggle="tooltip"]').tooltip()

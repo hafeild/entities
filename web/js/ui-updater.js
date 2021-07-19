@@ -150,7 +150,7 @@ var UIUpdater = function(){
         console.log(`[UIUpdater] removing entity ${data.id}`);
 
         // Remove from entity panel.
-        $(`#entity-panel .group-checkbox[data-id=${data.id}]`).remove();
+        // OBSOLETE -- EntitiesPanelManager has listeners for this event now.
     };
 
     /**
@@ -165,13 +165,7 @@ var UIUpdater = function(){
     self.addEntity = function(event, data){
         console.log(`[UIUpdater] adding entity ${data.id}`);
 
-        // Add to entity panel if its group exists (if its group doesn't exist,
-        // this entity will be added when the group is created).
-        if($(`#entity-panel input[data-id="${data.id}"]`).length == 0){
-            $(`#entity-panel .group[data-id=${data.groupId}]`).
-                replaceWith(makeGroupChecklist(data.groupId,
-                    annotationManager.groups[data.groupId].entities));
-        }
+        // OBSOLETE.  EntitiesPanelManager has a listener for this event.
     };
 
     /**
@@ -189,23 +183,11 @@ var UIUpdater = function(){
         console.log(`[UIUpdater.changeEntityAliasGroup] changing entity's alias group ${data.id}`);
 
         // If the entity's old group is still in the entity panel, remove it.
-        if(annotationManager.groups[data.oldGroupId] &&
-            $(`#entity-panel .group[data-id=${data.oldGroupId}] `+
-                `.group-checkbox[data-id="${data.id}"]`).length != 0){
-
-            $(`#entity-panel .group[data-id=${data.oldGroupId}]`).
-                replaceWith(makeGroupChecklist(data.oldGroupId, 
-                    annotationManager.groups[data.oldGroupId].entities));
-        }
+        // OBSOLETE -- EntitiesPanelManager has listeners for this event now.
 
         // Add to entity panel if its group exists (if its group doesn't exist,
         // this entity will be added when the group is created).
-        if($(`#entity-panel .group[data-id=${data.newGroupId}] `+
-                `.group-checkbox[data-id="${data.id}"]`).length == 0){
-            $(`#entity-panel .group[data-id=${data.newGroupId}]`).
-                replaceWith(makeGroupChecklist(data.newGroupId, 
-                    annotationManager.groups[data.newGroupId].entities));
-        }
+        // OBSOLETE -- EntitiesPanelManager has listeners for this event now.
 
         // Update the text area.
         $(`#text-panel [data-entity-id=${data.id}]`).each(function(){
@@ -251,7 +233,7 @@ var UIUpdater = function(){
         console.log(`[UIUpdater] removing alias group ${data.id}`);
 
         // Remove from entity panel.
-        $(`#entity-panel .group[data-id=${data.id}]`).remove();
+        // OBSOLETE -- EntitiesPanelManager has listeners for this event now.
 
         // Remove from network viz panel.
         networkViz.removeGroup(data, true);
@@ -272,8 +254,7 @@ var UIUpdater = function(){
         console.log(`[UIUpdater] adding alias group ${data.id} (${data.name})`);
 
         // Add to entity panel.
-        $('#entity-list ul.groups').append(makeGroupChecklist(data.id, 
-            annotationManager.groups[data.id].entities));
+        // OBSOLETE -- EntitiesPanelManager has listeners for this event now.
 
         // Add to network viz panel.
         networkViz.addGroup(data, true);
@@ -300,7 +281,7 @@ var UIUpdater = function(){
 
 
     /**
-     * Removes a mention fro the text panel.
+     * Removes a mention from the text panel.
      * 
      * @param {jQueryEvent} event Ignored.
      * @param {object} An object with info about the removed mention with 

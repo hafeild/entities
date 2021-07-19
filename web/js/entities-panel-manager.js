@@ -91,7 +91,6 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {Object} data Should include the fields: id, groupId.
      */
     var onEntityAddedToAnnotation = function(event, data){
-        console.log('in onEntityAddedToAnnotation', data);
         var entity = annotationManager.entities[data.id];
         self.addEntity($entitiesPanel.find(
             `.alias-group[data-id=${entity.group_id}]`), entity.name, data.id);
@@ -105,7 +104,6 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {Object} data Should include the fields: id, name.
      */
     var onAliasGroupAddedToAnnotation = function(event, data){
-        console.log('in onAliasGroupAddedToAnnotation', data);
         var aliasGroup = annotationManager.groups[data.id];
         self.addAliasGroup(aliasGroup.name, data.id, []);
     };
@@ -118,7 +116,15 @@ var EntitiesPanelManager = function(annotationManager){
      *                      newGroupId
      */
     var onEntityMovedInAnnotation = function(event, data){
+        var $entity =  $entitiesPanel.find(`.entity[data-id=${data.id}]`);
+        var $aliasList = $entitiesPanel.find(`.alias-group[data-id=${data.newGroupId}] .aliases`);
 
+        if($entity.length > 0){
+            $entity.appendTo($aliasList);
+        } else {
+            self.addEntity($aliasList.parents('.alias-group'), 
+                annotationManager.entities[data.id].name, data.id);
+        }
     };
 
     /**
@@ -128,7 +134,8 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {Object} data Should include the fields: id
      */
     var onAliasGroupRemovedFromAnnotation = function(event, data){
-
+        $entitiesPanel.find(`.alias-group[data-id=${data.id}]`).remove();
+        $(`.entities-panel-menu li[data-id=${data.id}]`).remove();
     };
 
     /**
@@ -138,7 +145,7 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {Object} data Should include the fields: id, groupId
      */
     var onEntityRemovedFromAnnotation = function(event, data){
-
+        $entitiesPanel.find(`.entity[data-id=${data.id}]`).remove();
     };
 
     /**
@@ -205,20 +212,11 @@ var EntitiesPanelManager = function(annotationManager){
         var entityIds = [];
         $entitiesPanel.find('.entity.ui-selected').not('.clone-being-dragged').each(function(i,entityDOM){
             var $entity = $(entityDOM);
-            var $sourceAliasGroup = $entity.parents('.alias-group');
             
             if($entity.parents('.alias-group')[0] != $aliasGroup[0]){
                 entityIds.push($entity.attr('data-id'));
-                $entity.appendTo($aliasGroup.find('.aliases'));
-
-                // Remove source alias group if it's now empty.
-                if($sourceAliasGroup.find('.entity').length === 0){
-                    $sourceAliasGroup.remove();
-                    $(`.entities-panel-menu li[data-id=${$sourceAliasGroup.attr('data-id')}]`).remove();
-                }
             }
         });
-        console.log('Moving ', entityIds, 'to group',  $aliasGroup.attr('data-id'));
         $aliasGroup.removeClass('droppable-hover');        
         annotationManager.moveEntitiesToGroup(entityIds, $aliasGroup.attr('data-id'));
     };
@@ -232,45 +230,25 @@ var EntitiesPanelManager = function(annotationManager){
     var onEntitiesMovedViaMenu = function(event, ui){
         var $menu = $(this).parents('.entities-panel-menu');
         var destAliasGroupId = $(this).attr('data-id');
-        var $destAliasGroup = $entitiesPanel.find(`.alias-group[data-id=${destAliasGroupId}]`);
-        var $destAliases = $destAliasGroup.find('.aliases');
         var $sourceAliasGroup;
-        var entitiesToMove, entityIds = [];
-        var i;
+        var entityIds = [];
 
         // Case 1: select all the entities of the alias group associated with
         // the menu.
         if($menu.attr('id') == 'entities-panel-alias-group-edit-menu'){
             $sourceAliasGroup = $entitiesPanel.find(`.alias-group[data-id=${$menu.attr('data-id')}]`);
-            entitiesToMove = $sourceAliasGroup.find('.entity');
+            entityIds = $sourceAliasGroup.find('.entity').map(function(i, elm){
+                return elm.getAttribute('data-id');
+            }).get();
 
-        // Case 2: select just the entity associated with the menu.
+        // Case 2: select the selected entities associated with the menu.
         } else {
-            var $entityToMove = [$entitiesPanel.find(`.entity[data-id=${$menu.attr('data-id')}]`)];
-            $sourceAliasGroup = $entityToMove.parents('.alias-group');
-            entitiesToMove = [$entityToMove[0]];
-        }
-
-        // Stop if the destination and source are the same.
-        if($destAliasGroup == $sourceAliasGroup){
-            return;
-        }
-
-        // Move all of the DOM elements in the entity panel.
-        for(i = 0; i < entitiesToMove.length; i++){
-            let $entity = $(entitiesToMove[i]);
-            console.log($entity, i, entitiesToMove)
             
-            entityIds.push($entity.attr('data-id'));
-            $entity.appendTo($destAliases);
+            entityIds = $entitiesPanel.find('.entity.ui-selected').map(function(i, elm){
+                return elm.getAttribute('data-id');
+            }).get();
+        }
 
-            // Remove source alias group if it's now empty.
-            if($sourceAliasGroup.find('.entity').length === 0){
-                $sourceAliasGroup.remove();
-                $(`.entities-panel-menu li[data-id=${$sourceAliasGroup.attr('data-id')}]`).remove();
-            }
-        };
-        console.log('Moving ', entityIds, 'to group',  destAliasGroupId);
         annotationManager.moveEntitiesToGroup(entityIds, destAliasGroupId);
     };
 
@@ -305,8 +283,6 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {DOM Event} The event that triggered this callback.
      */
     var showNameEditor = function(event){
-        console.log('In showNameEditor');
-
         var $menu = $(this).parents('.entities-panel-menu');
         var id = $menu.attr('data-id');
 
@@ -466,20 +442,19 @@ var EntitiesPanelManager = function(annotationManager){
             var $target = $(event.target);
             var $entity = $target.parents('.entity');
 
+            console.log('in entitiesPanel mousedown listener', $target, $entity);
             if($entity.length > 0){
-                console.log('Clicked on entity sub-tree');
-                if($target.hasClass('name')){
-                    console.log('Clicked in "name" field entity');
+                if($target.hasClass('name') || $target.hasClass('options') ||
+                    $target.parents('.options').length > 0){
 
                     if(!$entity.hasClass('ui-selected') && !event.ctrlKey){
-                        $entitiesPanel.find('.entity').removeClass('ui-selected');
+                        $entitiesPanel.find('.entity.ui-selected').removeClass('ui-selected');
                     }
 
                     $entity.addClass('ui-selected');
                 }
             } else {
-                console.log('clicked on something else.');
-                $entitiesPanel.find('.entity').removeClass('ui-selected');
+                $entitiesPanel.find('.entity.ui-selected').removeClass('ui-selected');
             }
         });
 
@@ -532,76 +507,3 @@ var EntitiesPanelManager = function(annotationManager){
     return self;
 };
 
-
-
-
-
-
-// Old stuff.
-
-var displayAnnotation = function(){
-    // Clear the annotation list.
-    // $('#annotation-list').html('');
-    console.log("In displayAnnotation");
-
-    var charListOuterElm = $('#entity-list');
-    var charListElm = $('<ul class="groups">');
-    charListOuterElm.html(
-        '<button id="group-selected">Group selected</button> ');
-    charListOuterElm.append(charListElm);
-
-
-    for(groupId in annotationManager.groups){
-        var group = annotationManager.groups[groupId];
-        charListElm.append(makeGroupChecklist(groupId, group.entities));
-    }
-};
-
-var addEntityToGroupChecklist = function($entitiesList, entityId, entity){
-    return $entitiesList.append('<div class="pretty p-icon p-square p-jelly">'+
-        '<input type="checkbox" class="group-checkbox" '+
-        `data-id="${entityId}"><div class="state p-primary">`+ 
-        '<i class="icon mdi mdi-check"></i><label>'+ 
-        `<span class="g${entity.group_id} unselectable">`+ 
-        `${entity.name}</span></label></div></div>`);
-}
-
-var makeGroupChecklist = function(groupId, entities){
-    var $listItem = $(`<li class="group unselectable" data-id="${groupId}">`),
-        $entitiesList = $('<span class="entities">'),
-        entityId, i, entitiesSize = size(entities);
-
-    $listItem.append($entitiesList);
-    for(entityId in entities){
-        addEntityToGroupChecklist($entitiesList, entityId, entities[entityId]);
-        if(i < entitiesSize-1){
-            $entitiesList.append(', ')
-        }
-        i++;
-    }
-    if(entitiesSize > 1){
-        $listItem.append('<button class="select-all">[de]select all</button>');
-    }
-    return $listItem;
-};
-
-var groupSelected = function(){
-    //var selectedCheckboxes = 
-    var entityIds = []
-    
-    $('.groups input:checked').each(function(i, elm){
-        entityIds.push($(this).data('id'));
-    });
-    
-    annotationManager.groupEntities(entityIds);
-
-    displayAnnotation();
-};
-
-var selectAllInGroup = function(){
-    if($(this).parents('.group').find('input:checked').length > 0){
-        $(this).parents('.group').find('input').prop('checked', false);
-    } else {
-        $(this).parents('.group').find('input').prop('checked', true);
-    }
-};

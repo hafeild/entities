@@ -566,6 +566,7 @@ var AnnotationManager = function(annotation_data){
         var i;
         var newGroup = self.groups[group_id];
         var callbacks = [];
+        var groupRemovalCallbacks = [];
         
         for(i = 0; i < entityIds.length; i++){
             let entityId = entityIds[i];
@@ -581,7 +582,10 @@ var AnnotationManager = function(annotation_data){
                 // Mark the change.
                 changes.groups[entity.group_id] = "DELETE";
 
-                callbacks.push(()=>{
+                // We need to add a call back to announce the removal, but
+                // this event should be announced *after* all of the entities
+                // have been moved.
+                groupRemovalCallbacks.push(()=>{
                     $(document).trigger(
                         'entities.annotation.group-removed', {
                             id: oldGroupId
@@ -610,6 +614,7 @@ var AnnotationManager = function(annotation_data){
         sendChangesToServer(changes, (args)=>{
             if(args.success){
                 callbacks.forEach(f => f());
+                groupRemovalCallbacks.forEach(f => f());
             }
             if(callback){
                 callback(args);
