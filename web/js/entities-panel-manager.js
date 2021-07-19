@@ -111,6 +111,64 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
+     * Moves an entity to another group.
+     * 
+     * @param {Event} event The DOM event. 
+     * @param {Object} data Should include the fields: id (entity), oldGroupId, 
+     *                      newGroupId
+     */
+    var onEntityMovedInAnnotation = function(event, data){
+
+    };
+
+    /**
+     * Removes an alias group from the entities panel and menus.
+     * 
+     * @param {Event} event The DOM event. 
+     * @param {Object} data Should include the fields: id
+     */
+    var onAliasGroupRemovedFromAnnotation = function(event, data){
+
+    };
+
+    /**
+     * Removes an entity from the entities panel and menus.
+     * 
+     * @param {Event} event The DOM event. 
+     * @param {Object} data Should include the fields: id, groupId
+     */
+    var onEntityRemovedFromAnnotation = function(event, data){
+
+    };
+
+    /**
+     * Changes an entity's name in the entities panel.
+     * 
+     * @param {Event} event The DOM event. 
+     * @param {Object} data Should include the fields: id, name (new)
+     */
+    var onEntityRenamedInAnnotation = function(event, data){
+        var $name = $entitiesPanel.find(`.entity[data-id=${data.id}] .name`);
+        $name.html(data.name);
+    };
+
+    /**
+     * Changes an alias group's name in the entities panel and menus.
+     * 
+     * @param {Event} event The DOM event. 
+     * @param {Object} data Should include the fields: id, name (new)
+     */
+    var onAliasGroupRenamedInAnnotation = function(event, data){
+        // Rename in panel.
+        var $name = $entitiesPanel.find(
+            `.alias-group[data-id=${data.id}] .alias-group-name-wrapper .name`);
+        $name.html(data.name);
+
+        // Rename in menus.
+        $(`.entities-panel-menu li[data-id=${data.id}]`).html(data.name);
+    };
+
+    /**
      * Styles an entity that is being dragged (the original entity, not the
      * helper).
      * 
@@ -270,7 +328,9 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
-     * Saves edits made to an entity or alias group.
+     * Saves edits made to an entity or alias group. This doesn't update the
+     * interface; that is done via listeners to the AnnotationManager events
+     * that updating a group or entity name trigger.
      * 
      * @param {DOM Event} The event that triggered this callback.
      */
@@ -281,16 +341,11 @@ var EntitiesPanelManager = function(annotationManager){
         var $name = $nameWrapper.find('.name');
         var $nameEditor = $nameWrapper.find('.name-edit');
         var newName = cleanHTML($nameEditor.find('input[name=name]').val());
-        $name.html(newName);
-        
 
         // Alias group name change.
         if($nameWrapper.hasClass('alias-group-name-wrapper')){
             var aliasGroupId = $nameWrapper.parents('.alias-group').attr('data-id');
             annotationManager.changeGroupName(aliasGroupId, newName);
-
-            // Update in menus.
-            $(`.entities-panel-menu li[data-id=${aliasGroupId}]`).html(newName);
 
             // TODO -- add error handling.
 
@@ -442,6 +497,12 @@ var EntitiesPanelManager = function(annotationManager){
 
         $(document).on('entities.annotation.group-added', onAliasGroupAddedToAnnotation);
         $(document).on('entities.annotation.entity-added', onEntityAddedToAnnotation);
+        $(document).on('entities.annotation.entity-alias-group-changed', onEntityMovedInAnnotation);
+        $(document).on('entities.annotation.group-removed', onAliasGroupRemovedFromAnnotation);
+        $(document).on('entities.annotation.entity-removed', onEntityRemovedFromAnnotation);
+        $(document).on('entities.annotation.entity-renamed', onEntityRenamedInAnnotation);
+        $(document).on('entities.annotation.group-renamed', onAliasGroupRenamedInAnnotation);
+        
     };
 
     // Initialize settings (needed to wait for functions to be defined).

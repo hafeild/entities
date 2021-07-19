@@ -212,6 +212,7 @@ var AnnotationManager = function(annotation_data){
     self.updateEntity = function(entityId, updatedEntity, callback){
         var changes = {entities: {}, groups: {}, locations: {}, 
             ties: {}};
+        var callbacks = [];
         changes.entities[entityId] = {};
         
         // Update group id.
@@ -239,10 +240,22 @@ var AnnotationManager = function(annotation_data){
             self.entities[entityId].name = updatedEntity.name;
             // Mark changes.
             changes.entities[entityId].name = updatedEntity.name;
+
+            callbacks.push(()=>{
+                $(document).trigger('entities.annotation.entity-renamed', 
+                    {id: entityId, name: updatedEntity.name});
+            });
         }
 
         // Sync with the server.
-        sendChangesToServer(changes, callback);
+        sendChangesToServer(changes, (args)=>{
+            if(args.success){
+                callbacks.forEach(f => f());
+            }
+            if(callback){
+                callback(args);
+            }
+        });
     };
 
     /**
