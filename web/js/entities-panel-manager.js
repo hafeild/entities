@@ -111,7 +111,7 @@ var EntitiesPanelManager = function(annotationManager){
     /**
      * Moves an entity to the alias group it was dropped on.
      * 
-     * @param {Event} The DON event associated with the drop.
+     * @param {Event} The DOM event associated with the drop.
      * @param {Object} Contains info and properties about the source and target
      *                 of the drop.
      */
@@ -129,12 +129,64 @@ var EntitiesPanelManager = function(annotationManager){
                 // Remove source alias group if it's now empty.
                 if($sourceAliasGroup.find('.entity').length === 0){
                     $sourceAliasGroup.remove();
+                    $(`.entities-panel-menu li[data-id=${$sourceAliasGroup.attr('data-id')}]`).remove();
                 }
             }
         });
         console.log('Moving ', entityIds, 'to group',  $aliasGroup.attr('data-id'));
         $aliasGroup.removeClass('droppable-hover');        
         annotationManager.moveEntitiesToGroup(entityIds, $aliasGroup.attr('data-id'));
+    };
+
+    /**
+     * Moves an entity or set of entities to the alias group that was selected
+     * in one of the entity panel menus.
+     * 
+     * @param {Event} The DOM event associated with the menu click.
+     */
+    var onEntitiesMovedViaMenu = function(event, ui){
+        var $menu = $(this).parents('.entities-panel-menu');
+        var destAliasGroupId = $(this).attr('data-id');
+        var $destAliasGroup = $entitiesPanel.find(`.alias-group[data-id=${destAliasGroupId}]`);
+        var $destAliases = $destAliasGroup.find('.aliases');
+        var $sourceAliasGroup;
+        var entitiesToMove, entityIds = [];
+        var i;
+
+        // Case 1: select all the entities of the alias group associated with
+        // the menu.
+        if($menu.attr('id') == 'entities-panel-alias-group-edit-menu'){
+            $sourceAliasGroup = $entitiesPanel.find(`.alias-group[data-id=${$menu.attr('data-id')}]`);
+            entitiesToMove = $sourceAliasGroup.find('.entity');
+
+        // Case 2: select just the entity associated with the menu.
+        } else {
+            var $entityToMove = [$entitiesPanel.find(`.entity[data-id=${$menu.attr('data-id')}]`)];
+            $sourceAliasGroup = $entityToMove.parents('.alias-group');
+            entitiesToMove = [$entityToMove[0]];
+        }
+
+        // Stop if the destination and source are the same.
+        if($destAliasGroup == $sourceAliasGroup){
+            return;
+        }
+
+        // Move all of the DOM elements in the entity panel.
+        for(i = 0; i < entitiesToMove.length; i++){
+            let $entity = $(entitiesToMove[i]);
+            console.log($entity, i, entitiesToMove)
+            
+            entityIds.push($entity.attr('data-id'));
+            $entity.appendTo($destAliases);
+
+            // Remove source alias group if it's now empty.
+            if($sourceAliasGroup.find('.entity').length === 0){
+                $sourceAliasGroup.remove();
+                $(`.entities-panel-menu li[data-id=${$sourceAliasGroup.attr('data-id')}]`).remove();
+            }
+        };
+        console.log('Moving ', entityIds, 'to group',  destAliasGroupId);
+        annotationManager.moveEntitiesToGroup(entityIds, destAliasGroupId);
     };
 
 
@@ -168,10 +220,23 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {DOM Event} The event that triggered this callback.
      */
     var showNameEditor = function(event){
-        var $nameWrapper = $(this).parents('.name-wrapper');
+        console.log('In showNameEditor');
+
+        var $menu = $(this).parents('.entities-panel-menu');
+        var id = $menu.attr('data-id');
+
+        // Find the group/alias that this corresponds to.
+        var $nameWrapper;
+        if($menu.attr('id') == 'entities-panel-alias-group-edit-menu'){
+            $nameWrapper = $entitiesPanel.find(
+                `.alias-group[data-id=${id}] .alias-group-name-wrapper`);
+        } else {
+            $nameWrapper = $entitiesPanel.find(`.entity[data-id=${id}]`);
+        }
+
         var $name = $nameWrapper.find('.name');
         var $nameEditor = $nameWrapper.find('.name-edit');
-        $nameEditor.find('input').val($name.text());
+        $nameEditor.find('input[name=name]').val($name.text());
         $nameEditor.removeClass('hidden');  
         $name.hide();
         $nameEditor.show();
@@ -188,15 +253,17 @@ var EntitiesPanelManager = function(annotationManager){
         var $nameWrapper = $(this).parents('.name-wrapper');
         var $name = $nameWrapper.find('.name');
         var $nameEditor = $nameWrapper.find('.name-edit');
-        var newName = cleanHTML($nameEditor.find('input').val());
+        var newName = cleanHTML($nameEditor.find('input[name=name]').val());
         $name.html(newName);
-        
         
 
         // Alias group name change.
         if($nameWrapper.hasClass('alias-group-name-wrapper')){
             var aliasGroupId = $nameWrapper.parents('.alias-group').attr('data-id');
             annotationManager.changeGroupName(aliasGroupId, newName);
+
+            // Update in menus.
+            $(`.entities-panel-menu li[data-id=${aliasGroupId}]`).html(newName);
 
             // TODO -- add error handling.
 
@@ -221,8 +288,6 @@ var EntitiesPanelManager = function(annotationManager){
      * @param {jQuery} menu The menu to populate (optional).
      */
     var populateMenus = function($menu){
-        console.log('in populateMenus', $menu);
-        
         if($menu === undefined){
             populateMenus($aliasEditMenu);
             populateMenus($aliasGroupEditMenu);
@@ -242,7 +307,7 @@ var EntitiesPanelManager = function(annotationManager){
             let $groupListItem = $itemTemplate.clone();
             $groupListItem.html(group.name);
             $allEntitiesList.append($groupListItem);
-            $groupListItem.attr('data-group-id', groupId);
+            $groupListItem.attr('data-id', groupId);
             // $groupListItem.addClass(`g${groupId}`);
         }
 
@@ -259,37 +324,35 @@ var EntitiesPanelManager = function(annotationManager){
 
         // Determine if this is an entity or alias menu.
         var isAliasGroup = $(this).hasClass('alias-group-options');
-        var id, $menu;
+        var id, $menu, menuHangDistance;
         if(isAliasGroup){
             id = $(this).parents('.alias-group').attr('data-id');
             $menu = $aliasGroupEditMenu;
         } else {
             id = $(this).parents('.entity').attr('data-id');
             $menu = $aliasEditMenu;
-        }
-
-        // Populate all.
-        
+        }       
 
         // Populate suggested (different based on whether this is an entity or
         // alias).
         $menu.find('.top-suggestions ul').html('');
 
         // Change the data to point to the correct entity or alias.
+        $menu.attr('data-id', id);
         
         // Show the menu.
         $menu.removeClass('hidden');
-        console.log($menu);
 
         // Move to the correct spot relative to the mouse (just to the right; 
         // higher if not enough room below).
-        console.log(event.originalEvent.pageY, $menu.height(), $('body').height());
         // If the height of the menu goes below the page fold, raise it up by
         // the difference. Otherwise, leave it where the mouse is.
-        if(event.originalEvent.pageY + $menu.height() > $('body').height()){
+        menuHangDistance = event.originalEvent.pageY + $menu.height() - 
+            $('body').height();
+        if(menuHangDistance > 0){
             $menu.css({
                 left: event.originalEvent.pageX, 
-                top: event.originalEvent.pageY-$menu.height()
+                top: event.originalEvent.pageY-menuHangDistance
             });
         } else {
             $menu.css({
@@ -340,12 +403,15 @@ var EntitiesPanelManager = function(annotationManager){
 
 
         // Listen for renaming clicks.
-        $entitiesPanel.on('click', '.rename-option', showNameEditor);
+        $(document).on('click', '.entities-panel-menu .rename-option', showNameEditor);
         // $entitiesPanel.on('click', '.submit-name-edit', saveNameEdits);
         $entitiesPanel.on('submit', '.name-edit', saveNameEdits);
 
         $entitiesPanel.on('click', '.options', showMenu);
         $(document).on('click', hideMenu);
+
+        $(document).on('click', '.entities-panel-menu .alias-group', 
+                onEntitiesMovedViaMenu);
     };
 
     // Initialize settings (needed to wait for functions to be defined).

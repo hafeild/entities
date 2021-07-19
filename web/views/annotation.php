@@ -37,7 +37,7 @@
 <!-- Menu for entity panel "alias options" -->
 <ul id="entities-panel-alias-edit-menu" class="hidden entities-panel-menu">
     <li class="rename-option clickable">Rename alias</li>
-    <li class="associate-option">Associate with another entity
+    <li class="associate-option"><span class="menu-label">Associate with another entity</span>
         <ul class="submenu">
             <li class="top-suggestions"><span class="menu-label">Top suggestions</span>
                 <ul>
@@ -58,7 +58,7 @@
 <!-- Menu for entity panel "entity (alias group) options" -->
 <ul id="entities-panel-alias-group-edit-menu" class="hidden entities-panel-menu">
     <li class="rename-option clickable">Rename entity</li>
-    <li class="associate-option">Associate all aliases with another entity:
+    <li class="associate-option"><span class="menu-label">Associate all aliases with another entity</span>
         <ul class="submenu">
             <li class="top-suggestions"><span class="menu-label">Top suggestions</span>
                 <ul>
@@ -116,8 +116,8 @@
                         <div class="alias-group-name-wrapper name-wrapper">
                             <span class="name"></span>
                             <form class="name-edit hidden">
-                                <input type="text"/>
-                                <button type="button" class="submit-name-edit btn btn-primary btn-xs">Done</button>
+                                <input name="name" type="text"/>
+                                <input type="submit" class="submit-name-edit btn btn-primary btn-xs" value="Done"/>
                             </form>
                             <span class="alias-group-options options">
                                 <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
@@ -130,8 +130,8 @@
                     <span class="entity name-wrapper" data-id="">
                         <span class="name"></span>
                         <form  class="name-edit hidden">
-                            <input type="text"/>
-                            <button type="button" class="submit-name-edit btn btn-primary btn-xs">Done</button>
+                            <input name="name" type="text"/>
+                            <input type="submit" class="submit-name-edit btn btn-primary btn-xs" value="Done"/>
                         </form>
                         <span class="entity-options options">
                                 <span class="glyphicon glyphicon-option-vertical" aria-hidden="true"></span>
