@@ -222,12 +222,12 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
-     * Moves an entity or set of entities to the alias group that was selected
+     * Moves an entity or set of entities in the alias group that was selected
      * in one of the entity panel menus.
      * 
      * @param {Event} The DOM event associated with the menu click.
      */
-    var onEntitiesMovedViaMenu = function(event, ui){
+    var onEntitiesMovedViaMenu = function(event){
         var $menu = $(this).parents('.entities-panel-menu');
         var destAliasGroupId = $(this).attr('data-id');
         var $sourceAliasGroup;
@@ -250,6 +250,35 @@ var EntitiesPanelManager = function(annotationManager){
         }
 
         annotationManager.moveEntitiesToGroup(entityIds, destAliasGroupId);
+    };
+
+    /**
+     * Deletes an entity or set of entities in the alias group that was selected
+     * in one of the entity panel menus.
+     * 
+     * @param {Event} The DOM event associated with the menu click.
+     */
+    var onDeleteViaMenu = function(event){
+        var $menu = $(this).parents('.entities-panel-menu');
+        var entityIds = [];
+
+        // Case 1: select all the entities of the alias group associated with
+        // the menu.
+        if($menu.attr('id') == 'entities-panel-alias-group-edit-menu'){
+            var $sourceAliasGroup = $entitiesPanel.find(`.alias-group[data-id=${$menu.attr('data-id')}]`);
+            entityIds = $sourceAliasGroup.find('.entity').map(function(i, elm){
+                return elm.getAttribute('data-id');
+            }).get();
+
+        // Case 2: select the selected entities associated with the menu.
+        } else {
+            
+            entityIds = $entitiesPanel.find('.entity.ui-selected').map(function(i, elm){
+                return elm.getAttribute('data-id');
+            }).get();
+        }
+
+        annotationManager.removeEntities(entityIds);
     };
 
 
@@ -473,7 +502,7 @@ var EntitiesPanelManager = function(annotationManager){
 
         // Listen for renaming clicks.
         $(document).on('click', '.entities-panel-menu .rename-option', showNameEditor);
-        // $entitiesPanel.on('click', '.submit-name-edit', saveNameEdits);
+        $(document).on('click', '.entities-panel-menu .delete-option', onDeleteViaMenu);
         $entitiesPanel.on('submit', '.name-edit', saveNameEdits);
 
         $entitiesPanel.on('click', '.options', showMenu);

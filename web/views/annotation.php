@@ -37,6 +37,7 @@
 <!-- Menu for entity panel "alias options" -->
 <ul id="entities-panel-alias-edit-menu" class="hidden entities-panel-menu">
     <li class="rename-option clickable">Rename alias</li>
+    <li class="delete-option clickable">Delete alias</li>
     <li class="associate-option"><span class="menu-label">Associate selected aliases with another entity</span>
         <ul class="submenu">
             <li class="top-suggestions"><span class="menu-label">Top suggestions</span>
@@ -58,6 +59,7 @@
 <!-- Menu for entity panel "entity (alias group) options" -->
 <ul id="entities-panel-alias-group-edit-menu" class="hidden entities-panel-menu">
     <li class="rename-option clickable">Rename entity</li>
+    <li class="delete-option clickable">Delete entity</li>
     <li class="associate-option"><span class="menu-label">Associate all aliases with another entity</span>
         <ul class="submenu">
             <li class="top-suggestions"><span class="menu-label">Top suggestions</span>
