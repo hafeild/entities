@@ -79,12 +79,13 @@
     </div>
 </ul>
 
+<p style="z-index:10; position:fixed;" id="adjustTie-besideMouseText"></p>
 
 <div id="annotation-panels-wrapper">
 
     <?php if($data["annotation"]["automated_method_error"]){ ?>
 
-        <div class="processing">
+    <div class="processing">
         We encountered an error while processing this annotation :( <br/>
         Try creating a new annotation.
         <br/>
@@ -153,11 +154,13 @@
                     annotationManager = AnnotationManager(annotation_data);
                     tokenNavigator = TokenNavigator(annotation_data);
                     entitiesPanelManager = EntitiesPanelManager(annotationManager);
+                     networkViz = NetworkVisualizer();
                     entitiesPanelManager.addAliasGroupsFromAnnotation();
                     // displayAnnotation();
                 </script>
             </div>
         </div>
+    
 
 
         <div id="text-panel-wrapper">
@@ -166,7 +169,7 @@
                 <span id="end-marker"></span>
             </div>
             <?php if(!$data["annotation"]["automated_method_in_progress"] && 
-                !$data["annotation"]["automated_method_error"]){ ?>
+                    !$data["annotation"]["automated_method_error"]){ ?>
 
             <div id="text-contents" class="hidden">
                 <?php readfile($data["text"]["content_file"]); ?>
@@ -174,20 +177,18 @@
             <script>
                 var tokens = JSON.parse($('#text-contents').html().replace(/,\s*\]\s*$/, ']'));
                 initializeTokenizedContent();
-                // For testing only!
-                // findTies(30);
+                    // For testing only!
+                    // findTies(30);
             </script>
             <?php } ?>
             <span id="fullscreen-toggle-button" onclick="toggleFullscreen()">
-                <span class="expand" data-toggle="tooltip" data-placement="left"
-                    title="Maximize the text panel.">
+                <span class="expand" data-toggle="tooltip" data-placement="left" title="Maximize the text panel.">
                     <span class="glyphicon glyphicon-resize-full"></span>
                 </span>
-                <span class="shrink" data-toggle="tooltip" data-placement="left"
-                    title="Minimize the text panel.">
+                <span class="shrink" data-toggle="tooltip" data-placement="left" title="Minimize the text panel.">
                     <span class="glyphicon glyphicon-resize-small"></span>
                 </span>
-            </span>  
+            </span>
 
             <!-- Status bar. -->
             <span id="selection-info-box-marker"></span>
@@ -201,16 +202,15 @@
 
 
         <div id="network-panel" class="entities-panel">
-            
+
             <svg id="network-svg"></svg>
             <script>
-                networkViz.init();
+                networkViz.init("#network-svg");
                 networkViz.loadNetwork(annotation_data.annotation);
             </script>
         </div>
 
     </div>
-
 </div>
 
 
@@ -222,12 +222,11 @@
 <!-- Add Mention Modal -->
 <div class="modal fade" id="addMentionModal" role="dialog">
     <div class="modal-dialog">
-    
+
         <!-- Add Mention Modal content-->
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" 
-                    id="addMentionModalClose" data-dismiss="modal">
+                <button type="button" class="close" id="addMentionModalClose" data-dismiss="modal">
                     &times;</button>
                 <h4 class="modal-title">Add Mention</h4>
             </div>
@@ -235,20 +234,18 @@
                 <div class="recentlySeenWrapper">
                     <h2>Most recently mentioned entities</h2>
                     <ul class="modalSelector recentlySeenList"></ul>
-                    <hr/>
+                    <hr />
                 </div>
                 <h2>All entities</h2>
-                <ul class="modalSelector" 
-                    id="addMentionEntitySelectorChecklist">
+                <ul class="modalSelector" id="addMentionEntitySelectorChecklist">
                 </ul>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
-                    id="confirmAddMention" data-dismiss="modal">
+                <button type="button" class="btn btn-primary" id="confirmAddMention" data-dismiss="modal">
                     Confirm</button>
             </div>
         </div>
-        
+
     </div>
 </div>
 
@@ -256,12 +253,11 @@
 <!-- Reassign Mention Modal -->
 <div class="modal fade" id="reassignMentionModal" role="dialog">
     <div class="modal-dialog">
-    
+
         <!-- Reassign Mention Modal content-->
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" 
-                    id="reassignMentionModalClose" data-dismiss="modal">
+                <button type="button" class="close" id="reassignMentionModalClose" data-dismiss="modal">
                     &times;</button>
                 <h4 class="modal-title">Reassign Mention</h4>
             </div>
@@ -269,21 +265,19 @@
                 <div class="recentlySeenWrapper">
                     <h2>Most recently mentioned entities</h2>
                     <ul class="modalSelector recentlySeenList"></ul>
-                    <hr/>
+                    <hr />
                 </div>
 
                 <h2>All entities</h2>
-                <ul class="modalSelector" 
-                    id='reassignMentionEntitySelectorChecklist'>
+                <ul class="modalSelector" id='reassignMentionEntitySelectorChecklist'>
                 </ul>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
-                    id="confirmReassignMention" data-dismiss="modal">
+                <button type="button" class="btn btn-primary" id="confirmReassignMention" data-dismiss="modal">
                     Confirm</button>
             </div>
         </div>
-        
+
     </div>
 </div>
 
@@ -291,40 +285,35 @@
 <!-- Group Name Change Modal -->
 <div class="modal fade" id="changeGroupNameModal" role="dialog">
     <div class="modal-dialog">
-    
+
         <!-- Group Name Change Modal content-->
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" 
-                    id="changeGroupNameModalClose" data-dismiss="modal">
+                <button type="button" class="close" id="changeGroupNameModalClose" data-dismiss="modal">
                     &times;</button>
                 <h4 class="modal-title">Change Group Name</h4>
             </div>
             <div class="modal-body">
-                <input name="newGroupNameBox" class="form-control" 
-                    placeholder="Enter a new group name" type="text" 
-                    maxlength="512" id="newGroupNameBox"/>
+                <input name="newGroupNameBox" class="form-control" placeholder="Enter a new group name" type="text"
+                    maxlength="512" id="newGroupNameBox" />
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
-                    id="confirmGroupNameChange" data-dismiss="modal">
+                <button type="button" class="btn btn-primary" id="confirmGroupNameChange" data-dismiss="modal">
                     Confirm</button>
             </div>
         </div>
-        
+
     </div>
 </div>
 
 <!-- Group Selector Modal -->
 <div class="modal fade" id="groupSelectorModal" role="dialog">
     <div class="modal-dialog">
-    
+
         <!-- Group Selector Modal content-->
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" 
-                    id="groupSelectorModalClose" data-dismiss="modal"
-                        >&times;</button>
+                <button type="button" class="close" id="groupSelectorModalClose" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title">Move Entity to Group</h4>
             </div>
             <div class="modal-body" id="groupSelectorModal-body">
@@ -332,24 +321,22 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
-                    id="confirmGroupSelect" data-dismiss="modal"
-                        >Confirm</button>
+                <button type="button" class="btn btn-primary" id="confirmGroupSelect"
+                    data-dismiss="modal">Confirm</button>
             </div>
         </div>
-        
+
     </div>
-</div>  
+</div>
 
 <!-- Tie Selector Modal -->
 <div class="modal fade" id="addTieModal" role="dialog">
     <div class="modal-dialog">
-    
+
         <!-- Tie Modal content-->
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" 
-                    id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
+                <button type="button" class="close" id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title">Create a tie between two entities</h4>
             </div>
             <div class="modal-body" id="addTieModal-body">
@@ -359,152 +346,207 @@
                 </div>
                 <div class="row" id="tieModalObjectSelectors">
                     <div class="col-sm-6">
-                    <div class="dropdown">
-                        <button class="btn btn-primary dropdown-toggle" 
-                            id="tieObjectOneDropdown" type="button" 
-                            data-toggle="dropdown">Object One
-                        <span class="caret"></span></button>
-                        <ul class="dropdown-menu tieObjectSelector" 
-                            id="tieObjectOneSelector">
-                        
-                        </ul>
-                    </div>
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" id="tieObjectOneDropdown" type="button"
+                                data-toggle="dropdown">Object One
+                                <span class="caret"></span></button>
+                            <ul class="dropdown-menu tieObjectSelector" id="tieObjectOneSelector">
+
+                            </ul>
+                        </div>
                     </div>
                     <div class="col-sm-6">
-                    <div class="dropdown">
-                        <button class="btn btn-primary dropdown-toggle" 
-                            id="tieObjectTwoDropdown" type="button" 
-                            data-toggle="dropdown">Object Two
-                        <span class="caret"></span></button>
-                        <ul class="dropdown-menu tieObjectSelector" 
-                            id="tieObjectTwoSelector">
-                        
-                        </ul>
-                    </div>
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" id="tieObjectTwoDropdown" type="button"
+                                data-toggle="dropdown">Object Two
+                                <span class="caret"></span></button>
+                            <ul class="dropdown-menu tieObjectSelector" id="tieObjectTwoSelector">
+
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 <hr />
                 <div class="row" style="margin-top: 20px">
                     <div class="col-sm-1"></div>
                     <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieWeightBox" class="form-control" 
-                            value="1" type="number" id="tieWeightBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Weight</label>
-                    </div>
+                        <div style="float: left">
+                            <input name="tieWeightBox" class="form-control" value="1" type="number" id="tieWeightBox" />
+                            <label style="width: 100%; text-align: center;" for="tieWeightBox">Weight</label>
+                        </div>
                     </div>
                     <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieNameBox" class="form-control" 
-                            placeholder="" type="text" maxlength="100" 
-                            id="tieNameBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Label</label>
-                    </div>
+                        <div style="float: left">
+                            <input name="tieNameBox" class="form-control" placeholder="" type="text" maxlength="100"
+                                id="tieNameBox" />
+                            <label style="width: 100%; text-align: center;" for="tieWeightBox">Label</label>
+                        </div>
                     </div>
                     <div class="col-sm-3" style="margin-top: 10px;">
-                    <div class="form-check">
-                        <div class="pretty p-switch p-fill">
-                        <input name="tieDirectedToggle" 
-                            class="form-check-input" type="checkbox" 
-                            id="tieDirectedToggle" />
-                        <div class="state p-primary">
-                            <label style="width: 100%; text-align: center;" 
-                                class="form-check-label" 
-                                for="tieDirectedToggle">
-                                Directed 
-                            </label>
-                        </div>
+                        <div class="form-check">
+                            <div class="pretty p-switch p-fill">
+                                <input name="tieDirectedToggle" class="form-check-input" type="checkbox"
+                                    id="tieDirectedToggle" />
+                                <div class="state p-primary">
+                                    <label style="width: 100%; text-align: center;" class="form-check-label"
+                                        for="tieDirectedToggle">
+                                        Directed
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    </div>        
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
-                id="confirmAddTie" data-dismiss="modal">Confirm</button>
+                <button type="button" class="btn btn-primary" id="confirmAddTie" data-dismiss="modal">Confirm</button>
             </div>
         </div>
-        
+
     </div>
-</div>  
+</div>
 
 <!-- Edit Tie Selector Modal -->
 <div class="modal fade" id="editTieModal" role="dialog">
-    <div class="modal-dialog">
-    
+    <div class="modal-dialog" id="editTieModal-dialog">
+
         <!-- Edit Tie Modal content-->
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" 
-                    id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
+                <button type="button" class="close" id="tieSelectorModalClose" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title">Edit Tie</h4>
             </div>
             <div class="modal-body" id="editTieModal-body">
-                <div class="row" class="tie-modal-text-area" id="edit-tieModalTextArea">
+                <div class="row">
+                    <div class="col-sm-6" class="tie-modal-text-area" id="edit-tieModalTextArea">
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="row">
+                            <div class="col-6">
+                                <a href="#" id="visualizer-tutorial" class="btn btn-secondary" data-toggle="popover"
+                                    title="Tie Visualizer" data-trigger="hover" data-placement="bottom">
+                                    <span class="glyphicon glyphicon-question-sign"></span>
+                                </a>
+                                <div id="edit-addEntityToNetworkDropdown" class="dropdown">
+                                    <div id="visualizer-tutorial-content" style="display: none">
+                                        <p>The tie visualizer is an interactive presentation of the ties represented by
+                                            the text you've selected.
+                                            Changes made in the visualizer are reflected in the annotation upon choosing
+                                            Confirm.</p>
+                                        <hr>
+                                        <p><strong>Add a Node</strong> - Click the + icon and choose an alias group</p>
+                                        <p><strong>Create a Tie</strong> - Left-click two unique nodes subsequently</p>
+                                        <p><strong>Delete a Tie</strong> - Right-click the link between two nodes</p>
+                                        <p><strong>Edit a Tie</strong> - Hold shift and left-click the link between two
+                                            nodes</p>
+                                        <p><strong>Flip Tie Directedness</strong> - Left-click the link between two
+                                            nodes</p>
+                                    </div>
+                                    <button id="edit-addEntityToNetworkButton" type="button"
+                                        class="btn btn-light dropdown-toggle" data-toggle="dropdown">&#43;</button>
+                                    <ul id="edit-addEntityToNetworkDropdownMenu" class="dropdown-menu"
+                                        aria-labelledby="dropdownMenuButton">
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="tie-network-panel">
+                                <svg class="tie-network-svg" id="edit-tie-network-svg"></svg>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 20px">
+                            <div class="col-sm-4 edit-editTieValue edit-hide">
+                                <div class="" style="float: left">
+                                    <input disabled name="tieWeightBox" class="form-control" value="1" type="number"
+                                        id="edit-tieWeightBox" />
+                                    <label style="width: 100%; text-align: center;" for="tieWeightBox">Weight</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 edit-editTieValue edit-hide">
+                                <div style="float: left">
+                                    <input disabled name="tieNameBox" class="form-control" placeholder="" type="text"
+                                        maxlength="100" id="edit-tieNameBox" />
+                                    <label style="width: 100%; text-align: center;" for="tieWeightBox">Label</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-3 edit-editTieValue edit-hide" style="margin-top: 10px;">
+                                <div form-check">
+                                    <div class="pretty p-switch p-fill">
+                                        <input disabled name="tieDirectedToggle" class="form-check-input"
+                                            type="checkbox" id="edit-tieDirectedToggle" />
+                                        <div class="state p-primary">
+                                            <label style="width: 100%; text-align: center;" class="form-check-label"
+                                                for="tieDirectedToggle">
+                                                Directed
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
                 <div class="row">
-                </div>
-                <div class="row" style="margin-top: 20px">
-                    <div class="col-sm-1"></div>
-                    <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieWeightBox" class="form-control" 
-                            value="1" type="number" id="edit-tieWeightBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Weight</label>
-                    </div>
-                    </div>
-                    <div class="col-sm-4">
-                    <div style="float: left">
-                        <input name="tieNameBox" class="form-control" 
-                            placeholder="" type="text" maxlength="100" 
-                            id="edit-tieNameBox"/>
-                        <label style="width: 100%; text-align: center;" 
-                            for="tieWeightBox">Label</label>
-                    </div>
-                    </div>
-                    <div class="col-sm-3" style="margin-top: 10px;">
-                    <div class="form-check">
-                        <div class="pretty p-switch p-fill">
-                        <input name="tieDirectedToggle" 
-                            class="form-check-input" type="checkbox" 
-                            id="edit-tieDirectedToggle" />
-                        <div class="state p-primary">
-                            <label style="width: 100%; text-align: center;"
-                                class="form-check-label" 
-                                for="tieDirectedToggle">
-                                Directed 
-                            </label>
+                    <div class="col-sm-6" id="edit-tieModalObjectSelectors">
+                        <div class="row">
+                            <div class="col-sm-6 text-center">
+                                <div class="dropdown">
+                                    <button class="btn btn-primary dropdown-toggle" id="edit-tieObjectOneDropdown" type="button"
+                                        data-toggle="dropdown">Object One
+                                        <span class="caret"></span></button>
+                                    <ul class="dropdown-menu edit-tieObjectSelector" id="edit-tieObjectOneSelector">
+
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 text-center">
+                                <div class="dropdown">
+                                    <button class="btn btn-primary dropdown-toggle" id="edit-tieObjectTwoDropdown" type="button"
+                                        data-toggle="dropdown">Object Two
+                                        <span class="caret"></span></button>
+                                    <ul class="dropdown-menu edit-tieObjectSelector" id="edit-tieObjectTwoSelector">
+
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
+                        <div class="row">
+                            <div class="col-sm-4">
+                            </div>
+                            <div class="col-sm-4 text-center">
+                            <button disabled type="button"
+                                class="btn btn-primary" id="edit-addTieBtn">Add Tie</button>
+                            </div>
+                            <div class="col-sm-4">
+                            </div>
                         </div>
                     </div>
-                    </div>        
+                    <div class="col-sm-6"><button disabled type="button"
+                            class="btn btn-primary edit-editTieValue edit-hide" id="edit-adjustTieBtn">Save
+                            Changes</button></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" 
-                    id="confirmEditTie" data-dismiss="modal">Confirm</button>
+                <button disabled type="button" class="btn btn-primary" id="confirmEditTie"
+                    data-dismiss="modal">Confirm</button>
             </div>
         </div>
-        
     </div>
-</div> 
+</div>
 
 <!-- hidden buttons that allows for the bootstrap modal to open -->
-<button class="hidden-modal-button" id="addMentionModalOpener" 
-    data-toggle="modal" data-target="#addMentionModal"></button>
-<button class="hidden-modal-button" id="reassignMentionModalOpener" 
-    data-toggle="modal" data-target="#reassignMentionModal"></button>
-<button class="hidden-modal-button" id="changeGroupnameModalOpener" 
-    data-toggle="modal" data-target="#changeGroupNameModal"></button>
-<button class="hidden-modal-button" id="groupSelectorModalOpener" 
-    data-toggle="modal" data-target="#groupSelectorModal"></button>
-<button class="hidden-modal-button" id="addTieModalOpener" 
-    data-toggle="modal" data-target="#addTieModal"></button>
-<button class="hidden-modal-button" id="editTieModalOpener" 
-    data-toggle="modal" data-target="#editTieModal"></button>
+<button class="hidden-modal-button" id="addMentionModalOpener" data-toggle="modal"
+    data-target="#addMentionModal"></button>
+<button class="hidden-modal-button" id="reassignMentionModalOpener" data-toggle="modal"
+    data-target="#reassignMentionModal"></button>
+<button class="hidden-modal-button" id="changeGroupnameModalOpener" data-toggle="modal"
+    data-target="#changeGroupNameModal"></button>
+<button class="hidden-modal-button" id="groupSelectorModalOpener" data-toggle="modal"
+    data-target="#groupSelectorModal"></button>
+<button class="hidden-modal-button" id="addTieModalOpener" data-toggle="modal" data-target="#addTieModal"></button>
+<button class="hidden-modal-button" id="editTieModalOpener" data-toggle="modal" data-target="#editTieModal"></button>
 
 
 <?php 

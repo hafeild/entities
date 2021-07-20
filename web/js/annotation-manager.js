@@ -1127,6 +1127,8 @@ var AnnotationManager = function(annotation_data){
         var nodes = {source_entity: 1, target_entity: 1}, node;
         var tie = self.ties[tieId];
 
+        console.log(tie);
+        console.log(tieId);
 
         // Update the *_entity fields.
         for(node in nodes){
