@@ -441,6 +441,10 @@ body.fullscreen #text-panel-wrapper {
     cursor: grab;
 }
 
+#entities-panel form.name-edit {
+    color: black;
+}
+
 #entities-panel .entity.ui-selected {
     border-color: lightsteelblue;
     background-color: steelblue;

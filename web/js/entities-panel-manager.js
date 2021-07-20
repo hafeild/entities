@@ -62,8 +62,11 @@ var EntitiesPanelManager = function(annotationManager){
             self.addEntity($aliasGroup, entities[entityId].name, entityId);
         }
         $aliasGroup.droppable(droppableSettings);
-        // $aliasGroup.find('.aliases').selectable(selectableSettings);
 
+
+        // Add to menu.
+        addAliasGroupToMenu($aliasEditMenu, groupId, groupName);
+        addAliasGroupToMenu($aliasGroupEditMenu, groupId, groupName);
     };
 
     /**
@@ -342,6 +345,9 @@ var EntitiesPanelManager = function(annotationManager){
                 $('#new-entity-name').val('');
                 $entitiesPanel.find('#alias-groups .alias-group').last().prependTo($entitiesPanel.find('#alias-groups'));
             });
+
+        event.stopPropagation();
+        event.preventDefault();
     };
 
     /**
@@ -381,12 +387,36 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
+     * Adds an alias group to the specified entities panel menu.
+     * 
+     * @param {jQuery} $menu The menu to add the alias group to.
+     * @param {string} id The id of the group.
+     * @param {string} name The name of the group.
+     * @param {jQuery} $allEntitiesList (Optional) The ul element containing 
+     *                                  selectable items in the menu.
+     * @param {jQuery} $itemTemplate (Optional) The template of the item.
+     */
+    var addAliasGroupToMenu = function($menu, id, name, $allEntitiesList, $itemTemplate){
+        if($allEntitiesList === undefined){
+            $allEntitiesList = $menu.find('.all-entities ul');
+        }
+        if($itemTemplate === undefined){
+            var $itemTemplate = $menu.find('.templates .alias-group');
+        }
+
+        var $groupListItem = $itemTemplate.clone();
+        $groupListItem.html(name);
+        $allEntitiesList.append($groupListItem);
+        $groupListItem.attr('data-id', id);
+    };
+
+    /**
      * Populates the list of 'all-entities' in the given entities panel menu if 
      * $menu is specified, or both the alias group and alias menus otherwise.
      * 
      * @param {jQuery} menu The menu to populate (optional).
      */
-    var populateMenus = function($menu){
+    var populateMenus = function($menu, groupId){
         if($menu === undefined){
             populateMenus($aliasEditMenu);
             populateMenus($aliasGroupEditMenu);
@@ -402,12 +432,10 @@ var EntitiesPanelManager = function(annotationManager){
 
         // Add each of the groups.
         for(groupId in annotationManager.groups){
-            let group = annotationManager.groups[groupId];
-            let $groupListItem = $itemTemplate.clone();
-            $groupListItem.html(group.name);
-            $allEntitiesList.append($groupListItem);
-            $groupListItem.attr('data-id', groupId);
-            // $groupListItem.addClass(`g${groupId}`);
+            addAliasGroupToMenu($menu, groupId, 
+                annotationManager.groups[groupId].name, 
+                $allEntitiesList,
+                $itemTemplate)
         }
 
     };
