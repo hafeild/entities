@@ -1,4 +1,4 @@
-// File: entities-panel.js
+// File: entities-panel-manager.js
 // Author: Hank Feild
 // Date: 2021-05-29
 // Purpose: Provides functions for interacting with the entities panel on an

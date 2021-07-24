@@ -4,6 +4,7 @@
 <script src="/js/annotation-manager.js"></script>
 <script src="/js/token-navigator.js"></script>
 <script src="/js/entities-panel-manager.js"></script>
+<script src="/js/text-panel-manager.js"></script>
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
@@ -177,6 +178,7 @@
             <script>
                 var tokens = JSON.parse($('#text-contents').html().replace(/,\s*\]\s*$/, ']'));
                 initializeTokenizedContent();
+                var textPanelManager = TextPanelManager();
                     // For testing only!
                     // findTies(30);
             </script>

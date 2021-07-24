@@ -703,15 +703,15 @@ var unannotateContentPage = function(pageElmOrIndex){
          replace(">", "&gt;") +
          '</span><span>'+ tokens[i][WHITESPACE_AFTER] +"</span>";
         */
-         html += `<span data-token="${i}">`+ 
+         html += `<span data-token="${i}" class="token">`+ 
          tokens[i][TOKEN_CONTENT].replace("&", "&amp;").
          replace("<", "&lt;").
          replace(">", "&gt;") +
          '</span>';
          if (tokens[i][WHITESPACE_AFTER] === "\n") {
-            html += '<span> </span>';
+            html += '<span class="whitespace"> </span>';
          } else {
-            html += '<span>'+ tokens[i][WHITESPACE_AFTER] + '</span>';
+            html += '<span class="whitespace">'+ tokens[i][WHITESPACE_AFTER] + '</span>';
          }
      }
      return html;

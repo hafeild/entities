@@ -739,8 +739,26 @@ span.selectedEntity.end-token {
     width: 100%;    
 }
 
+#text-panel {
+    user-select: none;
+}
+
 #text-panel .entity {
     cursor: default;
+}
+
+#text-panel .selected {
+    background-color: lightsteelblue;
+    border-top: 1px solid steelblue;
+    border-bottom: 1px solid steelblue;
+}
+
+#text-panel .selected.selection-start {
+    border-left: 1px solid steelblue;
+}
+
+#text-panel .selected.selection-end {
+    border-right: 1px solid steelblue;
 }
 
 .permission-username {
