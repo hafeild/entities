@@ -17,11 +17,11 @@
  */
 var TextPanelManager = function(annotationManager){
     var self = {
-
+        $textPanel: $('#text-panel'),
+        $textContents: $('#text-contents'),
+        tokenManger: undefined
     };
-    var $textPanel = $('#text-panel');
     var $endMarker = $('#end-marker');
-    var $textContents = $('#text-contents');
     var textSelectionInProgress = false;
     var textSelection = {
         start: -1,
@@ -41,7 +41,7 @@ var TextPanelManager = function(annotationManager){
     self.clearSelection = function(prevSelection, curSelection){
         // Clear entire selection.
         if(prevSelection == undefined || curSelection == undefined){
-            $textPanel.find('.selected').removeClass(
+            self.$textPanel.find('.selected').removeClass(
                 ['selected', 'selection-start', 'selection-end']);
             return;
         }
@@ -68,7 +68,7 @@ var TextPanelManager = function(annotationManager){
         // selection.
         if(prevStart < curStart){
             let end = Math.min(curStart-1, prevEnd);
-            iterateOverTokens($textPanel, prevStart, end,
+            self.tokenManager.iterateOverTokens(self.$textPanel, prevStart, end,
                 deselectFn(prevStart, end));
         }
 
@@ -76,7 +76,7 @@ var TextPanelManager = function(annotationManager){
         // selection.
         if(prevEnd > curEnd){
             let start =  Math.max(curEnd+1, prevStart);
-            iterateOverTokens($textPanel,start, prevEnd,
+            self.tokenManager.iterateOverTokens(self.$textPanel,start, prevEnd,
                 deselectFn(start, prevEnd));
         }
     };
@@ -123,14 +123,14 @@ var TextPanelManager = function(annotationManager){
 
         self.clearSelection(textSelection, {start: start, end: end});
         if(start < prevStart) {
-            $textPanel.find('.selection-start').removeClass('selection-start');
-            iterateOverTokens($textPanel, start, Math.min(end, prevStart),
-                selectFn);
+            self.$textPanel.find('.selection-start').removeClass('selection-start');
+            self.tokenManager.iterateOverTokens(self.$textPanel, start, 
+                Math.min(end, prevStart), selectFn);
         }
         if(end > prevEnd){
-            $textPanel.find('.selection-end').removeClass('selection-end');
-            iterateOverTokens($textPanel, Math.max(start, prevEnd), end, 
-                selectFn);
+            self.$textPanel.find('.selection-end').removeClass('selection-end');
+            self.tokenManager.iterateOverTokens(self.$textPanel, 
+                Math.max(start, prevEnd), end, selectFn);
 
         }
     };
@@ -206,14 +206,14 @@ var TextPanelManager = function(annotationManager){
      */
     var addListeners = function(){
         // Add listener for mouse down events.
-        $textPanel.on('mousedown', '.token,.whitespace', onMouseDownOnToken);
+        self.$textPanel.on('mousedown', '.token,.whitespace', onMouseDownOnToken);
         // Add listener for enter events over tokens (check for mouse down).
-        $textPanel.on('mouseenter', '.token,.whitespace', onMouseEnterToken);
+        self.$textPanel.on('mouseenter', '.token,.whitespace', onMouseEnterToken);
         // Add listener for mouse up events.
-        $textPanel.on('mouseup', '.token,.whitespace', onMouseUpOnToken);
+        self.$textPanel.on('mouseup', '.token,.whitespace', onMouseUpOnToken);
 
         // Clear selection on clicks on other things.
-        $textPanel.on('mousedown', function(event){
+        self.$textPanel.on('mousedown', function(event){
             var $originalTarget = $(event.originalTarget);
             if(!$originalTarget.hasClass('token') && !$originalTarget.hasClass('whitespace')){
                 self.clearSelection();
@@ -221,8 +221,15 @@ var TextPanelManager = function(annotationManager){
         });
     };
 
+    /**
+     * Initializes the instance, including adding listeners.
+     */
+    var initialize = function(){
+        addListeners();
+        self.tokenManager = TokenManager(self);
+    }
 
-    addListeners();
+    initialize();
 
     return self;
 };
