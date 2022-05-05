@@ -4,29 +4,29 @@
 // Purpose: Provides functions for interacting with the text panel on an
 //          annotation page.
 
+var TextPanel = {};
+
 /**
- * Manages the entity panel that appears on the side of an annotation page.
- * Users can group entity aliases, move them around, edit group names, etc.
- * 
- * All interactions with the entity panel should be performed via this class
- * (e.g., initial population of entities or actions stemming from the text or
- * network panels).
+ * Manages the text panel that appears in the center of an annotation page.
+ * Users can select text an annotate them as new or existing entities or
+ * a link between entities.
  * 
  * @param _annotationManager An instance of AnnotationManager; this is used to
  *                          access details of the annotation.
  */
-var TextPanelManager = function(annotationManager){
+TextPanel.TextPanelManager = function(annotationManager){
     var self = {
         $textPanel: $('#text-panel'),
         $textContents: $('#text-contents'),
-        tokenManger: undefined
+        tokenManger: undefined,
+        contextMenuManager: undefined
     };
     var $endMarker = $('#end-marker');
     var textSelectionInProgress = false;
     var textSelection = {
         start: -1,
         end: -1
-    }
+    };
 
     /**
      * Clears a selection -- either the entire selection if `prevSelection` and
@@ -53,12 +53,15 @@ var TextPanelManager = function(annotationManager){
         var curEnd = Math.max(curSelection.start, curSelection.end);
         var deselectFn = function(firstTokenId, lastTokenId){ 
             return function($token, tokenId, isWhitespace){
-                $token.removeClass( ['selected', 'selection-start', 'selection-end']);
+                $token.removeClass( 
+                    ['selected', 'selection-start', 'selection-end']);
                 if(tokenId == firstTokenId){
-                    $token.prev('.whitespace').removeClass(['selected', 'selection-start', 'selection-end']);
+                    $token.prev('.whitespace').removeClass(
+                        ['selected', 'selection-start', 'selection-end']);
                 }
                 if(tokenId == lastTokenId){
-                    $token.next('.whitespace').removeClass(['selected', 'selection-start', 'selection-end']);
+                    $token.next('.whitespace').removeClass(
+                        ['selected', 'selection-start', 'selection-end']);
                 }
             }
         };
@@ -80,8 +83,6 @@ var TextPanelManager = function(annotationManager){
                 deselectFn(start, prevEnd));
         }
     };
-
-
 
     /**
      * Highlights the tokens referred to by the given `textSelection` argument,
@@ -135,7 +136,6 @@ var TextPanelManager = function(annotationManager){
         }
     };
 
-
     /**
      * Clears any existing text selections and begins a new selection; makes the
      * current token the selection.
@@ -162,15 +162,26 @@ var TextPanelManager = function(annotationManager){
     };
 
     /**
-     * Ends text selection.
-     * 
+     * Ends text selection -- iff one is in progress -- and emits a
+     * text-panel.token-selection event along with the id of the starting and
+     * ending tokens in the selection and the (x,y) (client) coordinates of the
+     * mouse location when the selection ended.
+     *
      * @param {Event} event The mouseup DOM event.
      */
     var onMouseUpOnToken = function(event){
         console.log('in onMouseUpOnToken', textSelectionInProgress, textSelection);
 
+        if(!textSelectionInProgress){ return; }
+
         textSelectionInProgress = false;
-        // TODO: trigger event that the selection has ended.
+
+        var orderedSelection = {
+            start: Math.min(textSelection.start, textSelection.end),
+            end: Math.max(textSelection.start, textSelection.end),
+        };
+        $(this).trigger('text-panel.token-selection', 
+            orderedSelection, {x: event.clientX, y: event.clientY});
     };
 
     /**
@@ -200,7 +211,6 @@ var TextPanelManager = function(annotationManager){
         }
     };
 
-
     /**
      * Adds listeners for events to do with the text panel.
      */
@@ -226,7 +236,8 @@ var TextPanelManager = function(annotationManager){
      */
     var initialize = function(){
         addListeners();
-        self.tokenManager = TokenManager(self);
+        self.tokenManager = TextPanel.TokenManager(self);
+        self.contextMenuManager = TextPanel.ContextMenuManager(self);
     }
 
     initialize();

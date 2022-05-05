@@ -4,8 +4,9 @@
 <script src="/js/annotation-manager.js"></script>
 <script src="/js/token-navigator.js"></script>
 <script src="/js/entities-panel-manager.js"></script>
-<script src="/js/token-manager.js"></script>
-<script src="/js/text-panel-manager.js"></script>
+<script src="/js/text-panel/text-panel-manager.js"></script>
+<script src="/js/text-panel/context-menu-manager.js"></script>
+<script src="/js/text-panel/token-manager.js"></script>
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
@@ -177,7 +178,7 @@
                 <?php readfile($data["text"]["content_file"]); ?>
             </div>
             <script>
-                var textPanelManager = TextPanelManager();
+                var textPanelManager = TextPanel.TextPanelManager();
                     // For testing only!
                     // findTies(30);
                 textPanelManager.tokenManager.initializeTokenizedContent();

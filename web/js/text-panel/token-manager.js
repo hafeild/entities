@@ -1,6 +1,6 @@
-// File: text-panel-manager.js
+// File: token-manager.js
 // Author: Hank Feild
-// Date: 2021-07-21
+// Date: 2021-08-03
 // Purpose: Provides functions for interacting with the text panel on an
 //          annotation page.
 
@@ -10,7 +10,7 @@
  * 
  * @param textPanelManager An instance of the parent TextPanelManager instance.
  */
-var TokenManager = function(textPanelManager){
+TextPanel.TokenManager = function(textPanelManager){
     var self = {
         textPanelManager: textPanelManager,
         tokens: undefined
@@ -912,8 +912,14 @@ var TokenManager = function(textPanelManager){
             //     endPage[`${mention.start}_${mention.end}`] = mention;
             // }
         }
-    }
+    };
 
+    /**
+     * Initializes data needed by this object. Specifically, it loads all the
+     * tokens into memory. It doesn't display anything -- rendering tokens
+     * is handled by `self.initializeTokenizedContent`, which should be called
+     * by the controller (e.g., from within annotation.php).
+     */
     var initialize = function(){
         self.tokens = JSON.parse(textPanelManager.$textContents.
             html().replace(/,\s*\]\s*$/, ']'));
