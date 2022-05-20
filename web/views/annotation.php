@@ -38,7 +38,7 @@
 
 
 <!-- Menu for entity panel "alias options" -->
-<ul id="entities-panel-alias-edit-menu" class="hidden entities-panel-menu">
+<ul id="entities-panel-alias-edit-menu" class="hidden entities-panel-menu menu">
     <li class="rename-option clickable">Rename alias</li>
     <li class="delete-option clickable">Delete alias</li>
     <li class="associate-option"><span class="menu-label">Associate selected aliases with another entity</span>
@@ -60,7 +60,7 @@
     </div>
 </ul>
 <!-- Menu for entity panel "entity (alias group) options" -->
-<ul id="entities-panel-alias-group-edit-menu" class="hidden entities-panel-menu">
+<ul id="entities-panel-alias-group-edit-menu" class="hidden entities-panel-menu menu">
     <li class="rename-option clickable">Rename entity</li>
     <li class="delete-option clickable">Delete entity</li>
     <li class="associate-option"><span class="menu-label">Associate all aliases with another entity</span>
@@ -80,6 +80,12 @@
     <div class="hidden templates">
         <li class="clickable alias-group"></li>
     </div>
+</ul>
+<!-- Menu for text panel text selection -->
+<ul id="text-panel-selection-menu" class="hidden text-panel-menu menu">
+    <li class="clickable add-entity">Add entity</li>
+    <li class="clickable add-mention">Add mention</li>
+    <li class="clickable add-tie">Add tie</li>
 </ul>
 
 <p style="z-index:10; position:fixed;" id="adjustTie-besideMouseText"></p>

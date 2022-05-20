@@ -506,7 +506,9 @@ body.fullscreen #text-panel-wrapper {
     display: inline-block;
 }
 
-.entities-panel-menu {
+
+
+.menu {
     position: fixed;
     display: block;
     background-color: white;
@@ -518,13 +520,13 @@ body.fullscreen #text-panel-wrapper {
     max-height: 75%;
     overflow-y: scroll;
 }
-.entities-panel-menu ul {
+.menu ul {
     list-style-type: none;
     padding: 0;
     margin: 0;
 }
 
-.entities-panel-menu li {
+.menu li {
     cursor: pointer;
     margin-left: 0;
     padding: 0 1em 0 1em;
@@ -532,20 +534,20 @@ body.fullscreen #text-panel-wrapper {
     font: inherit;
 }
 
-.entities-panel-menu ul li {
+.menu ul li {
     padding-right: 0;   
 }
 
-.entities-panel-menu li.clickable:hover {
+.menu li.clickable:hover {
     background-color: lightsteelblue;
 
 }
-.entities-panel-menu li.clickable:active {
+.menu li.clickable:active {
     background-color: steelblue;
     color: white;
 }
 
-.entities-panel-menu .menu-label {
+.menu .menu-label {
     font-style: italic;
 }
 

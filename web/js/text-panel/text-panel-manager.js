@@ -170,7 +170,7 @@ TextPanel.TextPanelManager = function(annotationManager){
      * @param {Event} event The mouseup DOM event.
      */
     var onMouseUpOnToken = function(event){
-        console.log('in onMouseUpOnToken', textSelectionInProgress, textSelection);
+        console.log('in onMouseUpOnToken', textSelectionInProgress, textSelection, event);
 
         if(!textSelectionInProgress){ return; }
 
@@ -180,8 +180,11 @@ TextPanel.TextPanelManager = function(annotationManager){
             start: Math.min(textSelection.start, textSelection.end),
             end: Math.max(textSelection.start, textSelection.end),
         };
-        $(this).trigger('text-panel.token-selection', 
-            orderedSelection, {x: event.clientX, y: event.clientY});
+
+        $(this).trigger('text-panel.token-selection', [
+            orderedSelection, 
+            {x: event.originalEvent.clientX, y: event.originalEvent.clientY}
+        ]);
     };
 
     /**

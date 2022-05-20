@@ -17,7 +17,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         tokens: undefined
     };
 
-    var menu;
+    var $menu, $selectionMenu, menuConfigData = {};
 
     /**
      * 
@@ -122,22 +122,10 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         // ids.
         newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
 
-        contextMenuOptions = [];
-
-        // TODO: we shouldn't be adding HTML here. We should have a template
-        // menu embedded in the annotation HTML page that we can reference.
-        contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityOption'><i><span id=\"addEntity\">Add entity</span></i></a></li>");
-        // These are the menu items for suggest and auto-annotation of mentions. Still in development, so commented out.
-        // contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntitySuggestMentionsOption'><i><span id=\"addEntity_suggest_mentions\">Add entity + highlight mentions for review </span></i></a></li>");
-        // contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addEntityAnnotateMentionsOption'><i><span id=\"addEntity_annotate_mentions\">Add entity + annotate mentions</span></i></a></li>");
-        contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addMentionOption'><i><span id=\"addMention\">Add mention</span></i></a></li>");
-        contextMenuOptions.push("<li class='context-menu__item'><a class='context-menu__link addTieOption'><i><span id=\"addTie\">View Tie...</span></i></a></li>");
-
-        // TODO: Ended here.
         menuConfigData.textSpans = $textSpans;
-        menuConfigData.newGroupID = newGroupID;
+        menuConfigData.newGroupID = newGroupID; // TODO: fix
 
-        openContextMenu(contextMenuOptions, null, mousePosition);
+        openContextMenu($selectionMenu, null, mousePosition);
     }
 
     function getSelectedSpans() {
@@ -222,45 +210,29 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         }
     }
 
-    var openContextMenu = function(options, clickedEntity, event) {
-        if (options === null || options === undefined) return;
+    /**
+     * Opens a context menu where the mouse is or where the clicked entity is.
+     * 
+     * @param {jQuery} $menu The menu element to display. 
+     * @param {jQuery} $clickedEntity The entity selection that was clicked.
+     * @param {Object} mousePosition An object with two fields:
+     *                              - x (the clientX of the mouse at selection)
+     *                              - y (the clientY of the mouse at selection)
+     */
+    var openContextMenu = function($menu, $clickedEntity, mousePosition) {
+        console.log('In openContextMenu(', $menu, $clickedEntity, mousePosition, ')');
 
-        var active = "context-menu--active";
+        if ($menu.hasClass('hidden')) {
 
-        $('.context-menu__items').empty();
-        var contextMenu = $('.context-menu__items');
-
-        // add menu options to menu
-        options.forEach(function(entry) {
-            contextMenu.html(contextMenu.html() + entry);
-        });
-
-        if (!$(menu).hasClass(active)) {
-
-            if (clickedEntity === null || clickedEntity === undefined) {
-                var menuPosition = getPositionForMenu(event);
-            } else {
-                var menuPosition = getPositionForMenu(event, clickedEntity);
-            }
-
-            menu.classList.add(active);
+            var menuPosition = getPositionForMenu(mousePosition, $clickedEntity);
+            $menu.removeClass('hidden');
 
             // Coordinates
-            menu.style.left = menuPosition.x + "px";
-            menu.style.top = menuPosition.y + "px";
+            $menu.css({left: menuPosition.x +'px'});
+            $menu.css({top: menuPosition.y +'px'});
 
-            // Dimensions
-            var menuWidth = menu.offsetWidth;
-            var menuHeight = menu.offsetHeight;
-
-            $(document).trigger('entities.context-menu-opened', 
-                {contents: contextMenu.html()});
-
-
-            return false;
         } else {
-            closeContextMenu();
-            return;
+            $menu.addClass('hidden');
         }
     }
 
@@ -434,17 +406,25 @@ TextPanel.ContextMenuManager = function(textPanelManager){
 
     }
 
-    function getPositionForMenu(coords, clickedEntity) {
-        if (clickedEntity == null) {
-            // mouse position
-            return coords;
+    /**
+     * Calculates the placement of a context menu.
+     * 
+     * @param {Object} mousePosition An object with two fields:
+     *                              - x (the clientX of the mouse at selection)
+     *                              - y (the clientY of the mouse at selection)
+     * @param {jQuery} $clickedEntity The entity that was clicked.
+     * @returns 
+     */
+    function getPositionForMenu(mousePosition, $clickedEntity) {
+        if ($clickedEntity == null) {
+            return mousePosition;
         }
 
-        var offset =  clickedEntity.offset();
+        var offset =  $clickedEntity.offset();
 
         return {
-            x: offset.left + clickedEntity.width(),
-            y: offset.top + clickedEntity.height()
+            x: offset.left + $clickedEntity.width(),
+            y: offset.top + $clickedEntity.height()
         };
     }
 
@@ -1148,11 +1128,12 @@ TextPanel.ContextMenuManager = function(textPanelManager){
      */
     var addListeners = function(){
 
-        // Manual Annotation
-        menu = document.querySelector(".context-menu");
+
+
+
+        // TODO: clean this up.
         $(document).on('click', '#text-panel > .content-page > .annotated-entity', existingEntityClicked);
-        $(self.textPanelManager.$textPanel).on('text-panel.token-selection', 
-            checkSelectedText);
+        $textPanel.on('text-panel.token-selection', checkSelectedText);
 
         $(document).on('click', '#resetSelectionButton', function() {
             resetMenuConfigData();
@@ -1175,57 +1156,58 @@ TextPanel.ContextMenuManager = function(textPanelManager){
             closeContextMenu();
         });
 
-
         // Context Menu Options
-        $(document).on('click', '.addMentionOption', openAddMentionModal);
-        $(document).on('click', '#confirmAddMention', confirmAddMention);
-        $(document).on('click', '.reassignMentionOption', openReassignMentionModal);
-        $(document).on('click', '#confirmReassignMention', confirmReassignMention);
-        $(document).on('click', '.addEntityOption', addEntityFromSelection);
-        $(document).on('click', '.addEntitySuggestMentionsOption', addEntityFromSelectionAndSuggestMentions);
-        $(document).on('click', '.addEntityAnnotateMentionsOption', addEntityFromSelectionAndAnnotateMentions);
-        $(document).on('click', '.deleteMentionOption', deleteSelectedMention);
-        $(document).on('click', '.deleteEntityOption', deleteSelectedEntity);
-        $(document).on('click', '.deletedSelectedEntitiesOption', deleteSelectedEntities);
-        $(document).on('click', '.deleteGroupOption', deleteSelectedGroup);
-        $(document).on('click', '.deleteSelectedGroupsOption', deleteSelectedGroups);
-        $(document).on('click', '.groupEntitiesOption', groupSelectedEntities);
-        $(document).on('click', '.combineSelectedGroupsOption', combineSelectedGroups);
-        $(document).on('click', '.changeGroupNameOption', openGroupNameChangeModal);
-        $(document).on('click', '#confirmGroupNameChange', confirmGroupNameChange);
-        $(document).on('click', '.moveEntityToGroupOption', openGroupSelectorModal)
-        $(document).on('click', '#confirmGroupSelect', confirmMoveEntityToGroup)
+        $textPanel.on('click', '.add-mention', openAddMentionModal);
+        $textPanel.on('click', '#confirmAddMention', confirmAddMention);
+        $textPanel.on('click', '.reassignMentionOption', openReassignMentionModal);
+        $textPanel.on('click', '#confirmReassignMention', confirmReassignMention);
+        $textPanel.on('click', '.deleteMentionOption', deleteSelectedMention);
 
-        $(document).on('click', '.addTieOption', openAddTieModal);
-        $(document).on('click', '#edit-addTieBtn', confirmAddTie);
-        $(document).on('click', '.editTieOption', openEditTieModal);
-        $(document).on('click', '#confirmEditTie', confirmEditTie);
-        $(document).on('click', '#edit-adjustTieBtn', confirmEditTieAdjustTie);
-        $(document).on('click', '.deleteTieOption', deleteSelectedTie)
-        $(document).on('click', '.tie-text', openTieContextMenu)
-        $(document).on('click', '.tie-object', tieModalObjectChosen)
-        $(document).on('mouseenter', '.tie-object', highlightTieModalTextArea)
-        $(document).on('mouseleave', '.tie-object', highlightTieModalTextArea)
+        $textPanel.on('click', '.add-entity', addEntityFromSelection);
+        $textPanel.on('click', '.addEntitySuggestMentionsOption', addEntityFromSelectionAndSuggestMentions);
+        $textPanel.on('click', '.addEntityAnnotateMentionsOption', addEntityFromSelectionAndAnnotateMentions);
+        $textPanel.on('click', '.deleteEntityOption', deleteSelectedEntity);
+        $textPanel.on('click', '.deletedSelectedEntitiesOption', deleteSelectedEntities);
+        
+        $textPanel.on('click', '.deleteGroupOption', deleteSelectedGroup);
+        $textPanel.on('click', '.deleteSelectedGroupsOption', deleteSelectedGroups);
+        $textPanel.on('click', '.groupEntitiesOption', groupSelectedEntities);
+        $textPanel.on('click', '.combineSelectedGroupsOption', combineSelectedGroups);
+        $textPanel.on('click', '.changeGroupNameOption', openGroupNameChangeModal);
+        $textPanel.on('click', '#confirmGroupNameChange', confirmGroupNameChange);
+        $textPanel.on('click', '.moveEntityToGroupOption', openGroupSelectorModal)
+        $textPanel.on('click', '#confirmGroupSelect', confirmMoveEntityToGroup)
 
-        $(document).on("click", "#edit-addEntityToNetworkDropdownItem", (e) => addAliasGroupToNetwork);
+        $textPanel.on('click', '.add-tie', openAddTieModal);
+        $textPanel.on('click', '#edit-addTieBtn', confirmAddTie);
+        $textPanel.on('click', '.editTieOption', openEditTieModal);
+        $textPanel.on('click', '#confirmEditTie', confirmEditTie);
+        $textPanel.on('click', '#edit-adjustTieBtn', confirmEditTieAdjustTie);
+        $textPanel.on('click', '.deleteTieOption', deleteSelectedTie)
+        $textPanel.on('click', '.tie-text', openTieContextMenu)
+        $textPanel.on('click', '.tie-object', tieModalObjectChosen)
+        $textPanel.on('mouseenter', '.tie-object', highlightTieModalTextArea)
+        $textPanel.on('mouseleave', '.tie-object', highlightTieModalTextArea)
 
-        $(document).on('mouseenter', '.thisMentionHover', startHoverMenuTimer);
-        $(document).on('mouseenter', '.thisMentionHover', startHoverMenuTimer);
-        $(document).on('mouseenter', '.thisEntityHover', startHoverMenuTimer);
-        $(document).on('mouseenter', '.thisGroupHover', startHoverMenuTimer);
-        $(document).on('mouseenter', '.selectedHover', startHoverMenuTimer);
-        $(document).on('mouseenter', '.tieHover', startHoverMenuTimer);
-        $(document).on('mouseleave', '.thisMentionHover', clearHoverMenuTimer);
-        $(document).on('mouseleave', '.thisMentionHover', clearHoverMenuTimer);
-        $(document).on('mouseleave', '.thisEntityHover', clearHoverMenuTimer);
-        $(document).on('mouseleave', '.thisGroupHover', clearHoverMenuTimer);
-        $(document).on('mouseleave', '.selectedHover', clearHoverMenuTimer);
-        $(document).on('mouseleave', '.tieHover', clearHoverMenuTimer);
+        $textPanel.on("click", "#edit-addEntityToNetworkDropdownItem", (e) => addAliasGroupToNetwork);
 
-        $(document).on('click', '#graph-export-tsv', exportAsTSV);
-        $(document).on('click', '#graph-export-graphml', exportAsGraphML);
-        $(document).on('click', '#graph-export-png', exportAsPNG);
-        $(document).on('click', '#graph-export-svg', exportAsSVG);
+        $textPanel.on('mouseenter', '.thisMentionHover', startHoverMenuTimer);
+        $textPanel.on('mouseenter', '.thisMentionHover', startHoverMenuTimer);
+        $textPanel.on('mouseenter', '.thisEntityHover', startHoverMenuTimer);
+        $textPanel.on('mouseenter', '.thisGroupHover', startHoverMenuTimer);
+        $textPanel.on('mouseenter', '.selectedHover', startHoverMenuTimer);
+        $textPanel.on('mouseenter', '.tieHover', startHoverMenuTimer);
+        $textPanel.on('mouseleave', '.thisMentionHover', clearHoverMenuTimer);
+        $textPanel.on('mouseleave', '.thisMentionHover', clearHoverMenuTimer);
+        $textPanel.on('mouseleave', '.thisEntityHover', clearHoverMenuTimer);
+        $textPanel.on('mouseleave', '.thisGroupHover', clearHoverMenuTimer);
+        $textPanel.on('mouseleave', '.selectedHover', clearHoverMenuTimer);
+        $textPanel.on('mouseleave', '.tieHover', clearHoverMenuTimer);
+
+        $textPanel.on('click', '#graph-export-tsv', exportAsTSV);
+        $textPanel.on('click', '#graph-export-graphml', exportAsGraphML);
+        $textPanel.on('click', '#graph-export-png', exportAsPNG);
+        $textPanel.on('click', '#graph-export-svg', exportAsSVG);
 
     };
 
@@ -1233,6 +1215,10 @@ TextPanel.ContextMenuManager = function(textPanelManager){
      * Initializes the instance, including adding listeners.
      */
     var initialize = function(){
+        $textPanel = self.textPanelManager.$textPanel;
+        // Menu templates.
+        $selectionMenu = $('#text-panel-selection-menu')
+
         addListeners();
     };
 
