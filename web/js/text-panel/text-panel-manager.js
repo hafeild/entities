@@ -89,6 +89,9 @@ TextPanel.TextPanelManager = function(annotationManager){
      * or if undefined, the global data member. Note that if
      * `textSelection.start` and `textSelection.end` are out of order, this
      * function will put them in order.
+     * 
+     * @param {int} start The id of the first token in the selection.
+     * @param {int} end The id of the last token in the selection.
      */
     self.selectText = function(start, end){
         var i;
@@ -98,7 +101,6 @@ TextPanel.TextPanelManager = function(annotationManager){
         if(end == undefined){
             end = textSelection.end;
         }
-
 
         // Swap the start and end if they're out of order.
         if(start > end){
@@ -119,16 +121,17 @@ TextPanel.TextPanelManager = function(annotationManager){
                 $token.addClass('selection-end');
             } 
         };
+
         var prevStart = Math.min(textSelection.start, textSelection.end);
         var prevEnd = Math.max(textSelection.start, textSelection.end);
 
         self.clearSelection(textSelection, {start: start, end: end});
-        if(start < prevStart) {
+        if(start <= prevStart) {
             self.$textPanel.find('.selection-start').removeClass('selection-start');
             self.tokenManager.iterateOverTokens(self.$textPanel, start, 
                 Math.min(end, prevStart), selectFn);
         }
-        if(end > prevEnd){
+        if(end >= prevEnd){
             self.$textPanel.find('.selection-end').removeClass('selection-end');
             self.tokenManager.iterateOverTokens(self.$textPanel, 
                 Math.max(start, prevEnd), end, selectFn);
@@ -197,11 +200,6 @@ TextPanel.TextPanelManager = function(annotationManager){
     var onMouseEnterToken = function(event){
         console.log('in onMouseEnterToken', textSelectionInProgress, textSelection);
 
-        if(event.buttons != 1){
-            textSelectionInProgress = false;
-            // TODO: trigger event that the selection has ended.
-        }
-
         if(textSelectionInProgress){
             var $elm = $(this);
             if($elm.hasClass('whitespace')){
@@ -223,7 +221,7 @@ TextPanel.TextPanelManager = function(annotationManager){
         // Add listener for enter events over tokens (check for mouse down).
         self.$textPanel.on('mouseenter', '.token,.whitespace', onMouseEnterToken);
         // Add listener for mouse up events.
-        self.$textPanel.on('mouseup', '.token,.whitespace', onMouseUpOnToken);
+        $(document).on('mouseup', onMouseUpOnToken);
 
         // Clear selection on clicks on other things.
         self.$textPanel.on('mousedown', function(event){
