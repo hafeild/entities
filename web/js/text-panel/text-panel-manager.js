@@ -53,6 +53,7 @@ TextPanel.TextPanelManager = function(annotationManager){
         var curEnd = Math.max(curSelection.start, curSelection.end);
         var deselectFn = function(firstTokenId, lastTokenId){ 
             return function($token, tokenId, isWhitespace){
+                // console.log(`deselecting ${tokenId}`);
                 $token.removeClass( 
                     ['selected', 'selection-start', 'selection-end']);
                 if(tokenId == firstTokenId){
@@ -71,6 +72,7 @@ TextPanel.TextPanelManager = function(annotationManager){
         // selection.
         if(prevStart < curStart){
             let end = Math.min(curStart-1, prevEnd);
+            // console.log(`deselecting tokens ${prevStart} to ${end}`);
             self.tokenManager.iterateOverTokens(self.$textPanel, prevStart, end,
                 deselectFn(prevStart, end));
         }
@@ -79,26 +81,29 @@ TextPanel.TextPanelManager = function(annotationManager){
         // selection.
         if(prevEnd > curEnd){
             let start =  Math.max(curEnd+1, prevStart);
-            self.tokenManager.iterateOverTokens(self.$textPanel,start, prevEnd,
+            // console.log(`deselecting tokens ${start} to ${prevEnd}`);
+            self.tokenManager.iterateOverTokens(self.$textPanel, start, prevEnd,
                 deselectFn(start, prevEnd));
         }
     };
 
     /**
-     * Highlights the tokens referred to by the given `textSelection` argument,
-     * or if undefined, the global data member. Note that if
-     * `textSelection.start` and `textSelection.end` are out of order, this
-     * function will put them in order.
+     * Highlights the specified tokens, or if undefined, the global
+     * `textSelection` data member. Note that if `textSelection.start` and
+     * `textSelection.end` are out of order, this function will put them in
+     * order.
      * 
      * @param {int} start The id of the first token in the selection.
      * @param {int} end The id of the last token in the selection.
      */
     self.selectText = function(start, end){
+        // console.log('in selectText', start, end);
+
         var i;
-        if(start == undefined){
+        if(start === undefined){
             start = textSelection.start;
         }
-        if(end == undefined){
+        if(end === undefined){
             end = textSelection.end;
         }
 
@@ -113,6 +118,7 @@ TextPanel.TextPanelManager = function(annotationManager){
         // select tokens in the current selection that aren't already marked up
         // in the DOM.
         var selectFn = function($token, tokenId, isWhitespace){
+            // console.log(`selecting token ${tokenId}`);
             $token.addClass('selected');
             if(tokenId == start){
                 $token.addClass('selection-start');
@@ -125,18 +131,34 @@ TextPanel.TextPanelManager = function(annotationManager){
         var prevStart = Math.min(textSelection.start, textSelection.end);
         var prevEnd = Math.max(textSelection.start, textSelection.end);
 
+        // Clear only the previously highlighted but no longer selected text.
         self.clearSelection(textSelection, {start: start, end: end});
+
+        // Highlight the new selection to the left of the previous selection.
         if(start <= prevStart) {
+            // console.log(`selecting tokens ${start} to ${Math.min(end, prevStart)}`);
             self.$textPanel.find('.selection-start').removeClass('selection-start');
             self.tokenManager.iterateOverTokens(self.$textPanel, start, 
                 Math.min(end, prevStart), selectFn);
         }
-        if(end >= prevEnd){
+
+        // Highlight the new selection to the right of the previous selection.
+        if(end >= prevEnd && start !== end){
             self.$textPanel.find('.selection-end').removeClass('selection-end');
+            // console.log(`selecting tokens ${Math.max(start, prevEnd)} to ${end}`);
             self.tokenManager.iterateOverTokens(self.$textPanel, 
                 Math.max(start, prevEnd), end, selectFn);
 
         }
+
+        // Highlight the end points.
+        if(start != prevStart){
+            self.$textPanel.find(`[data-token=${start}]`).addClass('selection-start');
+        }
+        if(end != prevEnd){
+            self.$textPanel.find(`[data-token=${end}]`).addClass('selection-end');
+        }
+
     };
 
     /**
@@ -146,7 +168,7 @@ TextPanel.TextPanelManager = function(annotationManager){
      * @param {Event} event The mousedown DOM event.
      */
     var onMouseDownOnToken = function(event){
-        console.log('in onMouseDownOnToken', textSelectionInProgress, textSelection);
+        // console.log('in onMouseDownOnToken', textSelectionInProgress, textSelection);
 
         var $elm = $(this);
         var id;
@@ -173,9 +195,11 @@ TextPanel.TextPanelManager = function(annotationManager){
      * @param {Event} event The mouseup DOM event.
      */
     var onMouseUpOnToken = function(event){
-        console.log('in onMouseUpOnToken', textSelectionInProgress, textSelection, event);
+        // console.log('in onMouseUpOnToken', textSelectionInProgress, textSelection, event, this);
 
-        if(!textSelectionInProgress){ return; }
+        if(!textSelectionInProgress || self.$textPanel.find('.selected').length == 0){ 
+            return; 
+        }
 
         textSelectionInProgress = false;
 
@@ -184,7 +208,8 @@ TextPanel.TextPanelManager = function(annotationManager){
             end: Math.max(textSelection.start, textSelection.end),
         };
 
-        $(this).trigger('text-panel.token-selection', [
+        // console.log('triggering text-panel.token-selection');
+        self.$textPanel.trigger('text-panel.token-selection', [
             orderedSelection, 
             {x: event.originalEvent.clientX, y: event.originalEvent.clientY}
         ]);
@@ -198,9 +223,9 @@ TextPanel.TextPanelManager = function(annotationManager){
      * @param {Event} event The mousedown DOM event.
      */
     var onMouseEnterToken = function(event){
-        console.log('in onMouseEnterToken', textSelectionInProgress, textSelection);
+        // console.log('in onMouseEnterToken', textSelectionInProgress, textSelection);
 
-        if(textSelectionInProgress){
+        if(textSelectionInProgress && event.originalEvent.buttons !== 0){
             var $elm = $(this);
             if($elm.hasClass('whitespace')){
                 $elm = $elm.next('.token');
@@ -222,6 +247,7 @@ TextPanel.TextPanelManager = function(annotationManager){
         self.$textPanel.on('mouseenter', '.token,.whitespace', onMouseEnterToken);
         // Add listener for mouse up events.
         $(document).on('mouseup', onMouseUpOnToken);
+        // self.$textPanel.on('mouseup', '.token,.whitespace', onMouseUpOnToken);
 
         // Clear selection on clicks on other things.
         self.$textPanel.on('mousedown', function(event){

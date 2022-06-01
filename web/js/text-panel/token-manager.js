@@ -603,15 +603,18 @@ TextPanel.TokenManager = function(textPanelManager){
      */
     self.iterateOverTokens = function($element, start, end, func){
         var $token = $element.find(`[data-token=${start}]`);
-        var tokenId = parseInt($token.attr('data-token')) || -1;
+        var tokenId = $token.attr('data-token') === undefined ? -1 : parseInt($token.attr('data-token'));
         var prevTokenId = tokenId;
 
+        // console.log('in iterateOverTokens(', $element, start, end, func, ')');
+        // console.log('--> token:', $token, `tokenId: ${tokenId}, prevToken: ${prevTokenId}`);
         // Moves down each token in the location, including the spaces.
         while($token.length > 0 && 
-            ((!$token.attr('data-token') && prevTokenId != end) || 
+            (($token.attr('data-token') === undefined && prevTokenId != end) || 
             (tokenId >= start && tokenId <= end))){
 
-            if(func($token, tokenId, !$token.attr('data-token'))){ 
+            // console.log(`----> tokenId: ${tokenId}, prevToken: ${prevTokenId}`);
+            if(func($token, tokenId, $token.attr('data-token') === undefined)){ 
                 break; 
             }
 
@@ -629,7 +632,7 @@ TextPanel.TokenManager = function(textPanelManager){
             }
 
             prevTokenId = tokenId;
-            tokenId = parseInt($token.attr('data-token')) || -1;
+            tokenId = $token.attr('data-token') === undefined ? -1 : parseInt($token.attr('data-token'));
         }
     }
 

@@ -226,6 +226,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
 
             var menuPosition = getPositionForMenu(mousePosition, $clickedEntity);
             $menu.removeClass('hidden');
+            setTimeout(function(){$menu.addClass('open');}, 250);
 
             // Coordinates
             $menu.css({left: menuPosition.x +'px'});
@@ -247,26 +248,12 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         openContextMenu(contextMenuOptions, null, e);
     }
 
+    /**
+     * Closes any open menus.
+     */
     var closeContextMenu = function() {
-        
-        // unhighlight previously highlighted tie mentions if they exist
-        if (menuConfigData.tieMentionHoveredOne !== null || menuConfigData.tieMentionHoveredOne !== undefined) {
-            $('[data-location-id="' + menuConfigData.tieMentionHoveredOne + '"]').removeClass('selectedEntity');
-            $('[data-location-id="' + menuConfigData.tieMentionHoveredTwo + '"]').removeClass('selectedEntity');
-            menuConfigData.tieMentionHoveredOne = null;
-            menuConfigData.tieMentionHoveredTwo = null;
-        }
-        if (window.getSelection() == "" && !($(event.target).hasClass('entity')) && 
-            !($(event.target).hasClass('context-menu__link')) && !($(event.target).hasClass('context-menu__item')) && 
-            !($(event.target).hasClass('tie-text'))) {
-            $(menu).removeClass("context-menu--active");
-
-            $('.context-menu__items').html("");
-
-            $(document).trigger('entities.context-menu-closed');
-
-            closeHoverMenu();
-        }
+        console.log('in closeContextMnue', $textPanel.find('.menu.open'));
+        $('.text-panel-menu.open').removeClass('open').addClass('hidden');
     }
 
     var startHoverMenuTimer = function(e) {
@@ -1127,9 +1114,6 @@ TextPanel.ContextMenuManager = function(textPanelManager){
      * Adds listeners for events on tokens and menu clicks in the text panel.
      */
     var addListeners = function(){
-
-
-
 
         // TODO: clean this up.
         $(document).on('click', '#text-panel > .content-page > .annotated-entity', existingEntityClicked);
