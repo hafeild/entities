@@ -110,20 +110,21 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         if(tokenRange.end < tokenRange.start || tokenRange.start < 0){ return; }
 
         // TODO: do we need this if we have the token range?
-        $textSpans = [self.textPanelManager.$textPanel.find('.selected')];
+        // $textSpans = self.textPanelManager.$textPanel.find('.selected');
 
         // TODO: is this necessary if we've already checked tokenRange?
-        if ($textSpans.length < 1) {
+        if (tokenRange.end - tokenRange.start < 0) {
             return;
         } 
 
         // get unused group ID
         // TODO: Fix this; only AnnotationManager should be creating new group
         // ids.
-        newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
+        // newGroupID = Object.keys(annotation_data.annotation.groups).length + 1;
 
-        menuConfigData.textSpans = $textSpans;
-        menuConfigData.newGroupID = newGroupID; // TODO: fix
+        menuConfigData.tokenRange = tokenRange;
+        // menuConfigData.$textSpans = $textSpans;
+        // menuConfigData.newGroupID = newGroupID; // TODO: fix
 
         openContextMenu($selectionMenu, null, mousePosition);
     }
@@ -252,7 +253,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
      * Closes any open menus.
      */
     var closeContextMenu = function() {
-        console.log('in closeContextMnue', $textPanel.find('.menu.open'));
+        console.log('in closeContextMenu', $textPanel.find('.menu.open'));
         $('.text-panel-menu.open').removeClass('open').addClass('hidden');
     }
 
@@ -608,42 +609,61 @@ TextPanel.ContextMenuManager = function(textPanelManager){
     }
 
     /**
-     * Creates a new entity from the selected text.
+     * TODO: IN PROGRESS
+     * Creates a new entity from the selected text. Extracts the selection from
+     * the global `menuConfigData` data member.
      * 
-     * @return The selected text (name), token sequence (token_sequence), and the 
+     * @return The selected text (name), token sequence (tokenSequence), and the 
      *         id assigned to it (entityId).
      */
     var addEntityFromSelection = function() {
         console.log("In addEntityFromSelection");
+        var $spans, name, tokenSequence;
+
         closeContextMenu();
         
-        if (menuConfigData.textSpans.length < 1) {
-            return;
-        }
+        // TODO: Do we need this check?
+        // if (menuConfigData..length < 1) {
+        //     return;
+        // }
 
-        var spans = menuConfigData.textSpans;
-        var name = "";
-        var tokenSequence = [];
+        name = "";
+        tokenSequence = [];
 
-        spans.forEach(s => {
-            // name += s.innerHTML + " ";
-            // name += " ";
-            name += s.innerText;
-            if(s.getAttribute('data-token') != null){
-                tokenSequence.push(s.innerText);
+
+        // TODO: make sure this iteration is properly spanning page boundaries.
+        //menuConfigData.$textSpans.each(function(i, elm){
+        self.textPanelManager.tokenManager.iterateOverTokens(
+            self.textPanelManager.$textPanel, menuConfigData.tokenRange.start,
+            menuConfigData.tokenRange.end, function($token, tokenId, isWhitespace){
+        
+            
+            // Reduce whitespace.
+            console.log($token);
+            name += ($token.text().replace(/\s+/, ' '));
+
+            // Ignore whitespace in the token sequence.
+            if(!isWhitespace){
+                tokenSequence.push($token.text());
             }
-        })
+        });
         name = name.trim();
         
 
         // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
         var entityId = annotationManager.addEntity(name, 
-            $(spans[0]).attr('data-token'), 
-            $(spans[spans.length-1]).attr('data-token'), null);
+            menuConfigData.tokenRange.start, menuConfigData.tokenRange.end, null);
 
+        // TODO: what does this do?
         resetMenuConfigData();
 
-        return {name: name, token_sequence: tokenSequence, id: entityId};
+        // TODO:
+        //  - clear selection
+        //  - update all tokens in range with new entity/group ids
+        //     * should probably be a listener for this in text-panel-manager
+
+        console.log('Created entity:', {name: name, tokenSequence: tokenSequence, id: entityId});
+        return {name: name, tokenSequence: tokenSequence, id: entityId};
     };
 
     /**
@@ -1085,6 +1105,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         resetMenuConfigData();
     }
 
+    // TODO: What is the purpose of this function?
     var resetMenuConfigData = function() {
         // deselect every entity in text and checklist
         menuConfigData.selectedEntities.forEach(function(entity) {
@@ -1108,7 +1129,6 @@ TextPanel.ContextMenuManager = function(textPanelManager){
 
         updateSelectionInfoBox();
     }
-
 
     /**
      * Adds listeners for events on tokens and menu clicks in the text panel.
@@ -1140,6 +1160,8 @@ TextPanel.ContextMenuManager = function(textPanelManager){
             closeContextMenu();
         });
 
+        var $document = $(document);
+
         // Context Menu Options
         $textPanel.on('click', '.add-mention', openAddMentionModal);
         $textPanel.on('click', '#confirmAddMention', confirmAddMention);
@@ -1147,7 +1169,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         $textPanel.on('click', '#confirmReassignMention', confirmReassignMention);
         $textPanel.on('click', '.deleteMentionOption', deleteSelectedMention);
 
-        $textPanel.on('click', '.add-entity', addEntityFromSelection);
+        $document.on('click', '.text-panel-menu .add-entity', addEntityFromSelection); // TODO: Wokring on
         $textPanel.on('click', '.addEntitySuggestMentionsOption', addEntityFromSelectionAndSuggestMentions);
         $textPanel.on('click', '.addEntityAnnotateMentionsOption', addEntityFromSelectionAndAnnotateMentions);
         $textPanel.on('click', '.deleteEntityOption', deleteSelectedEntity);
