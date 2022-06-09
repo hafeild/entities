@@ -317,19 +317,18 @@ TextPanel.TokenManager = function(textPanelManager){
     var findPagesInView = function(scrollTop){
         // console.log('[findPagesInView] Entering');
 
-        var $textPanel = $('#text-panel');
         var viewportTop = (
-            scrollTop === undefined ? $textPanel.scrollTop() : scrollTop) + 
+            scrollTop === undefined ? self.$textPanel.scrollTop() : scrollTop) + 
             // This accounts for the padding present before pages are displayed.
-            $textPanel.find('.content-page[data-page="0"]').position().top;
-        var viewportBottom = $textPanel.height();
+            self.$textPanel.find('.content-page[data-page="0"]').position().top;
+        var viewportBottom = self.$textPanel.height();
 
         var pagesInView = [];
         var min = 0, max = contentPages.length, mid = Math.floor((min+max)/2);
         var page, prevPage, nextPage;
 
         var getPageTopBottom = function(pageNum){
-            var $page = $textPanel.find(`.content-page[data-page="${pageNum}"]`);
+            var $page = self.$textPanel.find(`.content-page[data-page="${pageNum}"]`);
             var pageTop, pageBottom;
             if($page.length > 0){
                 pageTop = $page.position().top;
@@ -431,7 +430,7 @@ TextPanel.TokenManager = function(textPanelManager){
 
         // Highlight locations for this page.
         //console.log(`[annotateContentPage] Highlighting entities`);
-        highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
+        self.highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
         //console.log(`[annotateContentPage] Highlighting ties`);
         highlightTiesInContent(contentPages[pageIndex][START], 
             contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
@@ -509,7 +508,7 @@ TextPanel.TokenManager = function(textPanelManager){
 
         // Highlight locations for this page.
         console.log(`[appendContentPage] Highlighting entities`);
-        highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
+        self.highlightEntitiesInContent(locationsByPages[pageIndex], $newPageElm);
         console.log(`[appendContentPage] Highlighting ties`);
         highlightTiesInContent(contentPages[pageIndex][START], 
             contentPages[pageIndex][END], $newPageElm, annotationManager.ties);
@@ -639,7 +638,7 @@ TextPanel.TokenManager = function(textPanelManager){
 
     /**
      * Highlights entities in the given text content element. Tokens in the given
-     * element must contain an data-id="..." attribute with the token's id. Colors
+     * element must contain a data-id="..." attribute with the token's id. Colors
      * are chosen by the global pallet. This relies on the global `annotation_data`
      * variable being properly initialized and maintained.
      *
@@ -647,7 +646,7 @@ TextPanel.TokenManager = function(textPanelManager){
      *                                $element.
      * @param {jQuery Element} $element The element to highlight entities in.
      */
-    var highlightEntitiesInContent = function(locationKeys, $element){
+    self.highlightEntitiesInContent = function(locationKeys, $element){
         // console.log(`[highlightEntitiesInContent] entering (locationKeys, element):`,
             // locationKeys, $element);
 
@@ -918,6 +917,32 @@ TextPanel.TokenManager = function(textPanelManager){
     };
 
     /**
+     * Adds a mention to the text panel.
+     * 
+     * @param {jQueryEvent} event Ignored.
+     * @param {object} data An object with info about the removed mention with 
+     *                      these fields:
+     *                         - id
+     *                         - location
+     *                           * entity_id
+     *                           * start
+     *                           * end
+     */
+    self.processNewMention = function(event, data){
+        console.log(`[TokenManager] adding mention ${data.id}`);
+
+        // Update the locationsByPage structure.
+        var pagesRange = findPageWithLocation(data.location);
+        for(let pageIndex = pagesRange[0]; pageIndex <= pagesRange[1]; pageIndex++){
+            let page = locationsByPages[pageIndex];
+            page.push(data.id);
+        }
+
+        // Add to the text panel.
+        self.highlightEntitiesInContent([data.id], self.$textPanel);
+    };
+
+    /**
      * Initializes data needed by this object. Specifically, it loads all the
      * tokens into memory. It doesn't display anything -- rendering tokens
      * is handled by `self.initializeTokenizedContent`, which should be called
@@ -926,6 +951,7 @@ TextPanel.TokenManager = function(textPanelManager){
     var initialize = function(){
         self.tokens = JSON.parse(textPanelManager.$textContents.
             html().replace(/,\s*\]\s*$/, ']'));
+        self.$textPanel = $('#text-panel');
     };
 
     initialize();

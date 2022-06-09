@@ -280,31 +280,32 @@ var UIUpdater = function(){
     };
 
 
-    /**
-     * Removes a mention from the text panel.
-     * 
-     * @param {jQueryEvent} event Ignored.
-     * @param {object} An object with info about the removed mention with 
-     *                 these fields:
-     *                  - id
-     *                  - location
-     *                      * entity_id
-     *                      * start
-     *                      * end
-     */
-    self.addMention = function(event, data){
-        console.log(`[UIUpdater] adding mention ${data.id}`);
+    // // TODO: this should be moved to TextPanelManager.
+    // /**
+    //  * Adds a mention to the text panel.
+    //  * 
+    //  * @param {jQueryEvent} event Ignored.
+    //  * @param {object} An object with info about the removed mention with 
+    //  *                 these fields:
+    //  *                  - id
+    //  *                  - location
+    //  *                      * entity_id
+    //  *                      * start
+    //  *                      * end
+    //  */
+    // self.addMention = function(event, data){
+    //     console.log(`[UIUpdater] adding mention ${data.id}`);
 
-        // Update the locationsByPage structure.
-        var pagesRange = findPageWithLocation(data.location);
-        for(let pageIndex = pagesRange[0]; pageIndex <= pagesRange[1]; pageIndex++){
-            let page = locationsByPages[pageIndex];
-            page.push(data.id);
-        }
+    //     // Update the locationsByPage structure.
+    //     var pagesRange = findPageWithLocation(data.location);
+    //     for(let pageIndex = pagesRange[0]; pageIndex <= pagesRange[1]; pageIndex++){
+    //         let page = locationsByPages[pageIndex];
+    //         page.push(data.id);
+    //     }
 
-        // Add to the text panel.
-        highlightEntitiesInContent([data.id], $('#text-panel'));
-    };
+    //     // Add to the text panel.
+    //     highlightEntitiesInContent([data.id], $('#text-panel'));
+    // };
 
 
     /**

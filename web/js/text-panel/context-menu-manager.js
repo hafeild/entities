@@ -618,14 +618,9 @@ TextPanel.ContextMenuManager = function(textPanelManager){
      */
     var addEntityFromSelection = function() {
         console.log("In addEntityFromSelection");
-        var $spans, name, tokenSequence;
+        var name, tokenSequence;
 
         closeContextMenu();
-        
-        // TODO: Do we need this check?
-        // if (menuConfigData..length < 1) {
-        //     return;
-        // }
 
         name = "";
         tokenSequence = [];
@@ -655,12 +650,12 @@ TextPanel.ContextMenuManager = function(textPanelManager){
             menuConfigData.tokenRange.start, menuConfigData.tokenRange.end, null);
 
         // TODO: what does this do?
-        resetMenuConfigData();
+        // resetMenuConfigData();
 
         // TODO:
         //  - clear selection
-        //  - update all tokens in range with new entity/group ids
-        //     * should probably be a listener for this in text-panel-manager
+        self.textPanelManager.clearSelection();
+
 
         console.log('Created entity:', {name: name, tokenSequence: tokenSequence, id: entityId});
         return {name: name, tokenSequence: tokenSequence, id: entityId};

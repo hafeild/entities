@@ -237,6 +237,8 @@ TextPanel.TextPanelManager = function(annotationManager){
         }
     };
 
+
+
     /**
      * Adds listeners for events to do with the text panel.
      */
@@ -256,15 +258,19 @@ TextPanel.TextPanelManager = function(annotationManager){
                 self.clearSelection();
             }
         });
+
+        // Listen for new mentions and highlight them.
+        $(document).on('entities.annotation.mention-added', 
+            self.tokenManager.processNewMention);
     };
 
     /**
      * Initializes the instance, including adding listeners.
      */
     var initialize = function(){
-        addListeners();
         self.tokenManager = TextPanel.TokenManager(self);
         self.contextMenuManager = TextPanel.ContextMenuManager(self);
+        addListeners();
     }
 
     initialize();
