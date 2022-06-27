@@ -416,7 +416,7 @@ var EntitiesPanelManager = function(annotationManager){
      * 
      * @param {jQuery} menu The menu to populate (optional).
      */
-    var populateMenus = function($menu, groupId){
+    var populateMenus = function($menu){
         if($menu === undefined){
             populateMenus($aliasEditMenu);
             populateMenus($aliasGroupEditMenu);
@@ -439,6 +439,7 @@ var EntitiesPanelManager = function(annotationManager){
         }
 
     };
+    self.populateMenus = populateMenus;
 
     /**
      * Displays the entity or alias options menu (two different menus). 
@@ -460,6 +461,7 @@ var EntitiesPanelManager = function(annotationManager){
             $menu = $aliasEditMenu;
         }       
 
+        // TODO: populate based on most recently added or modified.
         // Populate suggested (different based on whether this is an entity or
         // alias).
         $menu.find('.top-suggestions ul').html('');

@@ -17,7 +17,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         tokens: undefined
     };
 
-    var $menu, $selectionMenu, menuConfigData = {};
+    var $document, $menu, $selectionMenu, $addMentionMenu, menuConfigData = {};
 
     /**
      * 
@@ -229,6 +229,13 @@ TextPanel.ContextMenuManager = function(textPanelManager){
             $menu.removeClass('hidden');
             setTimeout(function(){$menu.addClass('open');}, 250);
 
+            // If the height of the menu goes below the page fold, raise it up by
+            // the difference. Otherwise, leave it where the mouse is.
+            menuHangDistance = menuPosition.y + $menu.height() - $('body').height();
+            if(menuHangDistance > 0){
+                menuPosition.y -= menuHangDistance;
+            }
+
             // Coordinates
             $menu.css({left: menuPosition.x +'px'});
             $menu.css({top: menuPosition.y +'px'});
@@ -406,14 +413,13 @@ TextPanel.ContextMenuManager = function(textPanelManager){
     function getPositionForMenu(mousePosition, $clickedEntity) {
         if ($clickedEntity == null) {
             return mousePosition;
-        }
+        } 
 
-        var offset =  $clickedEntity.offset();
-
+        var offset = $clickedEntity.offset();
         return {
             x: offset.left + $clickedEntity.width(),
             y: offset.top + $clickedEntity.height()
-        };
+        }
     }
 
     var updateSelectionInfoBox = function(e) {
@@ -445,6 +451,49 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         return list;
     }
 
+    /**
+     * Displays the 'add mention' hover menu next to the context menu.
+     * 
+     * @param {jQueryEvent} event The hover event that triggered this.
+     */
+    var showAddMentionMenu = function(event){
+        console.log('in showAddMentionMenu', event, this);
+
+        var menuHangDistance;
+        // TODO: need to compute extact placement on screen; current readings 
+        // are relative to the selection menu itself.
+        var $moreMentionsSelectionMenuOption = $(this);
+        var menuPosition = {
+            x: $selectionMenu.offset().left + $selectionMenu.width(),
+            y: $moreMentionsSelectionMenuOption.offset().top
+        };
+
+        console.log(menuPosition);
+
+        // If the height of the menu goes below the page fold, raise it up by
+        // the difference. Otherwise, leave it where the mouse is.
+        menuHangDistance = menuPosition.y + $addMentionMenu.height() - 
+            $('body').height();
+        if(menuHangDistance > 0){
+            menuPosition.y -= menuHangDistance;
+        }
+
+        $addMentionMenu.removeClass('hidden');
+        $addMentionMenu.css({top: menuPosition.y, left: menuPosition.x});
+    };
+
+    /**
+     * TODO: IN PROGRESS
+     * 
+     * TODO: Updated functionality. Should now be a hover menu and should contain:
+     *   - a search box to filter entities
+     *   - top suggestions (maybe: close by in text, most recent added/used)
+     *   - full listing
+     * 
+     * Opens a modal that lists all of the entities, including most recent entities. The
+     * user can select which entity 
+     * @returns 
+     */
     var openAddMentionModal = function() {
         if (menuConfigData.textSpans.length < 1) {
             return;
@@ -609,7 +658,6 @@ TextPanel.ContextMenuManager = function(textPanelManager){
     }
 
     /**
-     * TODO: IN PROGRESS
      * Creates a new entity from the selected text. Extracts the selection from
      * the global `menuConfigData` data member.
      * 
@@ -625,14 +673,11 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         name = "";
         tokenSequence = [];
 
-
-        // TODO: make sure this iteration is properly spanning page boundaries.
-        //menuConfigData.$textSpans.each(function(i, elm){
+        // Extract the entity name.
         self.textPanelManager.tokenManager.iterateOverTokens(
             self.textPanelManager.$textPanel, menuConfigData.tokenRange.start,
             menuConfigData.tokenRange.end, function($token, tokenId, isWhitespace){
         
-            
             // Reduce whitespace.
             console.log($token);
             name += ($token.text().replace(/\s+/, ' '));
@@ -644,18 +689,15 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         });
         name = name.trim();
         
-
-        // addEntity(name, startOffset, endOffset, groupID (optional), callback (optional));
+        // This will trigger an event and the new entity will be added/colored
+        // throughout the UI accordingly.
         var entityId = annotationManager.addEntity(name, 
             menuConfigData.tokenRange.start, menuConfigData.tokenRange.end, null);
 
         // TODO: what does this do?
         // resetMenuConfigData();
 
-        // TODO:
-        //  - clear selection
         self.textPanelManager.clearSelection();
-
 
         console.log('Created entity:', {name: name, tokenSequence: tokenSequence, id: entityId});
         return {name: name, tokenSequence: tokenSequence, id: entityId};
@@ -1129,20 +1171,22 @@ TextPanel.ContextMenuManager = function(textPanelManager){
      * Adds listeners for events on tokens and menu clicks in the text panel.
      */
     var addListeners = function(){
+        
 
         // TODO: clean this up.
-        $(document).on('click', '#text-panel > .content-page > .annotated-entity', existingEntityClicked);
+        $document.on('click', '#text-panel > .content-page > .annotated-entity', existingEntityClicked);
         $textPanel.on('text-panel.token-selection', checkSelectedText);
 
-        $(document).on('click', '#resetSelectionButton', function() {
+        // TODO: check
+        $document.on('click', '#resetSelectionButton', function() {
             resetMenuConfigData();
             closeContextMenu();
         });
         
         // Close Context menu on click
-        $(document).on('click', closeContextMenu);
+        $document.on('click', closeContextMenu);
         // Close context menu with escape key
-        $(document).keyup(function(e) { if (e.keyCode == 27) closeContextMenu();})
+        $document.keyup(function(e) { if (e.keyCode == 27) closeContextMenu();})
         // Close context menu when window is resized
         $(window).on('resize', closeContextMenu);
         // Close context menu on text on scroll
@@ -1155,16 +1199,17 @@ TextPanel.ContextMenuManager = function(textPanelManager){
             closeContextMenu();
         });
 
-        var $document = $(document);
 
         // Context Menu Options
-        $textPanel.on('click', '.add-mention', openAddMentionModal);
+        $textPanel.on('click', '.add-mention-option', openAddMentionModal); // TODO: IN PROGRESS
+        $document.on('mouseenter', '.add-mention-option-more', showAddMentionMenu);
+
         $textPanel.on('click', '#confirmAddMention', confirmAddMention);
         $textPanel.on('click', '.reassignMentionOption', openReassignMentionModal);
         $textPanel.on('click', '#confirmReassignMention', confirmReassignMention);
         $textPanel.on('click', '.deleteMentionOption', deleteSelectedMention);
 
-        $document.on('click', '.text-panel-menu .add-entity', addEntityFromSelection); // TODO: Wokring on
+        $document.on('click', '.text-panel-menu .add-entity', addEntityFromSelection); // DONE
         $textPanel.on('click', '.addEntitySuggestMentionsOption', addEntityFromSelectionAndSuggestMentions);
         $textPanel.on('click', '.addEntityAnnotateMentionsOption', addEntityFromSelectionAndAnnotateMentions);
         $textPanel.on('click', '.deleteEntityOption', deleteSelectedEntity);
@@ -1219,6 +1264,8 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         $textPanel = self.textPanelManager.$textPanel;
         // Menu templates.
         $selectionMenu = $('#text-panel-selection-menu')
+        $document = $(document);
+        $addMentionMenu = $('#text-panel-add-mention-menu');
 
         addListeners();
     };

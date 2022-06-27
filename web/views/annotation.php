@@ -36,7 +36,9 @@
   <span class="content"></span>
 </div>
 
-
+<!-- ****************** -->
+<!-- ENTITY PANEL MENUS -->
+<!-- ****************** -->
 <!-- Menu for entity panel "alias options" -->
 <ul id="entities-panel-alias-edit-menu" class="hidden entities-panel-menu menu">
     <li class="rename-option clickable">Rename alias</li>
@@ -81,12 +83,41 @@
         <li class="clickable alias-group"></li>
     </div>
 </ul>
+
+<!-- **************** -->
+<!-- TEXT PANEL MENUS -->
+<!-- **************** -->
 <!-- Menu for text panel text selection -->
 <ul id="text-panel-selection-menu" class="hidden text-panel-menu menu">
-    <li class="clickable add-entity">Add entity</li>
-    <li class="clickable add-mention">Add mention</li>
-    <li class="clickable add-tie">Add tie</li>
+    <li class="clickable add-entity-option">Add entity</li>
+    <li class="add-mention-option"><span class="menu-label">Add mention</span>
+        <ul class="submenu">
+            <li class="top-suggestions"><span class="menu-label">Top suggestions</span>
+                <ul>
+                    <li class="alias-group">No suggestions</li>
+                </ul>
+            </li>
+            <li class="add-mention-option-more">More <i class="bi bi-chevron-right"></i>
+                <!-- Menu for adding a mention -->
+                <ul id="text-panel-add-mention-menu" class="hidden text-panel-menu menu hover-menu">
+                    <li>Filter: <input type="text" default="abraham lincoln"/></li>
+                    <li class="clickable add-mention-option">Add mention</li>
+                    
+                    <div class="hidden templates">
+                        <li class="clickable alias-group"></li>
+                    </div>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li class="clickable add-tie-option">Add tie</li>
+    
+    <div class="hidden templates">
+        <li class="clickable alias-group"></li>
+    </div>
 </ul>
+
+
 
 <p style="z-index:10; position:fixed;" id="adjustTie-besideMouseText"></p>
 
