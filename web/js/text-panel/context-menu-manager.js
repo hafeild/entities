@@ -478,7 +478,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
             menuPosition.y -= menuHangDistance;
         }
 
-        $addMentionMenu.removeClass('hidden');
+        $addMentionMenu.removeClass('hidden').addClass('open');
         $addMentionMenu.css({top: menuPosition.y, left: menuPosition.x});
     };
 
@@ -1183,8 +1183,14 @@ TextPanel.ContextMenuManager = function(textPanelManager){
             closeContextMenu();
         });
         
-        // Close Context menu on click
-        $document.on('click', closeContextMenu);
+        // Close Context menu on non-menu click
+        $document.on('click', function(event){
+            console.log(event);
+            console.log($(event.target).parents('.menu').length);
+            if($(event.target).parents('.menu').length === 0){
+                closeContextMenu(event);
+            }
+        });
         // Close context menu with escape key
         $document.keyup(function(e) { if (e.keyCode == 27) closeContextMenu();})
         // Close context menu when window is resized
@@ -1209,7 +1215,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         $textPanel.on('click', '#confirmReassignMention', confirmReassignMention);
         $textPanel.on('click', '.deleteMentionOption', deleteSelectedMention);
 
-        $document.on('click', '.text-panel-menu .add-entity', addEntityFromSelection); // DONE
+        $document.on('click', '.text-panel-menu .add-entity-option', addEntityFromSelection); // DONE
         $textPanel.on('click', '.addEntitySuggestMentionsOption', addEntityFromSelectionAndSuggestMentions);
         $textPanel.on('click', '.addEntityAnnotateMentionsOption', addEntityFromSelectionAndAnnotateMentions);
         $textPanel.on('click', '.deleteEntityOption', deleteSelectedEntity);
