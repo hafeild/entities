@@ -19,7 +19,8 @@ TextPanel.TextPanelManager = function(annotationManager){
         $textPanel: $('#text-panel'),
         $textContents: $('#text-contents'),
         tokenManger: undefined,
-        contextMenuManager: undefined
+        contextMenuManager: undefined,
+        annotationManager: annotationManager
     };
     var $endMarker = $('#end-marker');
     var textSelectionInProgress = false;

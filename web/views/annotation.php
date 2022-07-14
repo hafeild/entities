@@ -102,8 +102,11 @@
                 <!-- Menu for adding a mention -->
                 <ul id="text-panel-add-mention-menu" class="hidden text-panel-menu menu hover-menu">
                     <li>Filter: <input type="text" default="abraham lincoln"/></li>
-                    <li class="clickable add-mention-option">Add mention</li>
-                    
+                    <li class="all-entities"><span class="menu-label">All entities</span>
+                        <ul>
+                            <li class="alias-group clickable">Test group A</li>
+                        </ul>
+                    </li>
                     <div class="hidden templates">
                         <li class="clickable alias-group"></li>
                     </div>
@@ -216,7 +219,7 @@
                 <?php readfile($data["text"]["content_file"]); ?>
             </div>
             <script>
-                var textPanelManager = TextPanel.TextPanelManager();
+                var textPanelManager = TextPanel.TextPanelManager(annotationManager);
                     // For testing only!
                     // findTies(30);
                 textPanelManager.tokenManager.initializeTokenizedContent();

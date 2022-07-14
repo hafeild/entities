@@ -16,8 +16,9 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         textPanelManager: textPanelManager,
         tokens: undefined
     };
-
-    var $document, $menu, $selectionMenu, $addMentionMenu, menuConfigData = {};
+    // var entityMenuOperations = EntityMenuOperations(annotationManager);
+    var $document, $menu, $selectionMenu, $addMentionMenu, menuConfigData = {},
+        addAliasMenuManager;
 
     /**
      * 
@@ -734,6 +735,11 @@ TextPanel.ContextMenuManager = function(textPanelManager){
 
     }
 
+    /**
+     * 
+     * @param {*} e 
+     */
+
     var openAddTieModal = function(e) {
         $(document).trigger('entities.annotation.set-tie-view', {
             textSpans: menuConfigData.textSpans,
@@ -1272,6 +1278,11 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         $selectionMenu = $('#text-panel-selection-menu')
         $document = $(document);
         $addMentionMenu = $('#text-panel-add-mention-menu');
+        addAliasMenuManager = EntityMenuManager(
+            self.textPanelManager.annotationManager,
+            $addMentionMenu);
+
+        addAliasMenuManager.populateMenu();
 
         addListeners();
     };
