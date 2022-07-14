@@ -7,6 +7,7 @@
 <script src="/js/text-panel/text-panel-manager.js"></script>
 <script src="/js/text-panel/context-menu-manager.js"></script>
 <script src="/js/text-panel/token-manager.js"></script>
+<script src="/js/entity-menu-manager.js"></script>
 <script src="/js/annotations.js"></script>
 <script src="/js/permissions.js"></script>
 <script src="/js/ui-updater.js"></script>
@@ -194,7 +195,7 @@
                     annotationManager = AnnotationManager(annotation_data);
                     tokenNavigator = TokenNavigator(annotation_data);
                     entitiesPanelManager = EntitiesPanelManager(annotationManager);
-                     networkViz = NetworkVisualizer();
+                    networkViz = NetworkVisualizer();
                     entitiesPanelManager.addAliasGroupsFromAnnotation();
                     // displayAnnotation();
                 </script>

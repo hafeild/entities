@@ -26,6 +26,8 @@ var EntitiesPanelManager = function(annotationManager){
     var droppableSettings, draggableSettings, selectableSettings;
     var $aliasGroupEditMenu = $('#entities-panel-alias-group-edit-menu');
     var $aliasEditMenu = $('#entities-panel-alias-edit-menu');
+    var aliasGroupEditMenuManager = EntityMenuManager(annotationManager, $aliasGroupEditMenu);
+    var aliasEditMenuManager = EntityMenuManager(annotationManager, $aliasEditMenu);
 
     /**
      * Adds all of the alias groups in the given annotation to the entities
@@ -62,11 +64,6 @@ var EntitiesPanelManager = function(annotationManager){
             self.addEntity($aliasGroup, entities[entityId].name, entityId);
         }
         $aliasGroup.droppable(droppableSettings);
-
-
-        // Add to menu.
-        addAliasGroupToMenu($aliasEditMenu, groupId, groupName);
-        addAliasGroupToMenu($aliasGroupEditMenu, groupId, groupName);
     };
 
     /**
@@ -100,8 +97,7 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
-     * Triggered when an entity is added to the annotation
-     * manager.
+     * Triggered when an entity is added to the annotation manager.
      * 
      * @param {Event} event The DOM event. 
      * @param {Object} data Should include the fields: id, name.
@@ -131,14 +127,13 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
-     * Removes an alias group from the entities panel and menus.
+     * Removes an alias group from the entities panel.
      * 
      * @param {Event} event The DOM event. 
      * @param {Object} data Should include the fields: id
      */
     var onAliasGroupRemovedFromAnnotation = function(event, data){
         $entitiesPanel.find(`.alias-group[data-id=${data.id}]`).remove();
-        $(`.entities-panel-menu li[data-id=${data.id}]`).remove();
     };
 
     /**
@@ -163,7 +158,7 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
-     * Changes an alias group's name in the entities panel and menus.
+     * Changes an alias group's name in the entities panel.
      * 
      * @param {Event} event The DOM event. 
      * @param {Object} data Should include the fields: id, name (new)
@@ -173,9 +168,6 @@ var EntitiesPanelManager = function(annotationManager){
         var $name = $entitiesPanel.find(
             `.alias-group[data-id=${data.id}] .alias-group-name-wrapper .name`);
         $name.html(data.name);
-
-        // Rename in menus.
-        $(`.entities-panel-menu li[data-id=${data.id}]`).html(data.name);
     };
 
     /**
@@ -387,59 +379,13 @@ var EntitiesPanelManager = function(annotationManager){
     };
 
     /**
-     * Adds an alias group to the specified entities panel menu.
-     * 
-     * @param {jQuery} $menu The menu to add the alias group to.
-     * @param {string} id The id of the group.
-     * @param {string} name The name of the group.
-     * @param {jQuery} $allEntitiesList (Optional) The ul element containing 
-     *                                  selectable items in the menu.
-     * @param {jQuery} $itemTemplate (Optional) The template of the item.
-     */
-    var addAliasGroupToMenu = function($menu, id, name, $allEntitiesList, $itemTemplate){
-        if($allEntitiesList === undefined){
-            $allEntitiesList = $menu.find('.all-entities ul');
-        }
-        if($itemTemplate === undefined){
-            var $itemTemplate = $menu.find('.templates .alias-group');
-        }
-
-        var $groupListItem = $itemTemplate.clone();
-        $groupListItem.html(name);
-        $allEntitiesList.append($groupListItem);
-        $groupListItem.attr('data-id', id);
-    };
-
-    /**
      * Populates the list of 'all-entities' in the given entities panel menu if 
      * $menu is specified, or both the alias group and alias menus otherwise.
-     * 
-     * @param {jQuery} menu The menu to populate (optional).
      */
-    var populateMenus = function($menu){
-        if($menu === undefined){
-            populateMenus($aliasEditMenu);
-            populateMenus($aliasGroupEditMenu);
-            return;
-        }
-
-        var $itemTemplate = $menu.find('.templates .alias-group');
-        var groupId;
-        var $allEntitiesList = $menu.find('.all-entities ul')
-
-        // Clear the list.
-        $allEntitiesList.html('');
-
-        // Add each of the groups.
-        for(groupId in annotationManager.groups){
-            addAliasGroupToMenu($menu, groupId, 
-                annotationManager.groups[groupId].name, 
-                $allEntitiesList,
-                $itemTemplate)
-        }
-
+    var populateMenus = function(){
+        aliasEditMenuManager.populateMenu();
+        aliasGroupEditMenuManager.populateMenu();
     };
-    self.populateMenus = populateMenus;
 
     /**
      * Displays the entity or alias options menu (two different menus). 
