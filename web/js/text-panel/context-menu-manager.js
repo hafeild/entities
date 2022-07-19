@@ -465,7 +465,9 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         // are relative to the selection menu itself.
         var $moreMentionsSelectionMenuOption = $(this);
         var menuPosition = {
-            x: $selectionMenu.offset().left + $selectionMenu.width(),
+            x: $moreMentionsSelectionMenuOption.offset().left + 
+                $moreMentionsSelectionMenuOption.width(),
+            // x: $selectionMenu.offset().left + $selectionMenu.width(),
             y: $moreMentionsSelectionMenuOption.offset().top
         };
 
@@ -1215,6 +1217,7 @@ TextPanel.ContextMenuManager = function(textPanelManager){
         // Context Menu Options
         $textPanel.on('click', '.add-mention-option', openAddMentionModal); // TODO: IN PROGRESS
         $document.on('mouseenter', '.add-mention-option-more', showAddMentionMenu);
+        $document.on('mouseleave', '.add-mention-option-more', function(){$addMentionMenu.addClass('hidden');});
 
         $textPanel.on('click', '#confirmAddMention', confirmAddMention);
         $textPanel.on('click', '.reassignMentionOption', openReassignMentionModal);

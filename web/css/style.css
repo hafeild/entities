@@ -527,7 +527,7 @@ body.fullscreen #text-panel-wrapper {
 }
 
 .menu li {
-    cursor: pointer;
+    cursor: default;
     margin-left: 0;
     padding: 0 1em 0 1em;
     color: black;
@@ -538,11 +538,17 @@ body.fullscreen #text-panel-wrapper {
     padding-right: 0;   
 }
 
-.menu li.clickable:hover {
+.menu li.clickable {
+    cursor: pointer;
+}
+
+.menu li.clickable:hover,
+.menu li.selectable:hover {
     background-color: lightsteelblue;
 
 }
-.menu li.clickable:active {
+.menu li.clickable:active,
+.menu li.selectable:active {
     background-color: steelblue;
     color: white;
 }

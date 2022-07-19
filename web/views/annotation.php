@@ -98,7 +98,7 @@
                     <li class="alias-group">No suggestions</li>
                 </ul>
             </li>
-            <li class="add-mention-option-more">More <i class="bi bi-chevron-right"></i>
+            <li class="selectable add-mention-option-more">More <i class="bi bi-chevron-right"></i>
                 <!-- Menu for adding a mention -->
                 <ul id="text-panel-add-mention-menu" class="hidden text-panel-menu menu hover-menu">
                     <li>Filter: <input type="text" default="abraham lincoln"/></li>
